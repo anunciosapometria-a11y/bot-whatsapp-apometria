@@ -347,15 +347,19 @@ async function handleMessage(from, messageText) {
 
   console.log(`📩 Mensagem de ${from}: "${text}" | Estágio: ${session.stage}`);
 
+  // IMPORTANTE: o estágio é travado ANTES de qualquer await, pra evitar que
+  // mensagens que chegam em rajada (quase ao mesmo tempo) leiam o estágio antigo
+  // e disparem a mesma etapa mais de uma vez.
   if (session.stage === 'abertura') {
+    session.stage = 'aguardando_nome';
     await sendImage(from, LOGO_URL);
     await sleep(typingDelay(ABERTURA_MSG_1));
     await sendMessage(from, ABERTURA_MSG_1);
-    session.stage = 'aguardando_nome';
     return;
   }
 
   if (session.stage === 'aguardando_nome') {
+    session.stage = 'conversa';
     const nome = text.split(' ')[0].replace(/[^\p{L}]/gu, '') || text;
     session.clientName = nome.charAt(0).toUpperCase() + nome.slice(1);
     const msg2 = aberturaMsg2(session.clientName);
@@ -367,7 +371,6 @@ async function handleMessage(from, messageText) {
       { role: 'user', content: `Meu nome é ${session.clientName}` },
       { role: 'assistant', content: msg2 }
     );
-    session.stage = 'conversa';
     return;
   }
 
