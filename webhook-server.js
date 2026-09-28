@@ -44,7 +44,8 @@ function getSession(phone) {
     history: [],
     lastActivity: now,
     stage: 'abertura',
-    clientName: null
+    clientName: null,
+    quisConhecerTerapias: null
   };
   sessions.set(phone, newSession);
   return newSession;
@@ -244,8 +245,39 @@ Somos um instituto especializado em trabalhos de limpeza espiritual e energétic
 
 Qual seu nome, por gentileza?`;
 
-function aberturaMsg2(nome) {
-  return `${nome}, para qual motivo ou área da sua vida gostaria de realizar a apometria? Assim posso explicar melhor como funciona no seu caso.`;
+function menuTerapiaMsg(nome) {
+  return `${nome}, você já conhece como funcionam nossas terapias ou prefere que eu explique rapidamente?
+
+1️⃣ Quero conhecer as terapias
+2️⃣ Já conheço, quero contar meu caso`;
+}
+
+const EXPLICACAO_TERAPIA_MSG = `A Apometria é uma técnica espiritual de investigação, tratamento e remoção de energias, obsessores e bloqueios que estejam influenciando negativamente o campo energético da pessoa.
+
+É feita totalmente à distância, sem necessidade da sua presença, e atende questões emocionais, financeiras, de saúde, trabalho/carreira e outras áreas da vida.`;
+
+function menuTemaMsg(nome) {
+  return `${nome}, para qual área da sua vida você gostaria de realizar a apometria?
+
+1️⃣ Emocional / relacionamento
+2️⃣ Financeiro / prosperidade
+3️⃣ Saúde física
+4️⃣ Trabalho / carreira
+5️⃣ Outro assunto`;
+}
+
+const TEMA_LABELS = {
+  '1': 'Questões emocionais / relacionamento',
+  '2': 'Bloqueios financeiros / prosperidade',
+  '3': 'Saúde física',
+  '4': 'Trabalho / carreira',
+  '5': 'Outro assunto'
+};
+
+function quisPularExplicacao(text) {
+  const t = text.trim().toLowerCase();
+  if (t === '2') return true;
+  return /(j[áa]\s*conhe[çc]o|j[áa]\s*sei|pular|pode pular|n[ãa]o precisa|contar meu caso)/.test(t);
 }
 
 // ─── ENVIAR MENSAGEM DE TEXTO VIA WHATSAPP API ────────────────────────────────
@@ -359,10 +391,10 @@ async function handleMessage(from, messageText) {
   }
 
   if (session.stage === 'aguardando_nome') {
-    session.stage = 'conversa';
+    session.stage = 'menu_terapia';
     const nome = text.split(' ')[0].replace(/[^\p{L}]/gu, '') || text;
     session.clientName = nome.charAt(0).toUpperCase() + nome.slice(1);
-    const msg2 = aberturaMsg2(session.clientName);
+    const msg2 = menuTerapiaMsg(session.clientName);
 
     await sleep(typingDelay(msg2));
     await sendMessage(from, msg2);
@@ -371,6 +403,38 @@ async function handleMessage(from, messageText) {
       { role: 'user', content: `Meu nome é ${session.clientName}` },
       { role: 'assistant', content: msg2 }
     );
+    return;
+  }
+
+  if (session.stage === 'menu_terapia') {
+    session.stage = 'menu_tema';
+
+    if (!quisPularExplicacao(text)) {
+      await sleep(typingDelay(EXPLICACAO_TERAPIA_MSG));
+      await sendMessage(from, EXPLICACAO_TERAPIA_MSG);
+      session.history.push(
+        { role: 'user', content: text },
+        { role: 'assistant', content: EXPLICACAO_TERAPIA_MSG }
+      );
+    }
+
+    const msgTema = menuTemaMsg(session.clientName);
+    await sleep(typingDelay(msgTema));
+    await sendMessage(from, msgTema);
+    session.history.push(
+      { role: 'user', content: text },
+      { role: 'assistant', content: msgTema }
+    );
+    return;
+  }
+
+  if (session.stage === 'menu_tema') {
+    session.stage = 'conversa';
+    const escolha = text.trim();
+    const motivoTexto = TEMA_LABELS[escolha] || text;
+
+    const response = await processWithClaude(session, motivoTexto);
+    await sendClaudeResponse(from, response);
     return;
   }
 
