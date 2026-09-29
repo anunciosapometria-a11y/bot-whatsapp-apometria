@@ -135,7 +135,8 @@ function getSession(phone) {
     lastActivity: now,
     stage: 'abertura',
     clientName: null,
-    quisConhecerTerapias: null
+    quisConhecerTerapias: null,
+    pausado: false
   };
   sessions.set(phone, newSession);
   return newSession;
@@ -468,6 +469,24 @@ async function processWithClaude(session, userMessage) {
   }
 }
 
+// ─── ENVIO MANUAL PELO PAINEL (humano assume a conversa) ─────────────────────
+async function sendManual(phone, texto) {
+  const session = getSession(phone);
+  session.pausado = true; // ao responder manualmente, pausa as respostas automáticas
+  session.history.push({ role: 'assistant', content: texto });
+  if (session.history.length > MAX_HISTORY_MESSAGES) {
+    session.history = session.history.slice(-MAX_HISTORY_MESSAGES);
+  }
+  await sendMessage(phone, texto);
+  await upsertConversation(phone, session.clientName, session.stage);
+}
+
+function setPausado(phone, pausado) {
+  const session = getSession(phone);
+  session.pausado = pausado;
+  return session;
+}
+
 // ─── LÓGICA DE ROTEAMENTO DE MENSAGENS ───────────────────────────────────────
 // mediaInfo (opcional): { id, mimeType, tipo } quando a mensagem do cliente for imagem/documento
 async function handleMessage(from, messageText, mediaInfo = null) {
@@ -484,6 +503,13 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     await saveMessage(from, 'in', text);
   }
   await upsertConversation(from, session.clientName, session.stage);
+
+  // Se a conversa estiver pausada (humano assumiu pelo painel), o bot não responde
+  // automaticamente — apenas registra a mensagem recebida acima.
+  if (session.pausado) {
+    console.log(`⏸️  Conversa com ${from} está pausada (atendimento manual). Bot não respondeu.`);
+    return;
+  }
 
   // IMPORTANTE: o estágio é travado ANTES de qualquer await, pra evitar que
   // mensagens que chegam em rajada (quase ao mesmo tempo) leiam o estágio antigo
@@ -660,7 +686,11 @@ app.get('/painel/api/conversas', async (req, res) => {
       ORDER BY c.updated_at DESC
       LIMIT 200
     `);
-    res.json(rows);
+    const comEstado = rows.map(r => ({
+      ...r,
+      pausado: sessions.get(r.phone)?.pausado || false
+    }));
+    res.json(comEstado);
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
@@ -668,17 +698,40 @@ app.get('/painel/api/conversas', async (req, res) => {
 
 // Mensagens de uma conversa específica
 app.get('/painel/api/conversas/:phone', async (req, res) => {
-  if (!pool) return res.json([]);
+  if (!pool) return res.json({ mensagens: [], pausado: false });
   try {
     const { rows } = await pool.query(
       `SELECT id, direction, content, media_base64, media_mime, created_at
        FROM messages WHERE phone = $1 ORDER BY created_at ASC`,
       [req.params.phone]
     );
-    res.json(rows);
+    res.json({
+      mensagens: rows,
+      pausado: sessions.get(req.params.phone)?.pausado || false
+    });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
+});
+
+// Enviar mensagem manualmente pelo painel (pausa o bot automaticamente nessa conversa)
+app.post('/painel/api/conversas/:phone/enviar', async (req, res) => {
+  const texto = (req.body?.texto || '').trim();
+  if (!texto) return res.status(400).json({ erro: 'Texto vazio.' });
+  try {
+    await sendManual(req.params.phone, texto);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Pausar ou retomar as respostas automáticas do bot para uma conversa
+app.post('/painel/api/conversas/:phone/pausar', async (req, res) => {
+  const pausado = !!req.body?.pausado;
+  const session = setPausado(req.params.phone, pausado);
+  await upsertConversation(req.params.phone, session.clientName, session.stage);
+  res.json({ ok: true, pausado });
 });
 
 // Página HTML do painel
@@ -696,27 +749,47 @@ app.get('/painel', (req, res) => {
   .conversa { padding:12px 16px; border-bottom:1px solid #f0ece3; cursor:pointer; }
   .conversa:hover { background:#f6f3ee; }
   .conversa.ativa { background:#efe6f2; }
-  .conversa .nome { font-weight:600; font-size:14px; }
+  .conversa .nome { font-weight:600; font-size:14px; display:flex; align-items:center; gap:6px; }
+  .conversa .nome .bolinha { width:7px; height:7px; border-radius:50%; background:#c9a63b; flex-shrink:0; }
   .conversa .stage { font-size:11px; color:#8a7f6d; text-transform:uppercase; }
   .conversa .preview { font-size:12px; color:#6b6153; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
   #chat { flex:1; display:flex; flex-direction:column; }
-  #chatHeader { padding:14px 20px; border-bottom:1px solid #e0d8c9; background:#fff; font-weight:600; }
+  #chatHeader { padding:14px 20px; border-bottom:1px solid #e0d8c9; background:#fff; font-weight:600; display:flex; align-items:center; justify-content:space-between; }
+  #chatHeader .titulo { display:flex; flex-direction:column; }
+  #chatHeader .subtitulo { font-size:12px; font-weight:400; color:#8a7f6d; margin-top:2px; }
+  #btnPausar { border:1px solid #d8cdb8; background:#fff; color:#5a5142; padding:7px 14px; border-radius:8px; font-size:13px; cursor:pointer; }
+  #btnPausar.ativo { background:#7a4d8c; color:#fff; border-color:#7a4d8c; }
   #msgs { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px; }
   .msg { max-width:60%; padding:8px 12px; border-radius:12px; font-size:14px; white-space:pre-wrap; }
   .msg.in { align-self:flex-start; background:#fff; border:1px solid #e0d8c9; }
   .msg.out { align-self:flex-end; background:#7a4d8c; color:#fff; }
   .msg img { max-width:220px; border-radius:8px; display:block; margin-top:6px; }
   .vazio { padding:40px; color:#8a7f6d; text-align:center; }
+  #respostaBox { display:flex; gap:8px; padding:14px 20px; border-top:1px solid #e0d8c9; background:#fff; }
+  #respostaTexto { flex:1; resize:none; border:1px solid #d8cdb8; border-radius:10px; padding:10px 12px; font-family:inherit; font-size:14px; min-height:20px; max-height:120px; }
+  #respostaEnviar { background:#7a4d8c; color:#fff; border:none; border-radius:10px; padding:0 20px; font-size:14px; cursor:pointer; }
+  #respostaEnviar:disabled { opacity:0.5; cursor:default; }
 </style>
 </head>
 <body>
   <div id="lista"><h2>Conversas</h2><div id="listaConteudo" class="vazio">Carregando...</div></div>
   <div id="chat">
-    <div id="chatHeader">Selecione uma conversa</div>
+    <div id="chatHeader">
+      <div class="titulo">
+        <span id="chatTitulo">Selecione uma conversa</span>
+        <span class="subtitulo" id="chatSubtitulo"></span>
+      </div>
+      <button id="btnPausar" style="display:none"></button>
+    </div>
     <div id="msgs"></div>
+    <div id="respostaBox" style="display:none">
+      <textarea id="respostaTexto" placeholder="Escreva sua resposta..." rows="1"></textarea>
+      <button id="respostaEnviar">Enviar</button>
+    </div>
   </div>
 <script>
   let ativo = null;
+  let ativoPausado = false;
 
   async function carregarLista() {
     const res = await fetch('/painel/api/conversas');
@@ -725,8 +798,8 @@ app.get('/painel', (req, res) => {
     if (!dados.length) { el.className='vazio'; el.textContent='Nenhuma conversa ainda.'; return; }
     el.className = '';
     el.innerHTML = dados.map(c => \`
-      <div class="conversa" data-phone="\${c.phone}">
-        <div class="nome">\${c.client_name || c.phone}</div>
+      <div class="conversa\${c.phone === ativo ? ' ativa' : ''}" data-phone="\${c.phone}">
+        <div class="nome">\${c.pausado ? '<span class="bolinha" title="Atendimento manual"></span>' : ''}\${c.client_name || c.phone}</div>
         <div class="stage">\${c.stage}</div>
         <div class="preview">\${(c.ultima_mensagem || '').slice(0,60)}</div>
       </div>
@@ -740,9 +813,15 @@ app.get('/painel', (req, res) => {
     document.querySelectorAll('.conversa').forEach(d => d.classList.remove('ativa'));
     if (el) el.classList.add('ativa');
     ativo = phone;
-    document.getElementById('chatHeader').textContent = phone;
+    document.getElementById('chatTitulo').textContent = phone;
+    document.getElementById('respostaBox').style.display = 'flex';
+
     const res = await fetch('/painel/api/conversas/' + encodeURIComponent(phone));
-    const msgs = await res.json();
+    const dados = await res.json();
+    const msgs = dados.mensagens || [];
+    ativoPausado = !!dados.pausado;
+    atualizarBotaoPausar();
+
     const el2 = document.getElementById('msgs');
     el2.innerHTML = msgs.map(m => \`
       <div class="msg \${m.direction}">
@@ -752,6 +831,62 @@ app.get('/painel', (req, res) => {
     \`).join('');
     el2.scrollTop = el2.scrollHeight;
   }
+
+  function atualizarBotaoPausar() {
+    const btn = document.getElementById('btnPausar');
+    btn.style.display = 'inline-block';
+    if (ativoPausado) {
+      btn.textContent = '🙋 Atendimento manual (retomar bot)';
+      btn.classList.add('ativo');
+      document.getElementById('chatSubtitulo').textContent = 'Bot pausado — você está respondendo';
+    } else {
+      btn.textContent = '⏸️ Assumir conversa';
+      btn.classList.remove('ativo');
+      document.getElementById('chatSubtitulo').textContent = 'Bot respondendo automaticamente';
+    }
+  }
+
+  document.getElementById('btnPausar').onclick = async () => {
+    if (!ativo) return;
+    const novoEstado = !ativoPausado;
+    await fetch('/painel/api/conversas/' + encodeURIComponent(ativo) + '/pausar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pausado: novoEstado })
+    });
+    ativoPausado = novoEstado;
+    atualizarBotaoPausar();
+  };
+
+  async function enviarResposta() {
+    const textarea = document.getElementById('respostaTexto');
+    const texto = textarea.value.trim();
+    if (!texto || !ativo) return;
+    const btn = document.getElementById('respostaEnviar');
+    btn.disabled = true;
+    try {
+      await fetch('/painel/api/conversas/' + encodeURIComponent(ativo) + '/enviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto })
+      });
+      textarea.value = '';
+      ativoPausado = true;
+      atualizarBotaoPausar();
+      await abrirConversa(ativo);
+      await carregarLista();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('respostaEnviar').onclick = enviarResposta;
+  document.getElementById('respostaTexto').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      enviarResposta();
+    }
+  });
 
   carregarLista();
   setInterval(() => { carregarLista(); if (ativo) abrirConversa(ativo); }, 15000);
