@@ -2,13 +2,14 @@
  * Webhook Server — Instituto Apometria Brasil
  * WhatsApp Cloud API + Claude API
  *
- * Dependências: npm install express axios @anthropic-ai/sdk dotenv
+ * Dependências: npm install express axios @anthropic-ai/sdk dotenv pg
  */
 
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const Anthropic = require('@anthropic-ai/sdk');
+const { Pool } = require('pg');
 
 const app = express();
 app.use(express.json());
@@ -20,10 +21,99 @@ const {
   WEBHOOK_VERIFY_TOKEN,    // Token que você define pra verificação do webhook
   ANTHROPIC_API_KEY,       // Chave da API da Anthropic (Claude)
   LOGO_URL,                // URL pública da imagem do logo (enviada na abertura)
+  DATABASE_URL,            // Criada automaticamente pelo Railway ao adicionar o Postgres
+  DASHBOARD_USER,          // Usuário do painel de conversas
+  DASHBOARD_PASSWORD,      // Senha do painel de conversas
   PORT = 3000
 } = process.env;
 
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+// ─── BANCO DE DADOS (histórico de conversas + comprovantes) ──────────────────
+const pool = DATABASE_URL
+  ? new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } })
+  : null;
+
+async function initDb() {
+  if (!pool) {
+    console.warn('⚠️ DATABASE_URL não configurada — painel/histórico permanente desativados.');
+    return;
+  }
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      phone TEXT PRIMARY KEY,
+      client_name TEXT,
+      stage TEXT,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      phone TEXT NOT NULL,
+      direction TEXT NOT NULL,       -- 'in' (cliente) ou 'out' (bot/Paulo)
+      content TEXT,
+      media_base64 TEXT,
+      media_mime TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+  console.log('🗄️  Banco de dados pronto.');
+}
+
+async function upsertConversation(phone, clientName, stage) {
+  if (!pool) return;
+  try {
+    await pool.query(
+      `INSERT INTO conversations (phone, client_name, stage, updated_at)
+       VALUES ($1, $2, $3, now())
+       ON CONFLICT (phone) DO UPDATE SET
+         client_name = COALESCE(EXCLUDED.client_name, conversations.client_name),
+         stage = EXCLUDED.stage,
+         updated_at = now()`,
+      [phone, clientName, stage]
+    );
+  } catch (err) {
+    console.error('❌ Erro ao salvar conversa no banco:', err.message);
+  }
+}
+
+async function saveMessage(phone, direction, content, mediaBase64 = null, mediaMime = null) {
+  if (!pool) return;
+  try {
+    await pool.query(
+      `INSERT INTO messages (phone, direction, content, media_base64, media_mime)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [phone, direction, content, mediaBase64, mediaMime]
+    );
+  } catch (err) {
+    console.error('❌ Erro ao salvar mensagem no banco:', err.message);
+  }
+}
+
+// ─── BAIXAR MÍDIA (comprovante) ENVIADA PELO CLIENTE ──────────────────────────
+async function baixarMidiaWhatsapp(mediaId) {
+  try {
+    const infoRes = await axios.get(`https://graph.facebook.com/v21.0/${mediaId}`, {
+      headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` }
+    });
+    const { url, mime_type } = infoRes.data;
+
+    const fileRes = await axios.get(url, {
+      headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+      responseType: 'arraybuffer'
+    });
+
+    return {
+      base64: Buffer.from(fileRes.data).toString('base64'),
+      mime: mime_type
+    };
+  } catch (err) {
+    console.error('❌ Erro ao baixar mídia do WhatsApp:', err.response?.data || err.message);
+    return null;
+  }
+}
 
 // ─── MEMÓRIA DE SESSÕES ────────────────────────────────────────────────────────
 const sessions = new Map();
@@ -267,11 +357,10 @@ function menuTemaMsg(nome) {
 }
 
 const TEMA_LABELS = {
-  '1': 'Questões emocionais / relacionamento',
-  '2': 'Bloqueios financeiros / prosperidade',
-  '3': 'Saúde física',
-  '4': 'Trabalho / carreira',
-  '5': 'Outro assunto'
+  '1': 'Quero fazer apometria para questões emocionais / de relacionamento',
+  '2': 'Quero fazer apometria para bloqueios financeiros / prosperidade',
+  '3': 'Quero fazer apometria para uma questão de saúde física',
+  '4': 'Quero fazer apometria para trabalho / carreira'
 };
 
 function quisPularExplicacao(text) {
@@ -280,8 +369,15 @@ function quisPularExplicacao(text) {
   return /(j[áa]\s*conhe[çc]o|j[áa]\s*sei|pular|pode pular|n[ãa]o precisa|contar meu caso)/.test(t);
 }
 
+function normalizaEscolhaTema(text) {
+  const t = text.trim();
+  if (t === '5' || /outro assunto/i.test(t)) return 'outro';
+  return t;
+}
+
 // ─── ENVIAR MENSAGEM DE TEXTO VIA WHATSAPP API ────────────────────────────────
 async function sendMessage(to, text) {
+  await saveMessage(to, 'out', text);
   try {
     await axios.post(
       `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
@@ -373,11 +469,21 @@ async function processWithClaude(session, userMessage) {
 }
 
 // ─── LÓGICA DE ROTEAMENTO DE MENSAGENS ───────────────────────────────────────
-async function handleMessage(from, messageText) {
+// mediaInfo (opcional): { id, mimeType, tipo } quando a mensagem do cliente for imagem/documento
+async function handleMessage(from, messageText, mediaInfo = null) {
   const session = getSession(from);
   const text = messageText.trim();
 
   console.log(`📩 Mensagem de ${from}: "${text}" | Estágio: ${session.stage}`);
+
+  // Salva a mensagem recebida no histórico permanente (com a mídia, se houver comprovante)
+  if (mediaInfo) {
+    const midia = await baixarMidiaWhatsapp(mediaInfo.id);
+    await saveMessage(from, 'in', text, midia?.base64 || null, midia?.mime || mediaInfo.mimeType || null);
+  } else {
+    await saveMessage(from, 'in', text);
+  }
+  await upsertConversation(from, session.clientName, session.stage);
 
   // IMPORTANTE: o estágio é travado ANTES de qualquer await, pra evitar que
   // mensagens que chegam em rajada (quase ao mesmo tempo) leiam o estágio antigo
@@ -387,6 +493,7 @@ async function handleMessage(from, messageText) {
     await sendImage(from, LOGO_URL);
     await sleep(typingDelay(ABERTURA_MSG_1));
     await sendMessage(from, ABERTURA_MSG_1);
+    await upsertConversation(from, session.clientName, session.stage);
     return;
   }
 
@@ -403,6 +510,7 @@ async function handleMessage(from, messageText) {
       { role: 'user', content: `Meu nome é ${session.clientName}` },
       { role: 'assistant', content: msg2 }
     );
+    await upsertConversation(from, session.clientName, session.stage);
     return;
   }
 
@@ -425,21 +533,36 @@ async function handleMessage(from, messageText) {
       { role: 'user', content: text },
       { role: 'assistant', content: msgTema }
     );
+    await upsertConversation(from, session.clientName, session.stage);
     return;
   }
 
   if (session.stage === 'menu_tema') {
     session.stage = 'conversa';
-    const escolha = text.trim();
-    const motivoTexto = TEMA_LABELS[escolha] || text;
+    const escolha = normalizaEscolhaTema(text);
 
+    if (escolha === 'outro') {
+      const pergunta = `${session.clientName}, pode me contar rapidamente qual é a situação ou área que você gostaria de trabalhar?`;
+      await sleep(typingDelay(pergunta));
+      await sendMessage(from, pergunta);
+      session.history.push(
+        { role: 'user', content: text },
+        { role: 'assistant', content: pergunta }
+      );
+      await upsertConversation(from, session.clientName, session.stage);
+      return;
+    }
+
+    const motivoTexto = TEMA_LABELS[escolha] || text;
     const response = await processWithClaude(session, motivoTexto);
     await sendClaudeResponse(from, response);
+    await upsertConversation(from, session.clientName, session.stage);
     return;
   }
 
   const response = await processWithClaude(session, text);
   await sendClaudeResponse(from, response);
+  await upsertConversation(from, session.clientName, session.stage);
 }
 
 // ─── ROTAS DO WEBHOOK ─────────────────────────────────────────────────────────
@@ -479,7 +602,12 @@ app.post('/webhook', async (req, res) => {
               console.error(`❌ Erro ao processar mensagem de ${from}:`, err);
             });
           } else if (message.type === 'image' || message.type === 'document') {
-            handleMessage(from, '[Cliente enviou um comprovante/imagem/documento]').catch(err => {
+            const media = message.image || message.document;
+            handleMessage(
+              from,
+              '[Cliente enviou um comprovante/imagem/documento]',
+              { id: media.id, mimeType: media.mime_type, tipo: message.type }
+            ).catch(err => {
               console.error(`❌ Erro ao processar mídia de ${from}:`, err);
             });
           } else if (message.type === 'audio') {
@@ -498,14 +626,148 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', sessions: sessions.size });
+  res.json({ status: 'ok', sessions: sessions.size, banco: !!pool });
+});
+
+// ─── PAINEL DE CONVERSAS (protegido por usuário/senha) ────────────────────────
+function autenticarPainel(req, res, next) {
+  if (!DASHBOARD_USER || !DASHBOARD_PASSWORD) {
+    return res.status(503).send('Painel não configurado. Defina DASHBOARD_USER e DASHBOARD_PASSWORD no Railway.');
+  }
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="Painel Apometria"');
+    return res.status(401).send('Login necessário.');
+  }
+  const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
+  if (user !== DASHBOARD_USER || pass !== DASHBOARD_PASSWORD) {
+    res.set('WWW-Authenticate', 'Basic realm="Painel Apometria"');
+    return res.status(401).send('Usuário ou senha incorretos.');
+  }
+  next();
+}
+
+app.use('/painel', autenticarPainel);
+
+// Lista de conversas (mais recentes primeiro)
+app.get('/painel/api/conversas', async (req, res) => {
+  if (!pool) return res.json([]);
+  try {
+    const { rows } = await pool.query(`
+      SELECT c.phone, c.client_name, c.stage, c.updated_at,
+        (SELECT content FROM messages m WHERE m.phone = c.phone ORDER BY m.created_at DESC LIMIT 1) AS ultima_mensagem
+      FROM conversations c
+      ORDER BY c.updated_at DESC
+      LIMIT 200
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Mensagens de uma conversa específica
+app.get('/painel/api/conversas/:phone', async (req, res) => {
+  if (!pool) return res.json([]);
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, direction, content, media_base64, media_mime, created_at
+       FROM messages WHERE phone = $1 ORDER BY created_at ASC`,
+      [req.params.phone]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Página HTML do painel
+app.get('/painel', (req, res) => {
+  res.send(`<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — Instituto Apometria Brasil</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { margin:0; font-family: system-ui, sans-serif; background:#f6f3ee; color:#2b2620; display:flex; height:100vh; }
+  #lista { width:320px; border-right:1px solid #e0d8c9; overflow-y:auto; background:#fff; }
+  #lista h2 { font-size:14px; padding:14px 16px; margin:0; border-bottom:1px solid #e0d8c9; }
+  .conversa { padding:12px 16px; border-bottom:1px solid #f0ece3; cursor:pointer; }
+  .conversa:hover { background:#f6f3ee; }
+  .conversa.ativa { background:#efe6f2; }
+  .conversa .nome { font-weight:600; font-size:14px; }
+  .conversa .stage { font-size:11px; color:#8a7f6d; text-transform:uppercase; }
+  .conversa .preview { font-size:12px; color:#6b6153; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+  #chat { flex:1; display:flex; flex-direction:column; }
+  #chatHeader { padding:14px 20px; border-bottom:1px solid #e0d8c9; background:#fff; font-weight:600; }
+  #msgs { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:60%; padding:8px 12px; border-radius:12px; font-size:14px; white-space:pre-wrap; }
+  .msg.in { align-self:flex-start; background:#fff; border:1px solid #e0d8c9; }
+  .msg.out { align-self:flex-end; background:#7a4d8c; color:#fff; }
+  .msg img { max-width:220px; border-radius:8px; display:block; margin-top:6px; }
+  .vazio { padding:40px; color:#8a7f6d; text-align:center; }
+</style>
+</head>
+<body>
+  <div id="lista"><h2>Conversas</h2><div id="listaConteudo" class="vazio">Carregando...</div></div>
+  <div id="chat">
+    <div id="chatHeader">Selecione uma conversa</div>
+    <div id="msgs"></div>
+  </div>
+<script>
+  let ativo = null;
+
+  async function carregarLista() {
+    const res = await fetch('/painel/api/conversas');
+    const dados = await res.json();
+    const el = document.getElementById('listaConteudo');
+    if (!dados.length) { el.className='vazio'; el.textContent='Nenhuma conversa ainda.'; return; }
+    el.className = '';
+    el.innerHTML = dados.map(c => \`
+      <div class="conversa" data-phone="\${c.phone}">
+        <div class="nome">\${c.client_name || c.phone}</div>
+        <div class="stage">\${c.stage}</div>
+        <div class="preview">\${(c.ultima_mensagem || '').slice(0,60)}</div>
+      </div>
+    \`).join('');
+    document.querySelectorAll('.conversa').forEach(div => {
+      div.onclick = () => abrirConversa(div.dataset.phone, div);
+    });
+  }
+
+  async function abrirConversa(phone, el) {
+    document.querySelectorAll('.conversa').forEach(d => d.classList.remove('ativa'));
+    if (el) el.classList.add('ativa');
+    ativo = phone;
+    document.getElementById('chatHeader').textContent = phone;
+    const res = await fetch('/painel/api/conversas/' + encodeURIComponent(phone));
+    const msgs = await res.json();
+    const el2 = document.getElementById('msgs');
+    el2.innerHTML = msgs.map(m => \`
+      <div class="msg \${m.direction}">
+        \${m.content || ''}
+        \${m.media_base64 ? '<img src="data:' + m.media_mime + ';base64,' + m.media_base64 + '">' : ''}
+      </div>
+    \`).join('');
+    el2.scrollTop = el2.scrollHeight;
+  }
+
+  carregarLista();
+  setInterval(() => { carregarLista(); if (ativo) abrirConversa(ativo); }, 15000);
+</script>
+</body>
+</html>`);
 });
 
 // ─── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`📡 Webhook em: http://localhost:${PORT}/webhook`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+initDb().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+    console.log(`📡 Webhook em: http://localhost:${PORT}/webhook`);
+    console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+    console.log(`🗂️  Painel em: http://localhost:${PORT}/painel`);
+  });
 });
 
 module.exports = app;
