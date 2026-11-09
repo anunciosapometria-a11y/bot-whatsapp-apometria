@@ -118,7 +118,8 @@ async function baixarMidiaWhatsapp(mediaId) {
 // ─── MEMÓRIA DE SESSÕES ────────────────────────────────────────────────────────
 const sessions = new Map();
 
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+// A conversa continua de onde parou mesmo depois de horas ou dias sem resposta (antes reiniciava em 30 min)
+const SESSION_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_HISTORY_MESSAGES = 20;
 const PAUSE_TTL_MS = 4 * 60 * 60 * 1000; // pausa do bot expira sozinha se ninguém assumir
 
@@ -272,7 +273,7 @@ Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Áudio ou
 }
 
 // ─── MENSAGENS FIXAS ─────────────────────────────────────────────────────────
-const ABERTURA_MSG = "Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil. Somos uma equipe especializada em apometria coordenada pelo Terapeuta Paulo Rodrigues.\n\nNeste canal de atendimento você irá encontrar maiores informações sobre detalhes do procedimento e disponibilidade para agendamento.\n\nPara iniciarmos, qual é o seu nome, por gentileza?";
+const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil.*\n\n🏛️ *Quem somos*\nUma equipe especializada em apometria, coordenada pelo terapeuta *Paulo Rodrigues*.\n\n📌 *Neste canal você encontra*\n• Detalhes do procedimento\n• Disponibilidade para agendamento\n\n✍️ *Para iniciarmos, qual é o seu nome, por gentileza?*";
 const TITULO_MSG = "*Vamos explicar como funciona o nosso trabalho em 3 etapas:*\n\n1️⃣ O que você recebe\n2️⃣ Detalhes do procedimento\n3️⃣ Opções de agendamento";
 const ETAPA1 = [
   "*Etapa 1: o que você recebe*",
@@ -360,7 +361,7 @@ async function sendMessage(to, text) {
 }
 
 // ─── ENVIAR IMAGEM VIA WHATSAPP API (logo na abertura) ────────────────────────
-async function sendImage(to, imageUrl) {
+async function sendImage(to, imageUrl, caption) {
   if (!imageUrl) return;
   try {
     await axios.post(
@@ -369,7 +370,7 @@ async function sendImage(to, imageUrl) {
         messaging_product: 'whatsapp',
         to,
         type: 'image',
-        image: { link: imageUrl }
+        image: caption ? { link: imageUrl, caption } : { link: imageUrl }
       },
       {
         headers: {
@@ -435,11 +436,20 @@ try {
   console.error('❌ Erro ao gerar valores.jpg:', err.message);
 }
 
+// Acha o arquivo da foto (aceita nome.jpg ou nome_1.jpg, como o navegador renomeia duplicados)
+function acharFoto(nome) {
+  try {
+    if (!/^\w+$/.test(nome)) return null;
+    const re = new RegExp(`^${nome}(_\\d+)?\\.jpg$`);
+    return fs.readdirSync(MEDIA_DIR).find(f => re.test(f)) || null;
+  } catch (e) { return null; }
+}
+
 async function enviarFoto(to, nome) {
-  const arquivo = path.join(MEDIA_DIR, `${nome}.jpg`);
-  if (/^\w+$/.test(nome) && fs.existsSync(arquivo)) {
+  const arq = acharFoto(nome);
+  if (arq) {
     await saveMessage(to, 'out', `[imagem: ${nome}]`);
-    await sendImage(to, `${PUBLIC_BASE}/media/${nome}.jpg`);
+    await sendImage(to, `${PUBLIC_BASE}/media/${arq}`);
   } else if (FOTO_TEXTO[nome]) {
     await sendMessage(to, FOTO_TEXTO[nome]);
   }
@@ -447,7 +457,11 @@ async function enviarFoto(to, nome) {
 
 // ─── DELAY REALISTA ENTRE MENSAGENS ───────────────────────────────────────────
 function typingDelay(text) {
-  return text.length > 500 ? 7000 : Math.min(1500 + text.length * 20, 4000);
+  // Ritmo mais calmo: a pessoa tem tempo de ler cada bloco
+  let d = text.length > 500 ? 9000 : Math.min(2500 + text.length * 30, 6500);
+  // Quebra de título: respiro maior antes de começar uma nova etapa
+  if (/^\*(Etapa \d|Vamos explicar)/.test(text)) d += 3000;
+  return d;
 }
 
 function sleep(ms) {
@@ -469,13 +483,13 @@ async function sendClaudeResponse(to, rawText, session) {
   for (let i = 0; i < parts.length; i++) {
     const fm = parts[i].match(/\[\[FOTO:(\w+)\]\]/);
     if (fm) {
-      await sleep(2000);
+      await sleep(3500);
       await enviarFoto(to, fm[1]);
       const resto = parts[i].replace(fm[0], '').trim();
       if (resto) { await sleep(typingDelay(resto)); await sendMessage(to, resto); }
       continue;
     }
-    if (i > 0 && parts[i].length > 500) await sleep(3500);
+    if (i > 0 && parts[i].length > 500) await sleep(5000);
     await sleep(typingDelay(parts[i]));
     await sendMessage(to, parts[i]);
   }
@@ -565,9 +579,16 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     session.stage = 'aguardando_nome';
     const m = text.match(/Ref\.?\s*:?\s*(\d{3,})/i);
     if (m) session.ref = m[1];
-    await sendImage(from, LOGO_URL);
-    await sleep(typingDelay(ABERTURA_MSG));
-    await sendMessage(from, ABERTURA_MSG);
+    const fachadaArq = acharFoto('fachada');
+    if (fachadaArq) {
+      // Foto da fachada do instituto com o texto de apresentação na legenda
+      await saveMessage(from, 'out', ABERTURA_MSG);
+      await sendImage(from, `${PUBLIC_BASE}/media/${fachadaArq}`, ABERTURA_MSG);
+    } else {
+      await sendImage(from, LOGO_URL);
+      await sleep(typingDelay(ABERTURA_MSG));
+      await sendMessage(from, ABERTURA_MSG);
+    }
     await upsertConversation(from, session.clientName, session.stage);
     return;
   }
@@ -590,7 +611,7 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     session.etapa = 'aguarda2';
     session.clientName = nome || null;
     const ok = nome ? `Ok, ${nome}.` : 'Tudo bem.';
-    await sleep(1500);
+    await sleep(2500);
     await sendMessage(from, ok);
     for (const parte of [TITULO_MSG, ...ETAPA1, PERGUNTA2]) {
       await sleep(typingDelay(parte));
