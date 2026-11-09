@@ -188,7 +188,7 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
   - Pacote de sessões: R$ 200,00 cada trabalho (R$ 800,00 as 4 sessões), para quem quer continuar o processo com trabalhos periódicos mensais de limpeza e cura ou dividir com outras pessoas. Cada sessão é um trabalho individual, com relatório próprio em áudios. Pix, transferência, depósito ou até 4x sem juros no cartão.
   - Familiar: R$ 800,00, até 5 pessoas da mesma família, mais a apometria do lar. São apometrias individuais, uma para cada pessoa, com um relatório único para toda a família, apresentando as ligações interfamiliares, heranças e padrões que se repetem entre eles. Pix, transferência, depósito ou 2x sem juros no cartão.
   - Trabalhos específicos, em outra foto: apometria para empresa (aumentar vendas e desbloquear oportunidades), R$ 400,00; apometria para imóveis (vendas e trâmites judiciais), R$ 300,00; apometria para animais de estimação, R$ 150,00. Quando a pessoa perguntar por qualquer um deles, envie [[FOTO:especiais]] sozinho em uma mensagem, depois "|||" e uma frase curta sobre o que ela perguntou. Pagamento nas mesmas condições (Pix, transferência, depósito ou 2x sem juros no cartão); para cartão, passe para o Paulo. Metades de entrada: empresa R$ 200,00, imóveis R$ 150,00, animais R$ 75,00.
-  - Presencial: R$ 660,00, na sede do instituto, com o terapeuta Paulo. Está na imagem de valores, mas os novos atendimentos presenciais estão pausados por falta de agenda (veja RESPOSTAS RÁPIDAS).
+  - Presencial: R$ 660,00, na sede do instituto, com o terapeuta Paulo. Está na imagem de valores, mas NÃO é possível realizar no momento por falta de disponibilidade na agenda. Se a pessoa perguntar do presencial, diga isso (veja RESPOSTAS RÁPIDAS).
   - Todos os formatos incluem estudo profundo do caso, limpeza energética do lar, envio de Reiki e relatório final em áudio gravado pelo Paulo. 2x sem juros no cartão em todos os formatos (pacote até 4x).
   - Duas pessoas da mesma família (dois trabalhos): R$ 500,00 no total, R$ 250,00 cada sessão. Pix, transferência ou depósito. Para cartão, passe para o Paulo.
   - O pagamento funciona como confirmação do agendamento e para a realização do trabalho. Damos prioridade a quem confirmou pelo pagamento.
@@ -221,7 +221,7 @@ Banco: Nubank
 Valor de entrada (metade): [metade do valor da opção] - [nome da opção]
 
 Assim que fizer, nos envie o comprovante para darmos baixa na contabilidade, realizarmos o envio do questionário inicial e demais instruções. Grato.
-   Metades: sessão individual R$ 144,50 (de R$ 289,00); emergencial R$ 169,50 (de R$ 339,00); pacote familiar R$ 400,00 (de R$ 800,00). Nomes: "Sessão de Apometria", "Sessão de Apometria Emergencial", "Apometria Familiar (até 5 pessoas)". Presencial (R$ 660,00): passe para o Paulo, que confirma a disponibilidade.
+   Metades: sessão individual R$ 144,50 (de R$ 289,00); emergencial R$ 169,50 (de R$ 339,00); pacote familiar R$ 400,00 (de R$ 800,00). Nomes: "Sessão de Apometria", "Sessão de Apometria Emergencial", "Apometria Familiar (até 5 pessoas)". Presencial: não é possível no momento por falta de disponibilidade; ofereça o trabalho à distância.
    Cartão: os links de pagamento disponíveis são do valor inteiro, não da entrada. Se a pessoa pedir cartão, diga que vamos pedir o link do valor de entrada ao Paulo e passe para ele. Transferência ou depósito: envie os mesmos dados do Pix. Pessoa no exterior: diga que o pagamento pode ser por transferência internacional, Wise ou PayPal, com o valor convertido no dia, e passe para o Paulo. Mais de 5 pessoas ou pedido fora do padrão: passe para o Paulo.
    Se a pessoa estiver indecisa, ajude a escolher em uma ou duas frases pelo que ela contou (urgência pede o emergencial; mais de uma pessoa da família pede o pacote familiar), sem insistir.
 
@@ -242,13 +242,13 @@ Seu objetivo é levar a pessoa ao próximo passo da venda, sem pressão e sem re
 - Precisa de religião ou de acreditar? Não. Atendemos pessoas de todas as crenças e também quem não segue nenhuma.
 - Preciso estar presente? Não. O trabalho é feito à distância e não exige que a pessoa esteja presente.
 - Onde vocês ficam? De que cidade? Moro em [cidade] / É à distância? Responda com este texto, adaptando a abertura à cidade que a pessoa citou, quando houver: "Nós somos de São José do Rio Preto, SP. Apesar de também realizarmos a apometria presencial, nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Para esse tipo de trabalho não há necessidade de a pessoa estar presente, uma vez que a conexão com o corpo astral é feita através de diversas informações que colhemos em nosso questionário inicial, da nossa sensibilidade como médium e também com o auxílio dos mentores espirituais presentes na sessão, e para eles a barreira de espaço não tem nenhuma representatividade." Depois siga o passo da venda.
-- Tem como ser presencial? Diga que os novos atendimentos presenciais (R$ 660,00 na sede, se a pessoa perguntar o valor) estão pausados por falta de disponibilidade na agenda, e que o trabalho à distância tem o mesmo resultado, feito com a mesma equipe. Não passe para o Paulo só por isso. Siga o passo da venda.
+- Tem como ser presencial? Diga que, no momento, não é possível realizar o presencial por falta de disponibilidade na agenda, e que o trabalho à distância tem o mesmo resultado, feito com a mesma equipe. Não passe para o Paulo só por isso. Siga o passo da venda.
 - DATAS: Tem para amanhã? Qual data está disponível? Quando posso fazer? Responda que o trabalho é realizado dentro do prazo estipulado, de 15 dias úteis na sessão individual ou de 08 dias úteis no emergencial, e que não costumamos informar dia e hora exatos. Se ela tem urgência, apresente o emergencial. Não passe para o Paulo por isso.
 - Posso pedir para outra pessoa? Sim, e pode solicitar em nome de outras pessoas, inclusive sem a permissão e a consciência delas. Nunca fale em autorização, nem de filhos menores, nem de adultos. Explique com base no mesmo texto do "Onde vocês ficam": a conexão com o corpo astral é feita pelas informações do questionário inicial, pela sensibilidade como médium e pelos mentores espirituais, e a pessoa não precisa estar presente. Quem solicita responde o questionário com o que souber da pessoa. Depois siga o fluxo sem forçar a pergunta de agendamento.
 - Apometria para imóveis, terrenos ou empresas, ou processos (venda parada, processo judicial): é possível realizar a apometria específica para a resolução desses problemas, e grande parte dos nossos trabalhos são realizados para essa finalidade. Imóveis e terrenos: já oferecemos a limpeza do lar como bônus do tratamento, mas também temos o trabalho de apometria específico para imóveis ou terrenos, investigando o local e realizando corte de vínculos mais profundos. É comum as pessoas procurarem esse trabalho quando sentem que existe algo denso e persistente no ambiente, querem vender o imóvel ou resolver processos administrativos, entre outros. Processo judicial: é possível colocar a questão do processo em pauta. Grande parte dos nossos trabalhos são realizados para processos judiciais cíveis ou empresariais. Essas questões estão fortemente ligadas ao plano espiritual, já que isso se torna uma vulnerabilidade em que obsessores e outras influenciações podem agir contra a pessoa. No trabalho também agimos no polo positivo, abrindo os caminhos e harmonizando os acontecimentos para que sejam favoráveis a ela, liberando possíveis bloqueios. Além disso, passamos o que foi encontrado e as energias que estão rondando o processo e de onde elas vêm. Responda em mensagens curtas, com acolhimento, usando o nome da pessoa quando souber. Para valores específicos, envie [[FOTO:especiais]].
 - Pessoa no exterior, ou dúvida sobre as formas de pagamento: envie [[FOTO:pagamento]] sozinho em uma mensagem (formas de pagamento e instruções para quem está no exterior), depois "|||" e uma frase curta retomando a conversa.
 - Quantas sessões preciso? Uma sessão basta? Responda com base neste texto, em mensagens curtas: "Tudo o que foi descrito pode ser abordado já em uma sessão, porque o trabalho de apometria é muito amplo e abrangente. Na maioria dos casos, o primeiro atendimento já trata o principal. É um trabalho pontual." Depois: "Se outra sessão for indicada, o Paulo informa no relatório, e a continuidade fica sempre a critério da pessoa." Depois fale dos benefícios para quem quiser continuar: há quem opte por trabalhos periódicos mensais ou pelo pacote de sessões, para dar continuidade ao processo com limpezas energéticas e espirituais constantes, e pessoas da mesma família que realizam a apometria costumam ter resultados amplificados, porque existem fatores individuais e entrelaçamentos familiares que influenciam uns aos outros. Termine dizendo que ela pode ver como o trabalho funciona e decidir sobre a continuidade depois, sempre a critério dela. Não pressione.
-- Em quanto tempo sinto algo? A maioria relata leveza e clareza nos primeiros dias, e outras mudanças aparecem nas semanas seguintes. Varia de pessoa para pessoa.
+- Em quanto tempo sinto algo? Quando vou ter resultado ou efeitos? Em quanto tempo vou melhorar? Responda com este conteúdo, em mensagens curtas separadas por "|||": "Notamos que, quando se trata de fatores externos como obsessores, trabalhos de magia e outras influenciações como essas, os resultados aparecem logo nos primeiros dias, porque ao realizar essa retirada é como liberar algo que estava prejudicando muito intensamente." ||| "Nos outros casos, que envolvem situações mais enraizadas, as melhoras vêm com o passar dos dias. Cada caso é único e tem as suas particularidades." ||| "Fazemos o máximo possível dentro das possibilidades, somos reconhecidos pelos resultados efetivos e temos muitos relatos positivos." Não prometa cura nem prazo exato.
 - Fazem trabalho contra alguém? Nunca. Atuamos só no campo da própria pessoa, inclusive para desfazer o que tenham enviado contra ela.
 - Já fiz outros trabalhos e não adiantou. Aqui o trabalho começa com o estudo do caso pelo Paulo, antes da sessão, para tratar a origem e não só o que aparece na superfície.
 - Frase de amparo: quando a pessoa estiver em dúvida, com medo, insegura ou perto de decidir, inclua com suas palavras: "Saiba que, se escolher realizar a apometria conosco, você será muito bem amparada e faremos o melhor por você." Use no máximo uma vez por conversa.
@@ -294,6 +294,7 @@ const PDF_MSG = "📎 *Orientações gerais*\nLogo abaixo segue um PDF com orien
 const PERGUNTA3 = "Podemos seguir para a etapa 3, com as opções de agendamento?";
 const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*";
 const ETAPA3_NOTA = "💳 *Para confirmar o agendamento*\n• Basta pagar metade do valor e enviar o comprovante.\n• O restante pode ser pago somente quando você receber os relatórios finais.\n• Prezamos por dar o primeiro passo em direção à confiança: queremos passar segurança desde o início.";
+const APOS_PAGAMENTO_MSG = "📋 *O que acontece após o pagamento*\n• Você irá receber algumas instruções e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
 const PERGUNTA_AGENDA = "Gostaria de realizar o seu agendamento?";
 
 function semAcento(t) { return t.normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase().trim(); }
@@ -379,9 +380,11 @@ async function sendImage(to, imageUrl, caption) {
         }
       }
     );
-    console.log(`🖼️ Logo enviado para ${to}`);
+    console.log(`🖼️ Imagem enviada para ${to}`);
+    return true;
   } catch (err) {
     console.error(`❌ Erro ao enviar imagem para ${to}:`, err.response?.data || err.message);
+    return false;
   }
 }
 
@@ -436,11 +439,11 @@ try {
   console.error('❌ Erro ao gerar valores.jpg:', err.message);
 }
 
-// Acha o arquivo da foto (aceita nome.jpg ou nome_1.jpg, como o navegador renomeia duplicados)
+// Acha o arquivo da foto (aceita nome.jpg, nome_1.jpg, nome-qualquer.png etc.)
 function acharFoto(nome) {
   try {
     if (!/^\w+$/.test(nome)) return null;
-    const re = new RegExp(`^${nome}(_\\d+)?\\.jpg$`);
+    const re = new RegExp(`^${nome}([_-][\\w-]+)?\\.(jpg|jpeg|png)$`);
     return fs.readdirSync(MEDIA_DIR).find(f => re.test(f)) || null;
   } catch (e) { return null; }
 }
@@ -579,13 +582,13 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     session.stage = 'aguardando_nome';
     const m = text.match(/Ref\.?\s*:?\s*(\d{3,})/i);
     if (m) session.ref = m[1];
-    const fachadaArq = acharFoto('fachada');
-    if (fachadaArq) {
-      // Foto da fachada do instituto com o texto de apresentação na legenda
+    // Logo do instituto com o texto de apresentação na legenda (usa media/logo.jpg se existir; senão o LOGO_URL)
+    const logoArq = acharFoto('logo');
+    const logoUrl = logoArq ? `${PUBLIC_BASE}/media/${logoArq}` : LOGO_URL;
+    const imgOk = logoUrl ? await sendImage(from, logoUrl, ABERTURA_MSG) : false;
+    if (imgOk) {
       await saveMessage(from, 'out', ABERTURA_MSG);
-      await sendImage(from, `${PUBLIC_BASE}/media/${fachadaArq}`, ABERTURA_MSG);
     } else {
-      await sendImage(from, LOGO_URL);
       await sleep(typingDelay(ABERTURA_MSG));
       await sendMessage(from, ABERTURA_MSG);
     }
@@ -654,11 +657,13 @@ async function handleMessage(from, messageText, mediaInfo = null) {
       await enviarFoto(from, 'valores');
       await sleep(typingDelay(ETAPA3_NOTA));
       await sendMessage(from, ETAPA3_NOTA);
+      await sleep(typingDelay(APOS_PAGAMENTO_MSG));
+      await sendMessage(from, APOS_PAGAMENTO_MSG);
       await sleep(typingDelay(PERGUNTA_AGENDA));
       await sendMessage(from, PERGUNTA_AGENDA);
       session.history.push(
         { role: 'user', content: text },
-        { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', ETAPA3_NOTA, PERGUNTA_AGENDA].join('\n\n') }
+        { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', ETAPA3_NOTA, APOS_PAGAMENTO_MSG, PERGUNTA_AGENDA].join('\n\n') }
       );
       await upsertConversation(from, session.clientName, session.stage);
       return;
@@ -733,7 +738,7 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.get('/media/:nome', (req, res) => {
-  const nome = req.params.nome.replace(/[^\w.]/g, '');
+  const nome = req.params.nome.replace(/[^\w.-]/g, '');
   const arquivo = path.join(MEDIA_DIR, nome);
   if (!arquivo.startsWith(MEDIA_DIR) || !fs.existsSync(arquivo)) return res.sendStatus(404);
   res.sendFile(arquivo);
