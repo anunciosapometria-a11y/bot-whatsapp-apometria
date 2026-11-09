@@ -217,7 +217,7 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
 - Sede e presencial: somos de São José do Rio Preto (SP). A apometria presencial existe, mas os novos atendimentos presenciais estão pausados por falta de disponibilidade na agenda. Nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Só fale de presencial se a pessoa perguntar.
 
 ## FLUXO
-O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Ok, [nome]", perguntou "Para quem você gostaria de solicitar a apometria?" e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, detalhes do procedimento (questionário inicial, estudo do caso em 2 dias úteis, não precisa estar presente) e o PDF de orientações; Etapa 2, o que a pessoa recebe (itens tratados, relatório em áudios, complemento do lar e Reiki, equipe à disposição); Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
+O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Muito prazer, [nome]", explicou quem somos, enviou o Instagram @apometria_brasil e perguntou "Para quem você gostaria de solicitar a apometria?" com três exemplos (para você mesmo, para outra pessoa, para empresas, imóveis ou animais) e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, detalhes do procedimento (questionário inicial, estudo do caso em 2 dias úteis, não precisa estar presente) e o PDF de orientações; Etapa 2, o que a pessoa recebe (itens tratados, relatório em áudios, complemento do lar e Reiki, equipe à disposição); Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
 
 1) ENTRE AS ETAPAS. Se o bloco ETAPA ATUAL, no início, indicar uma pergunta pendente: se a pessoa contar o que quer trabalhar, acolha em uma ou duas frases, usando as palavras dela; se fizer outra pergunta, responda com os fatos em poucas frases; nos dois casos, termine repetindo a pergunta pendente de forma curta. Não envie o link do questionário agora: ele só vai depois do comprovante (passo 4), salvo se a pessoa pedir.
 
@@ -290,9 +290,11 @@ Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Áudio ou
 }
 
 // ─── MENSAGENS FIXAS ─────────────────────────────────────────────────────────
-const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil.*\n\n🏛️ *Quem somos*\nUma equipe especializada em apometria, coordenada pelo terapeuta *Paulo Rodrigues*.\n\n📌 *Neste canal você encontra*\n• Detalhes do procedimento\n• Disponibilidade para agendamento\n\n✍️ *Para iniciarmos, qual é o seu nome, por gentileza?*";
+const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil.*\n\n📌 *Neste canal você encontra*\n• Detalhes do procedimento\n• Disponibilidade para agendamento\n\n✍️ *Para iniciarmos, qual é o seu nome, por gentileza?*";
 const TITULO_MSG = "*Vamos explicar como funciona o nosso trabalho em 3 etapas:*\n\n1️⃣ Detalhes do procedimento\n2️⃣ O que você recebe\n3️⃣ Opções de agendamento";
-const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?";
+const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa\n• Para empresas, imóveis ou animais";
+const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nUma equipe especializada em apometria, coordenada pelo terapeuta *Paulo Rodrigues*.";
+const INSTAGRAM_MSG = "📲 *Conheça mais do nosso trabalho*\nAcompanhe o nosso Instagram: *@apometria_brasil*\nhttps://www.instagram.com/apometria_brasil/";
 const ETAPA1 = [
   "*Etapa 1: detalhes do procedimento*",
   "📝 *Questionário inicial*\nPrimeiramente você irá preencher um questionário com as perguntas necessárias para o seu trabalho, sobre os seus estados físicos, mentais, espirituais e emocionais e sobre o que deseja tratar, investigar e obter respostas da espiritualidade.",
@@ -310,8 +312,8 @@ const ETAPA2 = [
 const PDF_MSG = "📎 *Orientações gerais*\nLogo abaixo segue um PDF com orientações, instruções importantes, dúvidas frequentes e o que pode ser solicitado no trabalho.";
 const PERGUNTA3 = "Podemos seguir para a etapa 3, com as opções de agendamento?";
 const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*";
-const ETAPA3_NOTA = "💳 *Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante.";
-const APOS_PAGAMENTO_MSG = "📋 *O que acontece após o pagamento*\n• Você irá receber algumas instruções e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
+const ETAPA3_NOTA = "*Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante.";
+const APOS_PAGAMENTO_MSG = "*O que acontece após o pagamento*\n• Você irá receber algumas instruções e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
 const PERGUNTA_AGENDA = "Gostaria de realizar o seu agendamento?";
 
 function semAcento(t) { return t.normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase().trim(); }
@@ -373,7 +375,7 @@ async function sendMessage(to, text) {
         messaging_product: 'whatsapp',
         to,
         type: 'text',
-        text: { body: text }
+        text: { body: text, preview_url: /instagram\.com/.test(text) }
       },
       {
         headers: {
@@ -754,14 +756,18 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     session.stage = 'conversa';
     session.etapa = 'para_quem';
     session.clientName = nome || null;
-    const ok = nome ? `Ok, ${nome}.` : 'Tudo bem.';
+    const ok = nome ? `Muito prazer, *${nome}*.` : 'Tudo bem.';
     await sleep(2500);
     await sendMessage(from, ok);
+    await sleep(typingDelay(QUEM_SOMOS_MSG));
+    await sendMessage(from, QUEM_SOMOS_MSG);
+    await sleep(typingDelay(INSTAGRAM_MSG));
+    await sendMessage(from, INSTAGRAM_MSG);
     await sleep(typingDelay(PERGUNTA_PARA_QUEM));
     await sendMessage(from, PERGUNTA_PARA_QUEM);
     session.history.push(
       { role: 'user', content: nome ? `Meu nome é ${nome}` : text },
-      { role: 'assistant', content: [ok, PERGUNTA_PARA_QUEM].join('\n\n') }
+      { role: 'assistant', content: [ok, QUEM_SOMOS_MSG, INSTAGRAM_MSG, PERGUNTA_PARA_QUEM].join('\n\n') }
     );
     await upsertConversation(from, session.clientName, session.stage);
     return;
@@ -1244,10 +1250,12 @@ async function crmAlertar(tipo, phone, detalhe, nome) {
   const rotulos = { comprovante: '💰 Possível pagamento', saiu_do_fluxo: '⚠️ Conversa precisa do Paulo', questionario: '📝 Questionário respondido' };
   const quem = (nome || 'Sem nome') + ' (+' + phone + ')';
   const texto = (rotulos[tipo] || tipo) + '\n' + quem + (detalhe ? '\n' + detalhe : '') + '\nPainel: ' + PUBLIC_BASE + '/painel/crm';
-  const template = await cfgGet('alerta_template', process.env.ALERTA_TEMPLATE || '');
+  const templateTipo = await cfgGet('alerta_template_' + tipo, '');
+  const template = templateTipo || await cfgGet('alerta_template', process.env.ALERTA_TEMPLATE || '');
   for (const n of numeros) {
     try {
-      if (template) await enviarTemplate(n, template, [rotulos[tipo] || tipo, quem, detalhe || '-']);
+      if (templateTipo) await enviarTemplate(n, templateTipo, [quem, detalhe || '-']);
+      else if (template) await enviarTemplate(n, template, [rotulos[tipo] || tipo, quem, detalhe || '-']);
       else await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
         { messaging_product: 'whatsapp', to: n, type: 'text', text: { body: texto } },
         { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
@@ -1354,6 +1362,7 @@ app.get('/painel/api/crm', async (req, res) => {
         followup_textos: await followupTextos(),
         alerta_numeros: await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || ''),
         alerta_template: await cfgGet('alerta_template', process.env.ALERTA_TEMPLATE || ''),
+        alerta_templates: { comprovante: await cfgGet('alerta_template_comprovante', ''), saiu_do_fluxo: await cfgGet('alerta_template_saiu_do_fluxo', ''), questionario: await cfgGet('alerta_template_questionario', '') },
         templates: [1, 2, 3].map(() => ''),
         followup_templates: [await cfgGet('followup_template_1', ''), await cfgGet('followup_template_2', ''), await cfgGet('followup_template_3', '')]
       }
@@ -1372,6 +1381,7 @@ app.post('/painel/api/crm/config', async (req, res) => {
     if (Array.isArray(b.followup_textos) && b.followup_textos.length === 3) await cfgSet('followup_textos', JSON.stringify(b.followup_textos.map(String)));
     if (typeof b.alerta_numeros === 'string') await cfgSet('alerta_numeros', b.alerta_numeros);
     if (typeof b.alerta_template === 'string') await cfgSet('alerta_template', b.alerta_template.trim());
+    if (b.alerta_templates && typeof b.alerta_templates === 'object') for (const k of ['comprovante', 'saiu_do_fluxo', 'questionario']) if (typeof b.alerta_templates[k] === 'string') await cfgSet('alerta_template_' + k, b.alerta_templates[k].trim());
     if (Array.isArray(b.followup_templates)) for (let i = 0; i < 3; i++) await cfgSet('followup_template_' + (i + 1), String(b.followup_templates[i] || '').trim());
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ erro: e.message }); }
@@ -1455,7 +1465,9 @@ app.get('/painel/crm', (req, res) => {
    </div>
    <div class="box"><h2>Avisos para a equipe</h2>
     <label style="font-size:12px">Números (com DDI, separados por vírgula)</label><input id="alNum" style="width:100%;box-sizing:border-box;margin-bottom:8px">
-    <label style="font-size:12px">Template de aviso (3 variáveis: tipo, pessoa, detalhe)</label><input id="alTpl" style="width:100%;box-sizing:border-box">
+    <label style="font-size:12px">Template: possível pagamento (2 variáveis: pessoa, detalhe)</label><input id="alTplC" style="width:100%;box-sizing:border-box;margin-bottom:6px">
+    <label style="font-size:12px">Template: conversa saiu do fluxo (2 variáveis)</label><input id="alTplS" style="width:100%;box-sizing:border-box;margin-bottom:6px">
+    <label style="font-size:12px">Template: questionário respondido (2 variáveis)</label><input id="alTplQ" style="width:100%;box-sizing:border-box">
     <p style="margin:10px 0 0"><button id="salvar">Salvar configurações</button> <span id="ok" style="font-size:12px;color:#2f7d46"></span></p>
    </div>
   </div>
@@ -1490,12 +1502,12 @@ function load(){fetch('/painel/api/crm').then(function(r){return r.json();}).the
  document.getElementById('fuAtivo').checked=d.config.followup_ativo;
  document.getElementById('fuTextos').innerHTML=d.config.followup_textos.map(function(t,i){return '<label style="font-size:12px">Mensagem '+(i+1)+'</label><textarea rows="3" class="ft">'+esc(t)+'</textarea>';}).join('');
  document.getElementById('fuTpl').innerHTML=d.config.followup_templates.map(function(t,i){return '<label style="font-size:12px">Template da mensagem '+(i+1)+'</label><input class="ftp" style="width:100%;box-sizing:border-box;margin-bottom:6px" value="'+esc(t)+'">';}).join('');
- document.getElementById('alNum').value=d.config.alerta_numeros||'';document.getElementById('alTpl').value=d.config.alerta_template||'';}});}
+ document.getElementById('alNum').value=d.config.alerta_numeros||'';var at=d.config.alerta_templates||{};document.getElementById('alTplC').value=at.comprovante||'';document.getElementById('alTplS').value=at.saiu_do_fluxo||'';document.getElementById('alTplQ').value=at.questionario||'';}});}
 document.getElementById('salvar').onclick=function(){
  api('/painel/api/crm/config',{followup_ativo:document.getElementById('fuAtivo').checked,
   followup_textos:Array.prototype.map.call(document.querySelectorAll('.ft'),function(e){return e.value;}),
   followup_templates:Array.prototype.map.call(document.querySelectorAll('.ftp'),function(e){return e.value;}),
-  alerta_numeros:document.getElementById('alNum').value,alerta_template:document.getElementById('alTpl').value}).then(function(){document.getElementById('ok').textContent='Salvo.';setTimeout(function(){document.getElementById('ok').textContent='';},2500);});};
+  alerta_numeros:document.getElementById('alNum').value,alerta_templates:{comprovante:document.getElementById('alTplC').value,saiu_do_fluxo:document.getElementById('alTplS').value,questionario:document.getElementById('alTplQ').value}}).then(function(){document.getElementById('ok').textContent='Salvo.';setTimeout(function(){document.getElementById('ok').textContent='';},2500);});};
 load();setInterval(function(){fetch('/painel/api/crm').then(function(r){return r.json();}).then(function(d){dados=d;render();});},20000);
 </script></body></html>`);
 });
