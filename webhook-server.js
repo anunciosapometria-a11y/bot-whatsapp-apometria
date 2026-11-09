@@ -59,6 +59,7 @@ async function initDb() {
       created_at TIMESTAMPTZ DEFAULT now()
     );
   `);
+  await initCrm();
   console.log('🗄️  Banco de dados pronto.');
 }
 
@@ -77,6 +78,7 @@ async function upsertConversation(phone, clientName, stage) {
   } catch (err) {
     console.error('❌ Erro ao salvar conversa no banco:', err.message);
   }
+  await crmAtualizarFunil(phone, sessions.get(phone));
 }
 
 async function saveMessage(phone, direction, content, mediaBase64 = null, mediaMime = null) {
@@ -153,6 +155,7 @@ function hintEtapa(etapa) {
   if (etapa === 'aguarda2') return 'ETAPA ATUAL: a pessoa ainda não confirmou seguir para a etapa 2. Pergunta pendente: "' + PERGUNTA2 + '"';
   if (etapa === 'aguarda3') return 'ETAPA ATUAL: a pessoa ainda não confirmou seguir para a etapa 3. Pergunta pendente: "' + PERGUNTA3 + '"';
   if (etapa === 'nome') return 'ETAPA ATUAL: a pessoa ainda não disse o nome (pergunte uma única vez; se ela não disser, siga sem insistir). Ela respondeu algo que não é um nome. Responda de forma condizente ao que ela disse, em uma ou duas frases, sem tratar nenhuma palavra como nome, e peça o nome com gentileza no final. Não explique o trabalho nem envie valores ainda.';
+  if (etapa === 'para_quem' || etapa === 'para_quem_andamento') return 'ETAPA ATUAL: a pessoa acabou de responder para quem quer solicitar a apometria (e pode ter descrito o caso ou a queixa). Responda em uma ou duas frases curtas, com as palavras dela: se descreveu um problema ou queixa, explique brevemente como a apometria pode ser positiva para o caso dela (investigar a causa, tratar, trazer mais leveza e clareza, sem prometer cura); se disse só para quem é, acolha em uma frase (para outra pessoa, lembre que pode solicitar mesmo sem a permissão e a consciência dela). Não faça perguntas, não explique o procedimento nem fale de valores: o sistema envia as etapas logo em seguida.';
   return 'ETAPA ATUAL: etapas concluídas. Siga o passo 2 do fluxo.';
 }
 
@@ -169,6 +172,10 @@ ${hintEtapa(etapa)}
 - Nunca use travessão. Nunca use frases prontas como "Que bom ter você aqui" ou "Fico feliz em ajudar".
 - No máximo um emoji por mensagem, e só quando natural. Os textos das etapas, enviados pelo sistema, já trazem os emojis deles. O 🙏 serve para encerrar.
 - Regra de conduta (não é uma frase para enviar): a apometria é um trabalho complementar. Nunca diga nem sugira que ela substitui o acompanhamento médico ou psicológico, e nunca incentive a pessoa a parar ou reduzir um tratamento, remédio ou terapia em curso. Não fale por conta própria de acompanhamento ou tratamento em curso, nem use avisos formais ou linguagem de contrato nas mensagens. A única exceção é quando a pessoa perguntar se a apometria cura (veja RESPOSTAS RÁPIDAS). Se a pessoa perguntar se pode parar ou reduzir um tratamento ou remédio, não incentive e passe para o Paulo.
+- Negrito no WhatsApp usa um único asterisco de cada lado (*assim*). Nunca use dois asteriscos, títulos com # nem outro markdown.
+- É terapia: fale de valores e de pagamento com sutileza e acolhimento. Nunca cobre depósito nem pagamento, não pressione, não lembre de pagar e não crie urgência.
+- Mantenha-se no roteiro: não faça perguntas por conta própria nem puxe assuntos novos (só as perguntas previstas no fluxo). Responda apenas ao que a pessoa perguntou, com base nos textos e informações fornecidos, mantenha o mesmo padrão e vocabulário deles e conduza de volta ao próximo passo de forma leve.
+- Nunca force a pessoa a dar respostas que você precisa saber (nome, para quem é, endereço, questionário). Se ela não responder ou sair do assunto, responda ao que ela disse e conduza de volta ao fluxo de forma leve, uma única vez, sem cobrar nem insistir. A exceção é a modalidade: pergunte qual ela prefere (individual, emergencial ou pacote) no momento certo, quando ela quiser agendar ou falar de pagamento e você ainda não souber qual escolheu, pois sem isso não dá para passar o valor do Pix. Peça o endereço da pessoa somente depois do pagamento (comprovante recebido), nunca antes.
 - Não prometa cura nem resultado garantido. Fale em investigar, tratar, afastar, harmonizar e trazer mais leveza e clareza.
 - Não invente nada fora dos fatos abaixo. Se não souber algo que não está nos fatos, não invente e não passe para o Paulo: diga em uma frase que não temos essa informação agora, responda o que for possível e conduza para o próximo passo da venda.
 - Nunca peça desculpas em excesso nem explique o que é um bot ou uma IA. Se perguntarem se é uma pessoa, responda que é o atendimento virtual da equipe e que o Paulo conduz o trabalho.
@@ -181,16 +188,16 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
 - O Paulo Rodrigues é médium, terapeuta e apômetra, atua com espiritualidade desde 1993 e fundou o instituto em 2012. Ele faz o estudo do caso e grava o relatório.
 - Passos: 1) questionário inicial, com perguntas sobre a pessoa e seus objetivos; 2) estudo individual do caso pelo Paulo; 3) sessão feita pela equipe, à distância; 4) relatório em áudios gravados pelo Paulo, explicando o que foi encontrado e tratado, com orientações para os próximos passos; se o mentor espiritual se apresentar, a mensagem dele também é transmitida.
 - O que pode ser investigado e tratado na mesma sessão, sem cobrança extra: entidades obsessoras, seres densos, magias e feitiços, implantes astrais, miasmas, vínculos com antepassados, padrões familiares, vidas passadas, traumas, crenças limitantes, personalidades múltiplas, fractais energéticos, carmas e harmonização dos chakras.
-- Bônus do primeiro atendimento: apometria para o lar, envio de Reiki à distância e orientações espirituais.
+- Complemento do primeiro atendimento: apometria para o lar, envio de Reiki à distância e orientações espirituais.
 - Valores e pagamento:
   - Sessão individual, à vista: R$ 289,00, prazo de 15 dias úteis. Pix, transferência, depósito ou 2x sem juros no cartão.
   - Emergencial: R$ 339,00, realização em até 8 dias úteis. Pix, transferência, depósito ou 2x sem juros no cartão.
-  - Pacote de sessões: R$ 200,00 cada trabalho (R$ 800,00 as 4 sessões), para quem quer continuar o processo com trabalhos periódicos mensais de limpeza e cura ou dividir com outras pessoas. Cada sessão é um trabalho individual, com relatório próprio em áudios. Pix, transferência, depósito ou até 4x sem juros no cartão.
-  - Familiar: R$ 800,00, até 5 pessoas da mesma família, mais a apometria do lar. São apometrias individuais, uma para cada pessoa, com um relatório único para toda a família, apresentando as ligações interfamiliares, heranças e padrões que se repetem entre eles. Pix, transferência, depósito ou 2x sem juros no cartão.
-  - Trabalhos específicos, em outra foto: apometria para empresa (aumentar vendas e desbloquear oportunidades), R$ 400,00; apometria para imóveis (vendas e trâmites judiciais), R$ 300,00; apometria para animais de estimação, R$ 150,00. Quando a pessoa perguntar por qualquer um deles, envie [[FOTO:especiais]] sozinho em uma mensagem, depois "|||" e uma frase curta sobre o que ela perguntou. Pagamento nas mesmas condições (Pix, transferência, depósito ou 2x sem juros no cartão); para cartão, passe para o Paulo. Metades de entrada: empresa R$ 200,00, imóveis R$ 150,00, animais R$ 75,00.
-  - Presencial: R$ 660,00, na sede do instituto, com o terapeuta Paulo. Está na imagem de valores, mas NÃO é possível realizar no momento por falta de disponibilidade na agenda. Se a pessoa perguntar do presencial, diga isso (veja RESPOSTAS RÁPIDAS).
-  - Todos os formatos incluem estudo profundo do caso, limpeza energética do lar, envio de Reiki e relatório final em áudio gravado pelo Paulo. 2x sem juros no cartão em todos os formatos (pacote até 4x).
-  - Duas pessoas da mesma família (dois trabalhos): R$ 500,00 no total, R$ 250,00 cada sessão. Pix, transferência ou depósito. Para cartão, passe para o Paulo.
+  - Pacote de sessões: R$ 800,00 as 4 sessões (R$ 200,00 cada trabalho), para quem quer continuar o processo com trabalhos periódicos mensais de limpeza e cura ou dividir com outras pessoas. Cada sessão é um trabalho individual, com relatório próprio em áudios. Pix, transferência, depósito ou até 4x sem juros no cartão.
+  - Familiar: R$ 600,00, máximo de 5 pessoas da mesma família, mais a apometria do lar. São apometrias individuais, uma para cada pessoa, com um relatório único para toda a família, apresentando as ligações interfamiliares, heranças e padrões que se repetem entre eles. Pix, transferência, depósito ou até 4x sem juros no cartão.
+  - Trabalhos específicos, em outra foto: apometria para empresa (aumentar vendas e desbloquear oportunidades), R$ 400,00; apometria para imóveis (vendas e trâmites judiciais), R$ 300,00; apometria para animais de estimação, R$ 150,00. Quando a pessoa perguntar por qualquer um deles, envie [[FOTO:especiais]] sozinho em uma mensagem, depois "|||" e uma frase curta sobre o que ela perguntou. Pagamento nas mesmas condições (Pix, transferência, depósito ou 2x sem juros no cartão); para cartão, envie o link da opção (lista em FATOS).
+  - Presencial: R$ 720,00, meio período (sessão + orientações, 6 horas dedicadas ao seu caso), na sede do instituto, com o terapeuta Paulo. Está na imagem de valores, mas NÃO é possível realizar no momento por falta de disponibilidade na agenda. Se a pessoa perguntar do presencial, diga isso (veja RESPOSTAS RÁPIDAS).
+  - Todos os formatos incluem estudo profundo do caso, limpeza energética do lar, envio de Reiki e relatório final em áudio gravado pelo Paulo. 2x sem juros no cartão em todos os formatos (pacotes até 4x).
+  - Duas pessoas da mesma família (dois trabalhos): R$ 500,00 no total, R$ 250,00 cada sessão. Esta é a opção à vista: Pix, transferência, depósito ou cartão pelo link dos dois trabalhos.
   - O pagamento funciona como confirmação do agendamento e para a realização do trabalho. Damos prioridade a quem confirmou pelo pagamento.
   - Para pagar, a pessoa solicita o Pix ou o link de pagamento no cartão.
   - Recesso de final de ano: a observação "Os novos agendamentos serão realizados até o dia 15 de novembro, devido ao recesso de final de ano" aparece na mensagem de pagamento. Ela serve só como aviso de prazo: nunca recuse nem bloqueie um agendamento por causa dela e atenda normalmente a qualquer data. Se a pessoa perguntar de datas, use a resposta de DATAS em RESPOSTAS RÁPIDAS. Não pressione a pessoa nem repita o aviso fora da mensagem de pagamento.
@@ -199,39 +206,44 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
   - Sessão de Apometria (individual): https://mpago.li/2LvFGYD
   - Pacote 4x sessões de Apometria: https://mpago.li/26zevnv
   - Sessão de Apometria Emergencial: https://mpago.li/2rMEjbs
+  - Pacote familiar (R$ 600,00): https://mpago.li/1EZ8Rqy
+  - Apometria para empresa (R$ 400,00): https://mpago.li/1tmmLwP
+  - Apometria para imóveis (R$ 300,00): https://mpago.li/2auDbze
+  - Apometria para animais (R$ 150,00): https://mpago.li/1wfQuFU
+  - Dois trabalhos da mesma família (R$ 500,00 à vista): https://mpago.li/1exmCjM
 - Questionário inicial: https://apometriabrasil.com.br/questionario-inicial/
 - Não costumamos avisar o dia e a hora exatos da sessão. O trabalho é concluído dentro do prazo e o relatório chega ao final.
 - Atendimento humano: segunda a sábado, das 9h às 20h.
 - Sede e presencial: somos de São José do Rio Preto (SP). A apometria presencial existe, mas os novos atendimentos presenciais estão pausados por falta de disponibilidade na agenda. Nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Só fale de presencial se a pessoa perguntar.
 
 ## FLUXO
-O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Ok, [nome]" e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, o que a pessoa recebe (itens tratados, relatório em áudios, bônus do lar e Reiki, equipe à disposição); Etapa 2, detalhes do procedimento (questionário inicial, estudo do caso em 2 dias úteis, não precisa estar presente) e o PDF de orientações; Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
+O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Ok, [nome]", perguntou "Para quem você gostaria de solicitar a apometria?" e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, detalhes do procedimento (questionário inicial, estudo do caso em 2 dias úteis, não precisa estar presente) e o PDF de orientações; Etapa 2, o que a pessoa recebe (itens tratados, relatório em áudios, complemento do lar e Reiki, equipe à disposição); Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
 
 1) ENTRE AS ETAPAS. Se o bloco ETAPA ATUAL, no início, indicar uma pergunta pendente: se a pessoa contar o que quer trabalhar, acolha em uma ou duas frases, usando as palavras dela; se fizer outra pergunta, responda com os fatos em poucas frases; nos dois casos, termine repetindo a pergunta pendente de forma curta. Não envie o link do questionário agora: ele só vai depois do comprovante (passo 4), salvo se a pessoa pedir.
 
 2) DEPOIS DA ETAPA 3 (valores já enviados). A foto com valores e formatos já foi enviada. Se a pessoa tirar dúvidas, responda com os fatos; só volte a "Gostaria de realizar o seu agendamento?" se ainda não a fez nas últimas mensagens, sem repetir a pergunta a cada resposta. Se pedir os valores de novo, envie [[FOTO:valores]] sozinho em uma mensagem, depois "|||" e a pergunta de agendamento. Se perguntar de um valor específico (ex.: quanto é o emergencial), responda em uma frase com o valor e o prazo, sem insistir na pergunta de agendamento. Quando a pessoa disser que quer agendar, vá ao passo 3. Se perguntar sobre o PDF de dúvidas de pagamento e agendamento, diga que será enviado em breve e siga o fluxo.
 
-3) ESCOLHA E PAGAMENTO. Quando a pessoa quiser agendar, o agendamento exige pagar apenas metade do valor, e o restante só quando receber os relatórios finais. Se ela não disse qual modalidade quer (individual em 15 dias, emergencial em 8 dias, pacote familiar), pergunte em uma frase curta qual prefere, mostrando as opções. Com a escolha, envie os dados do Pix em uma mensagem, neste formato (sem emojis):
+3) ESCOLHA E PAGAMENTO. Quando a pessoa quiser agendar, o pagamento do valor confirma o agendamento e libera a realização do trabalho. Se ela não disse qual modalidade quer (individual em 15 dias, emergencial em 8 dias, pacote familiar), pergunte em uma frase curta qual prefere, mostrando as opções. Com a escolha, envie os dados do Pix em uma mensagem, neste formato (sem emojis):
 Chave Pix celular: 17988271998
 
 Informações adicionais
 Nome: Paulo Cesar Rodrigues
 Banco: Nubank
 
-Valor de entrada (metade): [metade do valor da opção] - [nome da opção]
+Valor: [valor da opção] - [nome da opção]
 
 Assim que fizer, nos envie o comprovante para darmos baixa na contabilidade, realizarmos o envio do questionário inicial e demais instruções. Grato.
-   Metades: sessão individual R$ 144,50 (de R$ 289,00); emergencial R$ 169,50 (de R$ 339,00); pacote familiar R$ 400,00 (de R$ 800,00). Nomes: "Sessão de Apometria", "Sessão de Apometria Emergencial", "Apometria Familiar (até 5 pessoas)". Presencial: não é possível no momento por falta de disponibilidade; ofereça o trabalho à distância.
-   Cartão: os links de pagamento disponíveis são do valor inteiro, não da entrada. Se a pessoa pedir cartão, diga que vamos pedir o link do valor de entrada ao Paulo e passe para ele. Transferência ou depósito: envie os mesmos dados do Pix. Pessoa no exterior: diga que o pagamento pode ser por transferência internacional, Wise ou PayPal, com o valor convertido no dia, e passe para o Paulo. Mais de 5 pessoas ou pedido fora do padrão: passe para o Paulo.
+   Valores: sessão individual R$ 289,00; emergencial R$ 339,00; pacote familiar R$ 600,00; pacote de sessões R$ 800,00 (4 sessões de R$ 200,00). Nomes: "Sessão de Apometria", "Sessão de Apometria Emergencial", "Apometria Familiar (até 5 pessoas)". Presencial: não é possível no momento por falta de disponibilidade; ofereça o trabalho à distância.
+   Cartão: envie o link de pagamento da opção escolhida (lista em FATOS); se ainda não houver link para a opção (pacote familiar, trabalhos específicos), ofereça o Pix, a transferência ou o depósito, sem passar para o Paulo (hoje só o presencial não tem link). Nos pacotes (4 sessões e familiar) o cartão vai até 4x sem juros; nos demais, 2x sem juros. Transferência ou depósito: envie os mesmos dados do Pix. Pessoa no exterior: diga que o pagamento pode ser por transferência internacional, Wise ou PayPal, com o valor convertido no dia, e passe para o Paulo. Pedido fora do padrão (por exemplo, mais de 5 pessoas): responda com a opção mais próxima da tabela e siga o fluxo, sem passar para o Paulo.
    Se a pessoa estiver indecisa, ajude a escolher em uma ou duas frases pelo que ela contou (urgência pede o emergencial; mais de uma pessoa da família pede o pacote familiar), sem insistir.
 
 4) COMPROVANTE. Quando o cliente enviar o comprovante (o sistema avisa com a frase "[Cliente enviou um comprovante/imagem/documento]"), responda com TRÊS mensagens separadas por "|||":
    - Primeira: agradeça, diga que recebemos e que vamos redirecionar o atendimento, e que agora enviamos o questionário inicial, que traz perguntas sobre ela e seus objetivos para o estudo do caso. Diga que pode complementar com áudios aqui na conversa.
    - Segunda: o link https://apometriabrasil.com.br/questionario-inicial/ e a frase "Fique à vontade para responder no seu tempo."
-   - Terceira: peça o endereço da residência, por escrito, aqui na conversa, para a apometria do lar. Aceite o endereço do jeito que vier e nunca peça mais informações (CEP, número, complemento ou outro dado).
+   - Terceira: peça que, depois de enviar o questionário, ela escreva aqui na conversa o nome completo junto com o endereço da residência (para a apometria do lar), para a nossa equipe fazer a conferência do questionário. Aceite do jeito que vier e nunca peça mais informações (CEP, número, complemento ou outro dado). O endereço da pessoa só é pedido aqui, depois do pagamento.
    Não confirme valor nem prazo que você não consiga ver no comprovante, apenas receba.
 
-5) QUESTIONÁRIO RESPONDIDO. Quando a pessoa avisar que respondeu o questionário ou mandar o endereço (aceite o endereço do jeito que vier, sem pedir mais informações): agradeça pelo nome, diga que vamos conferir o recebimento e avisar se faltar algo (você não consegue ver o questionário, então nunca diga que já conferiu). Diga que agora é só aguardar o prazo da opção escolhida (15 dias úteis na individual, 8 no emergencial) para a entrega e finalização do trabalho, e que o Paulo entra em contato por aqui para entregar os áudios do relatório. Se o trabalho for para mais de uma pessoa, cada uma responde o seu questionário: confirme os nomes que ela informar. Diga que qualquer dúvida pode ser enviada aqui.
+5) QUESTIONÁRIO RESPONDIDO. Quando a pessoa avisar que respondeu o questionário ou mandar o endereço (aceite o endereço do jeito que vier, sem pedir mais informações): agradeça pelo nome, diga que vamos conferir o recebimento e avisar se faltar algo (você não consegue ver o questionário, então nunca diga que já conferiu). Diga que agora é só aguardar o prazo da opção escolhida (15 dias úteis na individual, 8 no emergencial) para a entrega e finalização do trabalho, e que, no momento do envio dos relatórios finais, o Paulo entra em contato pelo número pessoal dele para entregar os áudios do relatório. Se o trabalho for para mais de uma pessoa, cada uma responde o seu questionário: confirme os nomes que ela informar. Diga que qualquer dúvida pode ser enviada aqui.
 
 6) DEPOIS DO QUESTIONÁRIO. O andamento do trabalho é do Paulo. Nunca diga que a sessão já foi feita, nunca prometa dia para o relatório e nunca confirme data de início. Se a pessoa perguntar quando começa, explique como em RESPOSTAS RÁPIDAS. Se perguntar do relatório antes do fim do prazo, lembre o prazo. Se o prazo já passou, ou ela insistir, passe para o Paulo.
 
@@ -242,6 +254,11 @@ Seu objetivo é levar a pessoa ao próximo passo da venda, sem pressão e sem re
 - Precisa de religião ou de acreditar? Não. Atendemos pessoas de todas as crenças e também quem não segue nenhuma.
 - Preciso estar presente? Não. O trabalho é feito à distância e não exige que a pessoa esteja presente.
 - Onde vocês ficam? De que cidade? Moro em [cidade] / É à distância? Responda com este texto, adaptando a abertura à cidade que a pessoa citou, quando houver: "Nós somos de São José do Rio Preto, SP. Apesar de também realizarmos a apometria presencial, nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Para esse tipo de trabalho não há necessidade de a pessoa estar presente, uma vez que a conexão com o corpo astral é feita através de diversas informações que colhemos em nosso questionário inicial, da nossa sensibilidade como médium e também com o auxílio dos mentores espirituais presentes na sessão, e para eles a barreira de espaço não tem nenhuma representatividade." Depois siga o passo da venda.
+- É online? É por videochamada, por vídeo ou por chamada? A pessoa quer saber se o trabalho é por videochamada. Responda em mensagens curtas separadas por "|||": "Entendemos a sua dúvida. O trabalho de apometria em si ocorre através de uma sessão sensitivo/mediúnica em equipe, à distância, e não é por videochamada. O consulente não participa efetivamente no momento da apometria." ||| "Após o término da sessão, o Paulo reúne as informações e entra em contato para realizar o envio dos relatórios finais e a conclusão de cada caso." ||| "Também não costumamos avisar, nem recomendamos, que a pessoa saiba a hora exata das sessões: possíveis entidades obsessoras ou influenciações presentes no campo da pessoa ou da casa também se preparam contra o nosso trabalho, por incrível que pareça! Por esse motivo e por estratégia, informamos que ao final do prazo estipulado todas as etapas do trabalho estarão concluídas."
+- Dá para parcelar em mais vezes? Posso parcelar em 12x? Responda que pode ser parcelado em até 12x no cartão, assumindo algumas taxas da operadora, e que o 2x ou o 4x (conforme a opção) é por nossa conta, sem juros. Envie o link da opção escolhida, onde a pessoa escolhe o número de parcelas.
+- Quero acrescentar uma sessão emergencial no pacote? Posso passar uma sessão para emergencial? Responda que a taxa para passar para emergencial é de R$ 50,00: basta adicionar e a sessão vira emergencial. No Pix, some os R$ 50,00 ao valor.
+- Dá para fazer ligação? Posso agendar uma ligação? Quero falar por telefone. Responda que é possível agendar uma ligação em um momento oportuno e peça que entre em contato com o Paulo pelo celular dele: "É possível agendar uma ligação em um momento oportuno. Pode chamar o Paulo no (17) 98827-1998 para combinar." e, em uma mensagem separada, [[CONTATO:paulo]] sozinho. O número do Paulo só é enviado nesses dois casos (dúvida sobre veracidade e pedido de ligação). Não pause o bot por isso.
+- Qual o endereço do instituto? Onde fica? Responda: "Ficamos na R. Jaír Martins Mil Homens, São José do Rio Preto, SP." Se perguntar de atendimento presencial, lembre que no momento o trabalho é feito à distância. Não peça o endereço da pessoa por isso.
 - Tem como ser presencial? Diga que, no momento, não é possível realizar o presencial por falta de disponibilidade na agenda, e que o trabalho à distância tem o mesmo resultado, feito com a mesma equipe. Não passe para o Paulo só por isso. Siga o passo da venda.
 - DATAS: Tem para amanhã? Qual data está disponível? Quando posso fazer? Responda que o trabalho é realizado dentro do prazo estipulado, de 15 dias úteis na sessão individual ou de 08 dias úteis no emergencial, e que não costumamos informar dia e hora exatos. Se ela tem urgência, apresente o emergencial. Não passe para o Paulo por isso.
 - Posso pedir para outra pessoa? Sim, e pode solicitar em nome de outras pessoas, inclusive sem a permissão e a consciência delas. Nunca fale em autorização, nem de filhos menores, nem de adultos. Explique com base no mesmo texto do "Onde vocês ficam": a conexão com o corpo astral é feita pelas informações do questionário inicial, pela sensibilidade como médium e pelos mentores espirituais, e a pessoa não precisa estar presente. Quem solicita responde o questionário com o que souber da pessoa. Depois siga o fluxo sem forçar a pergunta de agendamento.
@@ -252,18 +269,18 @@ Seu objetivo é levar a pessoa ao próximo passo da venda, sem pressão e sem re
 - Fazem trabalho contra alguém? Nunca. Atuamos só no campo da própria pessoa, inclusive para desfazer o que tenham enviado contra ela.
 - Já fiz outros trabalhos e não adiantou. Aqui o trabalho começa com o estudo do caso pelo Paulo, antes da sessão, para tratar a origem e não só o que aparece na superfície.
 - Frase de amparo: quando a pessoa estiver em dúvida, com medo, insegura ou perto de decidir, inclua com suas palavras: "Saiba que, se escolher realizar a apometria conosco, você será muito bem amparada e faremos o melhor por você." Use no máximo uma vez por conversa.
-- É confiável? É real? É golpe? Dúvida sobre a veracidade do trabalho ou de quem somos. Responda com acolhimento e estes fatos, em mensagens curtas: "Entendemos perfeitamente a sua preocupação. Como não nos conhecemos e tudo acontece pela internet, é normal surgirem essas dúvidas." Depois: "Somos um instituto de apometria em São José do Rio Preto, chamado Apometria Brasil, reconhecido pelos trabalhos apométricos em todo o Brasil e também no exterior." Depois: "Note também que somos verificados na conta do WhatsApp e do Instagram, processo em que a empresa solicita que se comprove a veracidade das atividades que oferecemos." Depois: "Você também pode pesquisar por Apometria Brasil no Google e ver o nosso perfil no Google Maps e alguns relatos." Não invente outros dados e não passe para o Paulo só por isso.
+- É confiável? É real? É golpe? Dúvida sobre a veracidade do trabalho ou de quem somos. Responda com acolhimento e estes fatos, em mensagens curtas: "Entendemos perfeitamente a sua preocupação. Como não nos conhecemos e tudo acontece pela internet, é normal surgirem essas dúvidas." Depois: "Somos um instituto de apometria em São José do Rio Preto, chamado Apometria Brasil, reconhecido pelos trabalhos apométricos em todo o Brasil e também no exterior." Depois: "Note também que somos verificados na conta do WhatsApp e do Instagram, processo em que a empresa solicita que se comprove a veracidade das atividades que oferecemos." Depois: "Você também pode pesquisar por Apometria Brasil no Google e ver o nosso perfil no Google Maps e alguns relatos." Depois: "Se preferir, você também pode chamar o Paulo diretamente e conversar com ele para ter mais segurança: (17) 98827-1998." e, em uma mensagem separada, [[CONTATO:paulo]] sozinho, que envia o cartão de contato dele. Não invente outros dados e não passe para o Paulo só por isso.
 - Tenho medo. O trabalho é de limpeza e amparo, conduzido com responsabilidade pela equipe. A pessoa só trata o que é dela.
 - É religião? Não. É uma abordagem terapêutica espiritual e energética, sem vínculo religioso.
 - Como recebo o relatório? Em áudios pelo WhatsApp, gravados pelo Paulo.
 - Quando começa ou quando é a sessão? Agora é só aguardar o prazo estipulado para a entrega e a finalização do trabalho. Não costumamos avisar, nem recomendamos, que a pessoa saiba o dia e a hora exatos da sessão: possíveis entidades obsessoras e outras influências presentes no campo também se preparam contra o trabalho. Por isso, por estratégia, informamos que ao final do prazo o relatório final e as demais etapas estarão concluídos. Nunca dê a data.
 - A apometria cura? Resolve a doença? Substitui o tratamento? Responda somente nesse caso, em uma frase simples: "Como é um trabalho complementar, o acompanhamento que você já faz deve continuar." Enquanto a pessoa não perguntar isso, não diga nada sobre o assunto.
-- Como funciona o pacote? Quantas pessoas da família entram? Pacote: 4 sessões por R$ 800,00, ou seja, R$ 200,00 cada, contra R$ 289,00 da sessão avulsa. Cada sessão é um trabalho individual com relatório próprio em áudios, para quem quer continuar o processo com trabalhos mensais de limpeza e cura ou dividir com outras pessoas. Se for para a família toda, apresente também o Familiar: R$ 800,00 para até 5 pessoas da mesma família, mais a apometria do lar, apometrias individuais com um relatório único que mostra as ligações interfamiliares, heranças e padrões que se repetem entre eles. Reforce os benefícios: valor menor por sessão, possibilidade de continuar o processo com limpezas periódicas e resultados amplificados quando pessoas da mesma família fazem a apometria. Se ainda não tiver feito a pergunta de agendamento nas últimas mensagens, termine com "Gostaria de realizar o seu agendamento?".
-- Quanto fica para duas pessoas (por exemplo, a mãe e eu)? Primeiro diga que notamos resultados amplificados em ambos os trabalhos quando pessoas da mesma família realizam a apometria, porque existem fatores individuais e entrelaçamentos familiares que influenciam o próximo, mesmo que indiretamente, e é como se ficassem envolvidas numa egrégora de cura e energias positivas. Depois informe: para duas pessoas, R$ 500,00 os dois trabalhos, R$ 250,00 cada sessão. Se houver mais gente da família em vista (irmãos, filhos), apresente o pacote de 4 sessões (R$ 200,00 cada) como a melhor opção. Se ainda não tiver feito a pergunta de agendamento nas últimas mensagens, termine com "Gostaria de realizar o seu agendamento?".
+- Como funciona o pacote? Quantas pessoas da família entram? Pacote: 4 sessões por R$ 800,00, ou seja, R$ 200,00 cada, contra R$ 289,00 da sessão avulsa. Cada sessão é um trabalho individual com relatório próprio em áudios, para quem quer continuar o processo com trabalhos mensais de limpeza e cura ou dividir com outras pessoas. Se for para a família toda, apresente também o Familiar: R$ 600,00 para no máximo 5 pessoas da mesma família, mais a apometria do lar, apometrias individuais com um relatório único que mostra as ligações interfamiliares, heranças e padrões que se repetem entre eles. Reforce os benefícios: valor menor por sessão, possibilidade de continuar o processo com limpezas periódicas e resultados amplificados quando pessoas da mesma família fazem a apometria. Se ainda não tiver feito a pergunta de agendamento nas últimas mensagens, termine com "Gostaria de realizar o seu agendamento?".
+- Quanto fica para duas pessoas (por exemplo, a mãe e eu)? Primeiro diga que notamos resultados amplificados em ambos os trabalhos quando pessoas da mesma família realizam a apometria, porque existem fatores individuais e entrelaçamentos familiares que influenciam o próximo, mesmo que indiretamente, e é como se ficassem envolvidas numa egrégora de cura e energias positivas. Depois informe: para duas pessoas, o valor à vista é R$ 500,00 os dois trabalhos (R$ 250,00 cada sessão), por Pix, transferência ou depósito. Se houver mais gente da família em vista (irmãos, filhos), apresente o pacote de 4 sessões (R$ 200,00 cada) como a melhor opção. Se ainda não tiver feito a pergunta de agendamento nas últimas mensagens, termine com "Gostaria de realizar o seu agendamento?".
 
 ## PASSAR PARA O PAULO
 Antes de passar para o Paulo, tente sempre VOLTAR AO FLUXO: responda em uma ou duas frases o que a pessoa disse e retome o passo da venda em que estávamos (relato, "Gostaria de saber como funciona e os valores?", "Gostaria de realizar o seu agendamento?", dados do Pix, comprovante, questionário). Assunto fora do roteiro, dúvida que não está nos fatos, conversa lateral, desconfiança, pedido de desconto ou "vou pensar": acolha, responda com o que há nos fatos (sem inventar) e volte ao passo. Para desconto ou condição especial, mantenha os valores, reforce o benefício do pacote ou do emergencial e retome a pergunta da melhor opção. Transferência ou depósito: envie os dados do Pix, que servem para transferência. Pessoa no exterior: diga que o pagamento pode ser por transferência internacional, Wise ou PayPal, com o valor convertido no dia, e passe para o Paulo.
-Passe para o Paulo SOMENTE se, mesmo assim, ocorrer um destes casos: a pessoa pedir para falar com ele ou com um humano (uma vez já basta); reclamação; insistência em desconto ou condição especial depois de você ter voltado ao fluxo uma vez; mais de 4 sessões no pacote; cartão para duas pessoas; pergunta sobre sessão já feita quando o prazo já passou ou ela insiste. Nunca passe para o Paulo por outro motivo. Quando passar, responda com uma mensagem curta, por exemplo: "Vamos passar para o Paulo e ele responde por aqui assim que possível. Nosso atendimento é de segunda a sábado, das 9h às 20h. 🙏" e escreva [[PAUSAR]] sozinho na última linha. O sistema retira essa marca e pausa o bot; se ninguém assumir, o bot volta a responder sozinho depois de algumas horas.
+Passe para o Paulo SOMENTE se, mesmo assim, ocorrer um destes casos: a pessoa pedir para falar com ele ou com um humano (uma vez já basta); reclamação; insistência em desconto ou condição especial depois de você ter voltado ao fluxo uma vez; pergunta sobre sessão já feita quando o prazo já passou ou ela insiste. Nunca passe para o Paulo por outro motivo. Quando passar, responda com uma mensagem curta, por exemplo: "Vamos passar para o Paulo e ele responde por aqui assim que possível. Nosso atendimento é de segunda a sábado, das 9h às 20h. 🙏" e escreva [[PAUSAR]] sozinho na última linha. O sistema retira essa marca e pausa o bot; se ninguém assumir, o bot volta a responder sozinho depois de algumas horas.
 
 ## SITUAÇÕES DE RISCO
 Se a pessoa falar em se machucar, em tirar a própria vida ou em desistir de viver: pare de vender. Acolha em duas frases curtas, sem julgar. Diga que a vida dela importa e que, agora, o mais importante é falar com alguém de imediato: CVV pelo 188 (24 horas, gratuito) ou SAMU pelo 192 se houver risco imediato. Diga que vamos avisar o Paulo. Termine com [[PAUSAR]] na última linha.
@@ -274,26 +291,26 @@ Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Áudio ou
 
 // ─── MENSAGENS FIXAS ─────────────────────────────────────────────────────────
 const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil.*\n\n🏛️ *Quem somos*\nUma equipe especializada em apometria, coordenada pelo terapeuta *Paulo Rodrigues*.\n\n📌 *Neste canal você encontra*\n• Detalhes do procedimento\n• Disponibilidade para agendamento\n\n✍️ *Para iniciarmos, qual é o seu nome, por gentileza?*";
-const TITULO_MSG = "*Vamos explicar como funciona o nosso trabalho em 3 etapas:*\n\n1️⃣ O que você recebe\n2️⃣ Detalhes do procedimento\n3️⃣ Opções de agendamento";
+const TITULO_MSG = "*Vamos explicar como funciona o nosso trabalho em 3 etapas:*\n\n1️⃣ Detalhes do procedimento\n2️⃣ O que você recebe\n3️⃣ Opções de agendamento";
+const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?";
 const ETAPA1 = [
-  "*Etapa 1: o que você recebe*",
+  "*Etapa 1: detalhes do procedimento*",
+  "📝 *Questionário inicial*\nPrimeiramente você irá preencher um questionário com as perguntas necessárias para o seu trabalho, sobre os seus estados físicos, mentais, espirituais e emocionais e sobre o que deseja tratar, investigar e obter respostas da espiritualidade.",
+  "🔎 *Estudo do caso*\nDepois de colher as suas queixas, fazemos um estudo profundo com base nessas informações, para trabalhar da melhor maneira no seu caso. Solicitamos 2 dias úteis para concluir essa etapa.",
+  "📍 *Não precisa estar presente*\nNão há necessidade de você estar presente no dia do trabalho. Somos de São José do Rio Preto, SP, e grande parte dos nossos trabalhos é realizada à distância, para todo o Brasil e exterior."
+];
+const PERGUNTA2 = "Podemos seguir para a etapa 2, com o que você recebe?";
+const ETAPA2 = [
+  "*Etapa 2: o que você recebe*",
   "📑 *O que investigamos e tratamos*\nRealizamos a apometria para atingir seus principais objetivos e, além disso, investigamos e tratamos:\n✓ Seres densos\n✓ Quebra de feitiços e magias\n✓ Retirada de implantes astrais\n✓ Miasmas e energias densas\n✓ Fractais energéticos\n✓ Vínculos com antepassados\n✓ Padrões familiares\n✓ Dissolução de carmas\n✓ Vidas passadas\n✓ Traumas do passado\n✓ Crenças limitantes\n✓ Harmonização dos chacras\n✓ Limpeza energética completa",
   "🗒️ *Relatório em áudios*\n• Enviamos ao final do trabalho um relatório minucioso, explicando o que foi encontrado e tratado.\n• Vão também as orientações e as mensagens deixadas para você pelas equipes espirituais.\n• Os áudios são enviados pelo próprio apômetra Paulo Rodrigues, dirigente do instituto.",
-  "🎁 *Bônus do primeiro atendimento*\n• Limpeza energética do endereço do seu lar\n• Envio de Reiki à distância\nSem custo adicional.",
-  "🤝 *Equipe à disposição*\nDepois do tratamento, a equipe fica disponível para acolhimento pessoal e para as dúvidas que surgirem, de forma gratuita.",
-  "👥 *Para quem pode ser solicitada a apometria*\n\n*• Para você mesmo*\n\n*• Para outra pessoa*\n\n*• Para empresas, imóveis ou animais*"
-];
-const PERGUNTA2 = "Podemos seguir para a etapa 2, com os detalhes do procedimento?";
-const ETAPA2 = [
-  "*Etapa 2: detalhes do procedimento*",
-  "1️⃣ *Questionário inicial*\nPrimeiramente você irá preencher um questionário com as perguntas necessárias para o seu trabalho, sobre os seus estados físicos, mentais, espirituais e emocionais e sobre o que deseja tratar, investigar e obter respostas da espiritualidade.",
-  "2️⃣ *Estudo do caso*\nDepois de colher as suas queixas, fazemos um estudo profundo com base nessas informações, para trabalhar da melhor maneira no seu caso. Solicitamos 2 dias úteis para concluir essa etapa.",
-  "3️⃣ *Não precisa estar presente*\nNão há necessidade de você estar presente no dia do trabalho. Somos de São José do Rio Preto, SP, e grande parte dos nossos trabalhos é realizada à distância, para todo o Brasil e exterior."
+  "⚫ *Complemento do primeiro atendimento*\n• Limpeza energética do endereço do seu lar\n• Envio de Reiki à distância\nSem custo adicional.",
+  "🤝 *Equipe à disposição*\nDepois do tratamento, a equipe fica disponível para acolhimento pessoal e para as dúvidas que surgirem, de forma gratuita."
 ];
 const PDF_MSG = "📎 *Orientações gerais*\nLogo abaixo segue um PDF com orientações, instruções importantes, dúvidas frequentes e o que pode ser solicitado no trabalho.";
 const PERGUNTA3 = "Podemos seguir para a etapa 3, com as opções de agendamento?";
 const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*";
-const ETAPA3_NOTA = "💳 *Para confirmar o agendamento*\n• Basta pagar metade do valor e enviar o comprovante.\n• O restante pode ser pago somente quando você receber os relatórios finais.\n• Prezamos por dar o primeiro passo em direção à confiança: queremos passar segurança desde o início.";
+const ETAPA3_NOTA = "💳 *Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante.";
 const APOS_PAGAMENTO_MSG = "📋 *O que acontece após o pagamento*\n• Você irá receber algumas instruções e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
 const PERGUNTA_AGENDA = "Gostaria de realizar o seu agendamento?";
 
@@ -337,8 +354,18 @@ function saudacao() {
 
 
 // ─── ENVIAR MENSAGEM DE TEXTO VIA WHATSAPP API ────────────────────────────────
+// WhatsApp usa um asterisco de cada lado para negrito: converte **x** em *x* e marcadores de lista
+function normalizarNegrito(t) {
+  return String(t == null ? '' : t)
+    .replace(/\*\*(.+?)\*\*/gs, '*$1*')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^[ \t]*\*[ \t]+/gm, '• ');
+}
+
 async function sendMessage(to, text) {
+  text = normalizarNegrito(text);
   await saveMessage(to, 'out', text);
+  crmSaida(to);
   try {
     await axios.post(
       `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
@@ -388,6 +415,30 @@ async function sendImage(to, imageUrl, caption) {
   }
 }
 
+// Cartão de contato do Paulo (aparece no WhatsApp com o botão de conversar)
+const PAULO_WA = '5517988271998';
+async function sendContact(to) {
+  try {
+    await axios.post(
+      `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        messaging_product: 'whatsapp',
+        to,
+        type: 'contacts',
+        contacts: [{
+          name: { formatted_name: 'Paulo Rodrigues - Apometria Brasil', first_name: 'Paulo', last_name: 'Rodrigues' },
+          phones: [{ phone: '+55 17 98827-1998', type: 'CELL', wa_id: PAULO_WA }]
+        }]
+      },
+      { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } }
+    );
+    await saveMessage(to, 'out', '[contato: Paulo Rodrigues (17) 98827-1998]');
+  } catch (err) {
+    console.error(`❌ Erro ao enviar contato para ${to}:`, err.response?.data || err.message);
+    await sendMessage(to, 'Contato do Paulo: (17) 98827-1998');
+  }
+}
+
 async function sendDocument(to, link, filename) {
   try {
     await axios.post(
@@ -416,12 +467,12 @@ const FOTO_TEXTO = {
 
 Apometria à distância, individual, entrega em até 15 dias úteis: R$ 289,00
 Emergencial, vaga de prioridade em até 8 dias úteis: R$ 339,00
-Pacote de sessões, 4 sessões: R$ 200,00 cada trabalho (R$ 800,00), até 4x no cartão
-Familiar, até 5 pessoas da mesma família mais o lar, relatório único: R$ 800,00
-Presencial, na sede do instituto: R$ 660,00
+Pacote de 4 sessões: R$ 800,00 (R$ 200,00 cada trabalho), até 4x no cartão
+Familiar, máximo de 5 pessoas da mesma família, trabalhos individuais e relatório único: R$ 600,00
+Presencial, meio período (sessão + orientações, 6 horas dedicadas ao seu caso): R$ 720,00
 
-Inclusos em todos: estudo profundo do caso, limpeza energética do lar, envio de Reiki e relatório final em áudio gravado pelo Paulo. Cartão em 2x sem juros em todos os formatos (pacote em até 4x).`,
-  pagamento: `Formas de pagamento: Pix, transferência, depósito ou cartão em 2x sem juros. Basta solicitar o Pix ou o link para pagamento via cartão pelo WhatsApp.
+Inclusos em todos: estudo profundo do caso, limpeza energética do lar, envio de Reiki e relatório final em áudio gravado pelo Paulo. Cartão em 2x sem juros em todos os formatos (pacotes em até 4x).`,
+  pagamento: `Formas de pagamento: Pix, transferência, depósito ou cartão em 2x sem juros (nos pacotes, em até 4x sem juros). Basta solicitar o Pix ou o link para pagamento via cartão pelo WhatsApp.
 
 Quem está no exterior: atendemos brasileiros em outros países. O pagamento pode ser feito por transferência internacional, Wise ou PayPal, com o valor convertido no dia. É só pedir as instruções pelo WhatsApp.
 
@@ -444,12 +495,18 @@ function acharFoto(nome) {
   try {
     if (!/^\w+$/.test(nome)) return null;
     const re = new RegExp(`^${nome}([_-][\\w-]+)?\\.(jpg|jpeg|png)$`);
-    return fs.readdirSync(MEDIA_DIR).find(f => re.test(f)) || null;
+    const lista = fs.readdirSync(MEDIA_DIR).filter(f => re.test(f));
+    // Com mais de uma versão, vale a de maior número no nome (valores_3.jpg vence valores_2.jpg)
+    const num = f => { const m = f.match(/(\d+)\.\w+$/); return m ? parseInt(m[1], 10) : 0; };
+    lista.sort((a, b) => num(b) - num(a));
+    return lista[0] || null;
   } catch (e) { return null; }
 }
 
 async function enviarFoto(to, nome) {
   const arq = acharFoto(nome);
+  crmSaida(to);
+  if (nome === 'valores') { const ss = sessions.get(to); if (ss) ss.viuValores = true; crmSet(to, { viu_valores: true }).catch(() => {}); }
   if (arq) {
     await saveMessage(to, 'out', `[imagem: ${nome}]`);
     await sendImage(to, `${PUBLIC_BASE}/media/${arq}`);
@@ -477,6 +534,7 @@ async function pausarEAvisar(phone, session, motivo) {
   session.pausadoPor = 'bot';
   console.log(`⏸️  Conversa ${phone} pausada pelo bot (${motivo}). Paulo deve assumir.`);
   await upsertConversation(phone, session.clientName, session.stage);
+  await crmAlertar('saiu_do_fluxo', phone, 'Motivo: ' + motivo, session.clientName);
 }
 
 async function sendClaudeResponse(to, rawText, session) {
@@ -484,6 +542,13 @@ async function sendClaudeResponse(to, rawText, session) {
   const clean = rawText.replace(/\[\[PAUSAR\]\]/g, '');
   const parts = clean.split('|||').map(p => p.trim()).filter(Boolean);
   for (let i = 0; i < parts.length; i++) {
+    if (/\[\[CONTATO:\w+\]\]/.test(parts[i])) {
+      const restoC = parts[i].replace(/\[\[CONTATO:\w+\]\]/g, '').trim();
+      if (restoC) { await sleep(typingDelay(restoC)); await sendMessage(to, restoC); }
+      await sleep(2000);
+      await sendContact(to);
+      continue;
+    }
     const fm = parts[i].match(/\[\[FOTO:(\w+)\]\]/);
     if (fm) {
       await sleep(3500);
@@ -564,6 +629,7 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     await saveMessage(from, 'in', text);
   }
   await upsertConversation(from, session.clientName, session.stage);
+  await crmEntrada(from, mediaInfo, session);
 
   if (session.pausado && session.pausadoPor === 'bot' && session.pausadoEm && (Date.now() - session.pausadoEm) > PAUSE_TTL_MS) {
     session.pausado = false;
@@ -596,6 +662,81 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     return;
   }
 
+  // Quebra de fluxo: perguntou os valores antes da hora -> mostra os valores como se tivesse chegado lá, sem falar de etapa
+  const pedeValoresFirme = pedeValores(text) && !/quanto tempo|quantos dias|quanto demora|prazo|demora/.test(semAcento(text));
+  if (!session.viuValores && !session.valoresEmAndamento && pedeValoresFirme &&
+      (session.stage === 'aguardando_nome' || session.etapa === 'para_quem' || session.etapa === 'aguarda2')) {
+    session.valoresEmAndamento = true;
+    session.stage = 'conversa';
+    session.pediuNome = true;
+    session.viuValores = true;
+    session.etapa = 'mais_detalhes';
+    try {
+      await sleep(2500);
+      const intro = 'Claro! Seguem os valores e as opções de atendimento.';
+      await sendMessage(from, intro);
+      await sleep(2500);
+      await enviarFoto(from, 'valores');
+      for (const m of [ETAPA3_NOTA, APOS_PAGAMENTO_MSG]) { await sleep(typingDelay(m)); await sendMessage(from, m); }
+      const itens = [];
+      if (!session.vistoProc) itens.push('🔎 *Detalhes do procedimento*');
+      if (!session.vistoRecebe) itens.push('⚫ *O que você recebe*');
+      let fim;
+      if (itens.length) {
+        fim = 'Se quiser, posso te explicar também:\n\n' + itens.join('\n') + '\n\nOu, se preferir, já podemos seguir para o seu agendamento. 😊';
+      } else {
+        fim = PERGUNTA_AGENDA;
+        session.etapa = null;
+      }
+      await sleep(typingDelay(fim));
+      await sendMessage(from, fim);
+      session.history.push(
+        { role: 'user', content: text },
+        { role: 'assistant', content: [intro, '[foto com os valores e formatos enviada]', ETAPA3_NOTA, APOS_PAGAMENTO_MSG, fim].join('\n\n') }
+      );
+    } finally { session.valoresEmAndamento = false; }
+    await upsertConversation(from, session.clientName, session.stage);
+    return;
+  }
+
+  // Depois dos valores: mostra os detalhes que a pessoa ainda não viu
+  if (session.etapa === 'mais_detalhes') {
+    const t = semAcento(text);
+    const ambos = /\b(ambos|os dois|tudo|todos|as duas)\b/.test(t);
+    const querProc = /procediment|detalhes|como funciona/.test(t);
+    const querRecebe = /o que (eu )?(recebo|vou receber|ganho|receb)|inclui|incluso/.test(t);
+    let mostrar = [];
+    if (ambos || (querProc && querRecebe)) mostrar = ['proc', 'recebe'];
+    else if (querProc) mostrar = ['proc'];
+    else if (querRecebe) mostrar = ['recebe'];
+    else if (ehSim(text)) mostrar = [!session.vistoProc ? 'proc' : 'recebe'];
+    mostrar = mostrar.filter(k => (k === 'proc' ? !session.vistoProc : !session.vistoRecebe));
+    if (mostrar.length) {
+      session.etapa = 'mais_detalhes_andamento';
+      const enviados = [];
+      for (const k of mostrar) {
+        const partes = (k === 'proc' ? ETAPA1 : ETAPA2).slice(1);
+        for (const parte of partes) { await sleep(typingDelay(parte)); await sendMessage(from, parte); enviados.push(parte); }
+        if (k === 'proc') {
+          session.vistoProc = true;
+          const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'orientacoes.pdf'));
+          await sleep(typingDelay(PDF_MSG));
+          await sendMessage(from, PDF_MSG);
+          if (pdfOk) await sendDocument(from, PUBLIC_BASE + '/media/orientacoes.pdf', 'Orientacoes-Apometria-Brasil.pdf');
+        } else session.vistoRecebe = true;
+      }
+      let fim;
+      if (!session.vistoProc) { fim = 'Quer ver também os *detalhes do procedimento*?'; session.etapa = 'mais_detalhes'; }
+      else if (!session.vistoRecebe) { fim = 'Quer ver também o que você recebe?'; session.etapa = 'mais_detalhes'; }
+      else { fim = PERGUNTA_AGENDA; session.etapa = null; }
+      await sleep(typingDelay(fim));
+      await sendMessage(from, fim);
+      session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [...enviados, fim].join('\n\n') });
+      await upsertConversation(from, session.clientName, session.stage);
+      return;
+    }
+  }
+
   if (session.stage === 'aguardando_nome') {
     let nome = extrairNomeSeguro(text);
     if (!nome && !session.pediuNome) {
@@ -611,19 +752,39 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     // Sem nome depois de pedir uma vez: segue o fluxo sem nome, sem insistir
     nome = nome || '';
     session.stage = 'conversa';
-    session.etapa = 'aguarda2';
+    session.etapa = 'para_quem';
     session.clientName = nome || null;
     const ok = nome ? `Ok, ${nome}.` : 'Tudo bem.';
     await sleep(2500);
     await sendMessage(from, ok);
-    for (const parte of [TITULO_MSG, ...ETAPA1, PERGUNTA2]) {
+    await sleep(typingDelay(PERGUNTA_PARA_QUEM));
+    await sendMessage(from, PERGUNTA_PARA_QUEM);
+    session.history.push(
+      { role: 'user', content: nome ? `Meu nome é ${nome}` : text },
+      { role: 'assistant', content: [ok, PERGUNTA_PARA_QUEM].join('\n\n') }
+    );
+    await upsertConversation(from, session.clientName, session.stage);
+    return;
+  }
+
+  if (session.etapa === 'para_quem') {
+    session.etapa = 'para_quem_andamento'; // trava antes dos awaits (mensagens em rajada)
+    const respQuem = await processWithClaude(session, text);
+    await sendClaudeResponse(from, respQuem, session);
+    if (session.pausado) { session.etapa = 'aguarda2'; await upsertConversation(from, session.clientName, session.stage); return; }
+    session.etapa = 'aguarda2';
+    session.vistoProc = true;
+    for (const parte of [TITULO_MSG, ...ETAPA1]) {
       await sleep(typingDelay(parte));
       await sendMessage(from, parte);
     }
-    session.history.push(
-      { role: 'user', content: nome ? `Meu nome é ${nome}` : text },
-      { role: 'assistant', content: [ok, TITULO_MSG, ...ETAPA1, PERGUNTA2].join('\n\n') }
-    );
+    const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'orientacoes.pdf'));
+    await sleep(typingDelay(PDF_MSG));
+    await sendMessage(from, PDF_MSG);
+    if (pdfOk) await sendDocument(from, `${PUBLIC_BASE}/media/orientacoes.pdf`, 'Orientacoes-Apometria-Brasil.pdf');
+    await sleep(typingDelay(PERGUNTA2));
+    await sendMessage(from, PERGUNTA2);
+    session.history.push({ role: 'assistant', content: [TITULO_MSG, ...ETAPA1, PDF_MSG, PERGUNTA2].join('\n\n') });
     await upsertConversation(from, session.clientName, session.stage);
     return;
   }
@@ -632,19 +793,16 @@ async function handleMessage(from, messageText, mediaInfo = null) {
     const querValores = pedeValores(text);
     if (session.etapa === 'aguarda2' && ehSim(text) && !querValores) {
       session.etapa = 'aguarda3'; // trava antes dos awaits (mensagens em rajada)
+      session.vistoRecebe = true;
       for (const parte of ETAPA2) {
         await sleep(typingDelay(parte));
         await sendMessage(from, parte);
       }
-      const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'orientacoes.pdf'));
-      await sleep(typingDelay(PDF_MSG));
-      await sendMessage(from, PDF_MSG);
-      if (pdfOk) await sendDocument(from, `${PUBLIC_BASE}/media/orientacoes.pdf`, 'Orientacoes-Apometria-Brasil.pdf');
       await sleep(typingDelay(PERGUNTA3));
       await sendMessage(from, PERGUNTA3);
       session.history.push(
         { role: 'user', content: text },
-        { role: 'assistant', content: [...ETAPA2, PDF_MSG, PERGUNTA3].join('\n\n') }
+        { role: 'assistant', content: [...ETAPA2, PERGUNTA3].join('\n\n') }
       );
       await upsertConversation(from, session.clientName, session.stage);
       return;
@@ -865,7 +1023,7 @@ app.get('/painel', (req, res) => {
 </style>
 </head>
 <body>
-  <div id="lista"><h2>Conversas</h2><div id="listaConteudo" class="vazio">Carregando...</div></div>
+  <div id="lista"><h2>Conversas <a href="/painel/crm" style="float:right;font-weight:400;color:#7a4d8c;text-decoration:none">CRM →</a></h2><div id="listaConteudo" class="vazio">Carregando...</div></div>
   <div id="chat">
     <div id="chatHeader">
       <div class="titulo">
@@ -987,6 +1145,363 @@ app.get('/painel', (req, res) => {
 </body>
 </html>`);
 });
+
+// ─── CRM: FUNIL, FOLLOW-UP AUTOMÁTICO E AVISOS ───────────────────────────────
+const CRM_TOKEN = process.env.CRM_TOKEN;
+const RANK = { novo: 0, explicacao: 1, valores: 2, comprovante: 3, pago: 4, questionario: 5 };
+const FUNIL_ROTULO = {
+  novo: 'Novo contato', explicacao: 'Em explicação', valores: 'Viu os valores',
+  comprovante: 'Comprovante recebido', pago: 'Pago / confirmado', questionario: 'Questionário respondido',
+  paulo: 'Com o Paulo', sem_resposta: 'Sem resposta', perdido: 'Perdido'
+};
+const FOLLOWUP_HORAS = [3, 28, 52]; // horas desde a última mensagem da pessoa
+const FOLLOWUP_PADRAO = [
+  'Olá, {nome}! Passando para ver se ficou alguma dúvida sobre a apometria. Podemos continuar de onde paramos, no seu tempo. 🙏',
+  '{nome}, tudo bem? Seguimos à disposição por aqui. Se quiser retomar de onde paramos ou tirar alguma dúvida, é só responder esta mensagem.',
+  '{nome}, esta é a nossa última mensagem por aqui, para não incomodar. Se em algum momento sentir que é hora de cuidar disso, é só nos chamar. Estaremos à disposição. 🙏'
+];
+
+async function initCrm() {
+  if (!pool) return;
+  const alt = [
+    "funil TEXT DEFAULT 'novo'", "viu_valores BOOLEAN DEFAULT false", "last_in_at TIMESTAMPTZ", "last_out_at TIMESTAMPTZ",
+    "followups_sent INT DEFAULT 0", "followup_off BOOLEAN DEFAULT false", "last_followup_at TIMESTAMPTZ",
+    "comprovante_at TIMESTAMPTZ", "questionario_at TIMESTAMPTZ", "notas TEXT"
+  ];
+  for (const c of alt) await pool.query('ALTER TABLE conversations ADD COLUMN IF NOT EXISTS ' + c);
+  await pool.query(`CREATE TABLE IF NOT EXISTS eventos (
+    id SERIAL PRIMARY KEY, phone TEXT, tipo TEXT, detalhe TEXT, created_at TIMESTAMPTZ DEFAULT now())`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS crm_config (key TEXT PRIMARY KEY, value TEXT)`);
+  await pool.query(`UPDATE conversations c SET
+    last_in_at = (SELECT max(created_at) FROM messages m WHERE m.phone = c.phone AND m.direction = 'in'),
+    last_out_at = (SELECT max(created_at) FROM messages m WHERE m.phone = c.phone AND m.direction = 'out')
+    WHERE last_in_at IS NULL AND last_out_at IS NULL`);
+  console.log('📊 CRM pronto.');
+}
+
+async function cfgGet(key, padrao = null) {
+  if (!pool) return padrao;
+  try {
+    const { rows } = await pool.query('SELECT value FROM crm_config WHERE key = $1', [key]);
+    return rows[0] ? rows[0].value : padrao;
+  } catch (e) { return padrao; }
+}
+async function cfgSet(key, value) {
+  if (!pool) return;
+  await pool.query('INSERT INTO crm_config (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value', [key, String(value)]);
+}
+
+function funilDerivado(session, viuValores) {
+  if (viuValores || session.viuValores) return 'valores';
+  if (session.stage === 'abertura' || session.stage === 'aguardando_nome') return 'novo';
+  return 'explicacao';
+}
+
+// Chamada a cada upsertConversation: mantém o funil atualizado sem nunca retroceder
+async function crmAtualizarFunil(phone, session) {
+  if (!pool || !session) return;
+  try {
+    const { rows } = await pool.query('SELECT funil, viu_valores FROM conversations WHERE phone = $1', [phone]);
+    if (!rows[0]) return;
+    const atual = rows[0].funil || 'novo';
+    let novo;
+    if ((RANK[atual] ?? -1) >= RANK.comprovante) novo = atual;
+    else if (session.pausado) novo = 'paulo';
+    else {
+      const der = funilDerivado(session, rows[0].viu_valores);
+      const rAtual = (atual === 'paulo' || atual === 'sem_resposta' || atual === 'perdido') ? -1 : (RANK[atual] ?? 0);
+      novo = RANK[der] >= rAtual ? der : atual;
+    }
+    if (novo !== atual) await pool.query('UPDATE conversations SET funil = $2 WHERE phone = $1', [phone, novo]);
+  } catch (e) { console.error('❌ CRM funil:', e.message); }
+}
+
+async function crmEvento(phone, tipo, detalhe) {
+  if (!pool) return;
+  try { await pool.query('INSERT INTO eventos (phone, tipo, detalhe) VALUES ($1,$2,$3)', [phone, tipo, detalhe || null]); }
+  catch (e) { console.error('❌ CRM evento:', e.message); }
+}
+
+async function enviarTemplate(to, nome, params) {
+  const body = {
+    messaging_product: 'whatsapp', to, type: 'template',
+    template: { name: nome, language: { code: 'pt_BR' } }
+  };
+  if (params && params.length) body.template.components = [{ type: 'body', parameters: params.map(t => ({ type: 'text', text: String(t) })) }];
+  await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`, body,
+    { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+}
+
+const alertaRecente = new Map();
+// Aviso para o(s) número(s) da equipe (config "alerta_numeros", separados por vírgula)
+async function crmAlertar(tipo, phone, detalhe, nome) {
+  await crmEvento(phone, tipo, detalhe);
+  const chave = tipo + ':' + phone;
+  if (alertaRecente.get(chave) && Date.now() - alertaRecente.get(chave) < 10 * 60 * 1000) return;
+  alertaRecente.set(chave, Date.now());
+  const numeros = ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean);
+  if (!numeros.length) return;
+  const rotulos = { comprovante: '💰 Possível pagamento', saiu_do_fluxo: '⚠️ Conversa precisa do Paulo', questionario: '📝 Questionário respondido' };
+  const quem = (nome || 'Sem nome') + ' (+' + phone + ')';
+  const texto = (rotulos[tipo] || tipo) + '\n' + quem + (detalhe ? '\n' + detalhe : '') + '\nPainel: ' + PUBLIC_BASE + '/painel/crm';
+  const template = await cfgGet('alerta_template', process.env.ALERTA_TEMPLATE || '');
+  for (const n of numeros) {
+    try {
+      if (template) await enviarTemplate(n, template, [rotulos[tipo] || tipo, quem, detalhe || '-']);
+      else await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
+        { messaging_product: 'whatsapp', to: n, type: 'text', text: { body: texto } },
+        { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+      console.log('🔔 Aviso enviado para ' + n + ': ' + tipo);
+    } catch (e) { console.error('❌ Aviso para ' + n + ':', e.response?.data || e.message); }
+  }
+}
+
+// Mensagem recebida: zera o contador de follow-up e trata comprovante
+async function crmEntrada(phone, mediaInfo, session) {
+  if (!pool) return;
+  try {
+    const { rows } = await pool.query('SELECT funil FROM conversations WHERE phone = $1', [phone]);
+    const atual = rows[0]?.funil || 'novo';
+    await pool.query('UPDATE conversations SET last_in_at = now(), followups_sent = 0 WHERE phone = $1', [phone]);
+    if (atual === 'sem_resposta' || atual === 'perdido') {
+      await pool.query('UPDATE conversations SET funil = $2 WHERE phone = $1', [phone, funilDerivado(session, false)]);
+    }
+    if (mediaInfo && (RANK[atual] ?? -1) < RANK.comprovante) {
+      await pool.query("UPDATE conversations SET funil = 'comprovante', comprovante_at = now() WHERE phone = $1", [phone]);
+      await crmAlertar('comprovante', phone, 'Comprovante/imagem recebido. Conferir o pagamento.', session.clientName);
+    }
+  } catch (e) { console.error('❌ CRM entrada:', e.message); }
+}
+async function crmSaida(phone) {
+  if (!pool) return;
+  pool.query('UPDATE conversations SET last_out_at = now() WHERE phone = $1', [phone]).catch(() => {});
+}
+async function crmSet(phone, campos) {
+  if (!pool) return;
+  const ks = Object.keys(campos);
+  if (!ks.length) return;
+  await pool.query('UPDATE conversations SET ' + ks.map((k, i) => k + ' = $' + (i + 2)).join(', ') + ' WHERE phone = $1', [phone, ...ks.map(k => campos[k])]);
+}
+
+// ─── FOLLOW-UP AUTOMÁTICO ─────────────────────────────────────────────────────
+function horaBrasilia() {
+  return parseInt(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date()), 10);
+}
+async function followupTextos() {
+  try { const t = JSON.parse(await cfgGet('followup_textos', 'null')); if (Array.isArray(t) && t.length === 3) return t; } catch (e) {}
+  return FOLLOWUP_PADRAO;
+}
+let followupRodando = false;
+async function rodarFollowups() {
+  if (!pool || followupRodando) return;
+  followupRodando = true;
+  try {
+    if ((await cfgGet('followup_ativo', '0')) !== '1') return;
+    const h = horaBrasilia();
+    if (h < 8 || h >= 20) return;
+    const desde = await cfgGet('followup_desde', null);
+    const { rows } = await pool.query(
+      `SELECT phone, client_name, followups_sent, last_in_at, last_followup_at FROM conversations
+       WHERE funil IN ('novo','explicacao','valores') AND NOT followup_off AND followups_sent < 3
+         AND last_in_at IS NOT NULL AND last_out_at IS NOT NULL AND last_out_at >= last_in_at
+         AND ($1::timestamptz IS NULL OR last_in_at >= $1::timestamptz)`, [desde]);
+    const textos = await followupTextos();
+    for (const r of rows) {
+      const sess = sessions.get(r.phone);
+      if (sess && sess.pausado) continue;
+      const horasSilencio = (Date.now() - new Date(r.last_in_at).getTime()) / 3600000;
+      if (horasSilencio < FOLLOWUP_HORAS[r.followups_sent]) continue;
+      if (r.last_followup_at && Date.now() - new Date(r.last_followup_at).getTime() < 3600000) continue;
+      const passo = r.followups_sent;
+      const nome = (r.client_name || '').split(' ')[0];
+      const texto = textos[passo].replace(/\{nome\}/g, nome || 'tudo bem').replace('Olá, tudo bem!', 'Olá!').replace(/^tudo bem, tudo bem\?/, 'Tudo bem?');
+      try {
+        if (horasSilencio < 23) {
+          await sendMessage(r.phone, texto);
+          if (sess) sess.history.push({ role: 'assistant', content: texto });
+        } else {
+          const tpl = await cfgGet('followup_template_' + (passo + 1), '');
+          if (!tpl) { console.log('⏭️  Follow-up ' + (passo + 1) + ' de ' + r.phone + ' pendente: fora da janela de 24h e sem template configurado.'); continue; }
+          await enviarTemplate(r.phone, tpl, [nome || 'tudo bem']);
+          await saveMessage(r.phone, 'out', '[Template ' + tpl + '] ' + texto);
+          await crmSaida(r.phone);
+          if (sess) sess.history.push({ role: 'assistant', content: texto });
+        }
+        await pool.query('UPDATE conversations SET followups_sent = followups_sent + 1, last_followup_at = now() WHERE phone = $1', [r.phone]);
+        await crmEvento(r.phone, 'followup', 'Follow-up ' + (passo + 1) + ' de 3 enviado');
+        if (passo === 2) await pool.query("UPDATE conversations SET funil = 'sem_resposta' WHERE phone = $1", [r.phone]);
+      } catch (e) { console.error('❌ Follow-up ' + r.phone + ':', e.response?.data || e.message); }
+      await sleep(3000);
+    }
+  } catch (e) { console.error('❌ Follow-ups:', e.message); }
+  finally { followupRodando = false; }
+}
+
+// ─── ROTAS DO CRM ─────────────────────────────────────────────────────────────
+app.get('/painel/api/crm', async (req, res) => {
+  if (!pool) return res.json({ conversas: [], eventos: [], config: {} });
+  try {
+    const conv = await pool.query(`SELECT phone, client_name, funil, last_in_at, last_out_at, followups_sent, followup_off,
+        comprovante_at, questionario_at, notas, updated_at FROM conversations ORDER BY updated_at DESC LIMIT 500`);
+    const ev = await pool.query(`SELECT e.id, e.phone, e.tipo, e.detalhe, e.created_at, c.client_name
+        FROM eventos e LEFT JOIN conversations c ON c.phone = e.phone ORDER BY e.created_at DESC LIMIT 60`);
+    res.json({
+      conversas: conv.rows.map(r => ({ ...r, pausado: sessions.get(r.phone)?.pausado || false })),
+      eventos: ev.rows,
+      rotulos: FUNIL_ROTULO,
+      config: {
+        followup_ativo: (await cfgGet('followup_ativo', '0')) === '1',
+        followup_textos: await followupTextos(),
+        alerta_numeros: await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || ''),
+        alerta_template: await cfgGet('alerta_template', process.env.ALERTA_TEMPLATE || ''),
+        templates: [1, 2, 3].map(() => ''),
+        followup_templates: [await cfgGet('followup_template_1', ''), await cfgGet('followup_template_2', ''), await cfgGet('followup_template_3', '')]
+      }
+    });
+  } catch (e) { res.status(500).json({ erro: e.message }); }
+});
+
+app.post('/painel/api/crm/config', async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (typeof b.followup_ativo === 'boolean') {
+      await cfgSet('followup_ativo', b.followup_ativo ? '1' : '0');
+      if (b.followup_ativo && !(await cfgGet('followup_desde', null))) await cfgSet('followup_desde', new Date().toISOString());
+    }
+    if (b.followup_incluir_antigos === true) await pool.query("DELETE FROM crm_config WHERE key = 'followup_desde'");
+    if (Array.isArray(b.followup_textos) && b.followup_textos.length === 3) await cfgSet('followup_textos', JSON.stringify(b.followup_textos.map(String)));
+    if (typeof b.alerta_numeros === 'string') await cfgSet('alerta_numeros', b.alerta_numeros);
+    if (typeof b.alerta_template === 'string') await cfgSet('alerta_template', b.alerta_template.trim());
+    if (Array.isArray(b.followup_templates)) for (let i = 0; i < 3; i++) await cfgSet('followup_template_' + (i + 1), String(b.followup_templates[i] || '').trim());
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ erro: e.message }); }
+});
+
+app.post('/painel/api/crm/:phone', async (req, res) => {
+  try {
+    const b = req.body || {}; const campos = {};
+    if (typeof b.funil === 'string' && FUNIL_ROTULO[b.funil]) campos.funil = b.funil;
+    if (typeof b.followup_off === 'boolean') campos.followup_off = b.followup_off;
+    if (typeof b.notas === 'string') campos.notas = b.notas;
+    await crmSet(req.params.phone, campos);
+    if (campos.funil) await crmEvento(req.params.phone, 'funil_manual', 'Movido para: ' + FUNIL_ROTULO[campos.funil]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ erro: e.message }); }
+});
+
+// Integração com o formulário do site: o formulário envia um POST para cá quando alguém responde
+app.post('/crm/questionario', async (req, res) => {
+  if (!CRM_TOKEN) return res.status(503).json({ erro: 'CRM_TOKEN não configurado.' });
+  if ((req.headers['x-crm-token'] || req.query.token) !== CRM_TOKEN) return res.status(401).json({ erro: 'Token inválido.' });
+  try {
+    const b = req.body || {};
+    const tel = String(b.telefone || b.phone || b.whatsapp || '').replace(/\D/g, '');
+    const nome = String(b.nome || b.name || '').trim();
+    let achou = null;
+    if (pool && tel.length >= 8) {
+      const { rows } = await pool.query('SELECT phone, client_name FROM conversations WHERE right(phone, 8) = $1 ORDER BY updated_at DESC LIMIT 1', [tel.slice(-8)]);
+      achou = rows[0] || null;
+    }
+    if (!achou && pool && nome) {
+      const { rows } = await pool.query("SELECT phone, client_name FROM conversations WHERE lower(client_name) = lower($1) ORDER BY updated_at DESC LIMIT 1", [nome.split(' ')[0]]);
+      achou = rows[0] || null;
+    }
+    if (achou) {
+      await pool.query("UPDATE conversations SET funil = 'questionario', questionario_at = now() WHERE phone = $1", [achou.phone]);
+      await crmAlertar('questionario', achou.phone, 'Formulário respondido por ' + (nome || 'nome não informado') + '.', achou.client_name);
+    } else {
+      await crmEvento(tel || 'desconhecido', 'questionario_sem_conversa', 'Formulário de ' + (nome || '?') + ' (' + (tel || 'sem telefone') + ') sem conversa correspondente.');
+    }
+    res.json({ ok: true, vinculado: !!achou });
+  } catch (e) { res.status(500).json({ erro: e.message }); }
+});
+
+app.get('/painel/crm', (req, res) => {
+  res.send(`<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>CRM — Instituto Apometria Brasil</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+ body{margin:0;font-family:system-ui,sans-serif;background:#f6f3ee;color:#2b2620}
+ header{background:#fff;border-bottom:1px solid #e0d8c9;padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
+ header a{color:#7a4d8c;text-decoration:none;font-size:14px} h1{font-size:17px;margin:0}
+ main{padding:18px 22px;max-width:1300px;margin:auto}
+ #cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+ .card{background:#fff;border:1px solid #e0d8c9;border-radius:10px;padding:10px 14px;min-width:120px;cursor:pointer}
+ .card.ativo{border-color:#7a4d8c;background:#efe6f2}.card b{font-size:22px;display:block}.card span{font-size:12px;color:#6b6153}
+ .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}@media(max-width:900px){.grid{grid-template-columns:1fr}}
+ .box{background:#fff;border:1px solid #e0d8c9;border-radius:10px;padding:14px;margin-bottom:16px}
+ .box h2{font-size:14px;margin:0 0 10px}
+ table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:#8a7f6d;font-size:11px;text-transform:uppercase;padding:6px}
+ td{padding:7px 6px;border-top:1px solid #f0ece3;vertical-align:top}
+ select,input,textarea{font:inherit;font-size:13px;border:1px solid #d8cdb8;border-radius:6px;padding:5px}
+ textarea{width:100%;box-sizing:border-box} button{background:#7a4d8c;color:#fff;border:0;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px}
+ .ev{font-size:13px;padding:6px 0;border-top:1px solid #f0ece3}.ev small{color:#8a7f6d;display:block}
+ .tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:10px;background:#efe6f2}
+ .tag.comprovante,.tag.pago{background:#dff3e3}.tag.paulo{background:#fde8c8}.tag.sem_resposta,.tag.perdido{background:#eee}
+ label.sw{font-size:13px;display:flex;gap:8px;align-items:center;margin-bottom:10px}
+</style></head><body>
+<header><h1>CRM — Instituto Apometria Brasil</h1><a href="/painel">← Conversas</a></header>
+<main>
+ <div id="cards"></div>
+ <div class="grid">
+  <div class="box"><h2>Leads</h2><div style="overflow-x:auto"><table><thead><tr><th>Nome</th><th>Etapa</th><th>Último contato</th><th>Follow-ups</th><th>Notas</th></tr></thead><tbody id="linhas"></tbody></table></div></div>
+  <div>
+   <div class="box"><h2>Avisos recentes</h2><div id="eventos"></div></div>
+   <div class="box"><h2>Follow-up automático</h2>
+    <label class="sw"><input type="checkbox" id="fuAtivo"> Enviar follow-ups (3 mensagens em 3 dias, das 8h às 20h)</label>
+    <div id="fuTextos"></div>
+    <p style="font-size:12px;color:#6b6153">Use {nome}. Depois de 24h sem resposta, o WhatsApp só permite mensagem modelo (template) aprovada: informe o nome de cada uma abaixo.</p>
+    <div id="fuTpl"></div>
+   </div>
+   <div class="box"><h2>Avisos para a equipe</h2>
+    <label style="font-size:12px">Números (com DDI, separados por vírgula)</label><input id="alNum" style="width:100%;box-sizing:border-box;margin-bottom:8px">
+    <label style="font-size:12px">Template de aviso (3 variáveis: tipo, pessoa, detalhe)</label><input id="alTpl" style="width:100%;box-sizing:border-box">
+    <p style="margin:10px 0 0"><button id="salvar">Salvar configurações</button> <span id="ok" style="font-size:12px;color:#2f7d46"></span></p>
+   </div>
+  </div>
+ </div>
+</main>
+<script>
+var dados=null,filtro='todos';
+function ago(d){if(!d)return '—';var m=Math.round((Date.now()-new Date(d))/60000);if(m<60)return m+' min';if(m<1440)return Math.round(m/60)+' h';return Math.round(m/1440)+' d';}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function api(u,b){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function render(){
+ var rot=dados.rotulos,cont={};dados.conversas.forEach(function(c){cont[c.funil]=(cont[c.funil]||0)+1;});
+ var h='<div class="card '+(filtro==='todos'?'ativo':'')+'" data-f="todos"><b>'+dados.conversas.length+'</b><span>Todos</span></div>';
+ Object.keys(rot).forEach(function(k){h+='<div class="card '+(filtro===k?'ativo':'')+'" data-f="'+k+'"><b>'+(cont[k]||0)+'</b><span>'+rot[k]+'</span></div>';});
+ document.getElementById('cards').innerHTML=h;
+ document.querySelectorAll('.card').forEach(function(e){e.onclick=function(){filtro=e.dataset.f;render();};});
+ var l='';dados.conversas.filter(function(c){return filtro==='todos'||c.funil===filtro;}).forEach(function(c){
+  var opts=Object.keys(rot).map(function(k){return '<option value="'+k+'"'+(k===c.funil?' selected':'')+'>'+rot[k]+'</option>';}).join('');
+  l+='<tr><td><b>'+esc(c.client_name||'Sem nome')+'</b><br><a href="https://wa.me/'+c.phone+'" target="_blank" style="font-size:12px">+'+c.phone+'</a>'+(c.pausado?' <span class="tag paulo">pausado</span>':'')+'</td>'
+   +'<td><select data-p="'+c.phone+'" class="fn">'+opts+'</select></td>'
+   +'<td>'+ago(c.last_in_at)+'<br><small style="color:#8a7f6d">enviado há '+ago(c.last_out_at)+'</small></td>'
+   +'<td>'+c.followups_sent+'/3<br><label style="font-size:11px"><input type="checkbox" class="fo" data-p="'+c.phone+'"'+(c.followup_off?' checked':'')+'> parar</label></td>'
+   +'<td><textarea rows="2" class="nt" data-p="'+c.phone+'">'+esc(c.notas)+'</textarea></td></tr>';});
+ document.getElementById('linhas').innerHTML=l||'<tr><td colspan="5" style="color:#8a7f6d;padding:20px">Nenhuma conversa nesta etapa.</td></tr>';
+ document.querySelectorAll('.fn').forEach(function(e){e.onchange=function(){api('/painel/api/crm/'+e.dataset.p,{funil:e.value}).then(load);};});
+ document.querySelectorAll('.fo').forEach(function(e){e.onchange=function(){api('/painel/api/crm/'+e.dataset.p,{followup_off:e.checked});};});
+ document.querySelectorAll('.nt').forEach(function(e){e.onblur=function(){api('/painel/api/crm/'+e.dataset.p,{notas:e.value});};});
+ document.getElementById('eventos').innerHTML=dados.eventos.map(function(v){return '<div class="ev"><b>'+esc(v.tipo)+'</b> — '+esc(v.client_name||v.phone)+'<small>'+esc(v.detalhe||'')+' · há '+ago(v.created_at)+'</small></div>';}).join('')||'<div style="color:#8a7f6d;font-size:13px">Nenhum aviso ainda.</div>';
+}
+var primeira=true;
+function load(){fetch('/painel/api/crm').then(function(r){return r.json();}).then(function(d){dados=d;render();if(primeira){primeira=false;
+ document.getElementById('fuAtivo').checked=d.config.followup_ativo;
+ document.getElementById('fuTextos').innerHTML=d.config.followup_textos.map(function(t,i){return '<label style="font-size:12px">Mensagem '+(i+1)+'</label><textarea rows="3" class="ft">'+esc(t)+'</textarea>';}).join('');
+ document.getElementById('fuTpl').innerHTML=d.config.followup_templates.map(function(t,i){return '<label style="font-size:12px">Template da mensagem '+(i+1)+'</label><input class="ftp" style="width:100%;box-sizing:border-box;margin-bottom:6px" value="'+esc(t)+'">';}).join('');
+ document.getElementById('alNum').value=d.config.alerta_numeros||'';document.getElementById('alTpl').value=d.config.alerta_template||'';}});}
+document.getElementById('salvar').onclick=function(){
+ api('/painel/api/crm/config',{followup_ativo:document.getElementById('fuAtivo').checked,
+  followup_textos:Array.prototype.map.call(document.querySelectorAll('.ft'),function(e){return e.value;}),
+  followup_templates:Array.prototype.map.call(document.querySelectorAll('.ftp'),function(e){return e.value;}),
+  alerta_numeros:document.getElementById('alNum').value,alerta_template:document.getElementById('alTpl').value}).then(function(){document.getElementById('ok').textContent='Salvo.';setTimeout(function(){document.getElementById('ok').textContent='';},2500);});};
+load();setInterval(function(){fetch('/painel/api/crm').then(function(r){return r.json();}).then(function(d){dados=d;render();});},20000);
+</script></body></html>`);
+});
+
+setInterval(() => { rodarFollowups(); }, 5 * 60 * 1000);
+app.rodarFollowups = rodarFollowups;
 
 // ─── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
 initDb().then(() => {
