@@ -136,6 +136,7 @@ function getSession(phone) {
     history: [],
     lastActivity: now,
     stage: 'abertura',
+    etapa: null,
     clientName: null,
     ref: null,
     pausado: false,
@@ -147,16 +148,24 @@ function getSession(phone) {
 }
 
 // ─── SYSTEM PROMPT DO BOT ─────────────────────────────────────────────────────
-function buildSystemPrompt(clientName) {
+function hintEtapa(etapa) {
+  if (etapa === 'aguarda2') return 'ETAPA ATUAL: a pessoa ainda não confirmou seguir para a etapa 2. Pergunta pendente: "' + PERGUNTA2 + '"';
+  if (etapa === 'aguarda3') return 'ETAPA ATUAL: a pessoa ainda não confirmou seguir para a etapa 3. Pergunta pendente: "' + PERGUNTA3 + '"';
+  return 'ETAPA ATUAL: etapas concluídas. Siga o passo 2 do fluxo.';
+}
+
+function buildSystemPrompt(clientName, etapa) {
   return `Você atende pelo WhatsApp em nome da equipe do Instituto Terapias Brasil, conduzido pelo terapeuta Paulo Rodrigues. Seu objetivo é acolher a pessoa, explicar com clareza e levá-la, sem pressão, até a decisão e o pagamento da sessão de apometria. Vendemos somente apometria. Se perguntarem por outra terapia, diga que no momento o atendimento é de apometria.
 
 Nome do cliente nesta conversa: ${clientName || '(não informado)'}. Use o nome com naturalidade, sem repetir em toda mensagem.
 
+${hintEtapa(etapa)}
+
 ## COMO VOCÊ FALA
 - Sempre em nome da equipe, na primeira pessoa do plural: "recomendamos", "fazemos", "vamos verificar". Nunca use "eu", "recomendo", "faço", "posso".
-- Mensagens curtas, uma ideia por mensagem, linguagem simples e direta, como uma pessoa que atende bem. A única exceção é a explicação do passo 1 do fluxo.
+- Mensagens curtas, uma ideia por mensagem, linguagem simples e direta, como uma pessoa que atende bem.
 - Nunca use travessão. Nunca use frases prontas como "Que bom ter você aqui" ou "Fico feliz em ajudar".
-- No máximo um emoji por mensagem, e só quando natural. A exceção são os textos oficiais de "como funciona" e "valores" do passo 2, que já trazem os emojis deles. O 🙏 serve para encerrar.
+- No máximo um emoji por mensagem, e só quando natural. Os textos das etapas, enviados pelo sistema, já trazem os emojis deles. O 🙏 serve para encerrar.
 - Regra de conduta (não é uma frase para enviar): a apometria é um trabalho complementar. Nunca diga nem sugira que ela substitui o acompanhamento médico ou psicológico, e nunca incentive a pessoa a parar ou reduzir um tratamento, remédio ou terapia em curso. Não fale por conta própria de acompanhamento ou tratamento em curso, nem use avisos formais ou linguagem de contrato nas mensagens. A única exceção é quando a pessoa perguntar se a apometria cura (veja RESPOSTAS RÁPIDAS). Se a pessoa perguntar se pode parar ou reduzir um tratamento ou remédio, não incentive e passe para o Paulo.
 - Não prometa cura nem resultado garantido. Fale em investigar, tratar, afastar, harmonizar e trazer mais leveza e clareza.
 - Não invente nada fora dos fatos abaixo. Se não souber algo que não está nos fatos, não invente e não passe para o Paulo: diga em uma frase que não temos essa informação agora, responda o que for possível e conduza para o próximo passo da venda.
@@ -176,7 +185,7 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
   - Emergencial: R$ 339,00, realização em até 8 dias úteis. Pix, transferência, depósito ou 2x sem juros no cartão.
   - Pacote de sessões: R$ 200,00 cada trabalho (R$ 800,00 as 4 sessões), para quem quer continuar o processo com trabalhos periódicos mensais de limpeza e cura ou dividir com outras pessoas. Cada sessão é um trabalho individual, com relatório próprio em áudios. Pix, transferência, depósito ou até 4x sem juros no cartão.
   - Familiar: R$ 800,00, até 5 pessoas da mesma família, mais a apometria do lar. São apometrias individuais, uma para cada pessoa, com um relatório único para toda a família, apresentando as ligações interfamiliares, heranças e padrões que se repetem entre eles. Pix, transferência, depósito ou 2x sem juros no cartão.
-  - Presencial: R$ 650,00, na sede do instituto, com o terapeuta Paulo. Está na imagem de valores, mas os novos atendimentos presenciais estão pausados por falta de agenda (veja RESPOSTAS RÁPIDAS).
+  - Presencial: R$ 660,00, na sede do instituto, com o terapeuta Paulo. Está na imagem de valores, mas os novos atendimentos presenciais estão pausados por falta de agenda (veja RESPOSTAS RÁPIDAS).
   - Todos os formatos incluem estudo profundo do caso, limpeza energética do lar, envio de Reiki e relatório final em áudio gravado pelo Paulo. 2x sem juros no cartão em todos os formatos (pacote até 4x).
   - Duas pessoas da mesma família (dois trabalhos): R$ 500,00 no total, R$ 250,00 cada sessão. Pix, transferência ou depósito. Para cartão, passe para o Paulo.
   - O pagamento funciona como confirmação do agendamento e para a realização do trabalho. Damos prioridade a quem confirmou pelo pagamento.
@@ -193,28 +202,11 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
 - Sede e presencial: somos de São José do Rio Preto (SP). A apometria presencial existe, mas os novos atendimentos presenciais estão pausados por falta de disponibilidade na agenda. Nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Só fale de presencial se a pessoa perguntar.
 
 ## FLUXO
-O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Ok, [nome]" e enviou sozinho os textos da primeira etapa, que não tem custo: o questionário inicial e o estudo do caso em 2 dias úteis; que não é preciso estar presente (somos de São José do Rio Preto, SP, mas atendemos todo o Brasil e exterior); tudo o que é investigado e tratado; o relatório em áudios pelo Paulo; o bônus do lar e do Reiki; e o acolhimento gratuito depois. Não repita nada disso. Você entra a partir da primeira resposta da pessoa.
+O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Ok, [nome]" e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, o que a pessoa recebe (itens tratados, relatório em áudios, bônus do lar e Reiki, equipe à disposição); Etapa 2, detalhes do procedimento (questionário inicial, estudo do caso em 2 dias úteis, não precisa estar presente) e o PDF de orientações; Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
 
-1) PRIMEIRA ETAPA. O sistema terminou os textos informativos com a pergunta: "Agradecemos por ler com atenção e entender as diretrizes do nosso trabalho! Gostaria de receber informações sobre as opções de agendamento e prazo de entrega?". Se a pessoa disser sim (ou ok, pode, quero, manda, ou perguntar valores), vá direto ao passo 2. Se ela contar o que quer trabalhar, acolha em uma ou duas frases, usando as palavras dela, e repita a pergunta de forma curta ("Gostaria de receber as informações sobre as opções de agendamento e prazo de entrega?"). Se ela fizer outras perguntas, responda com os fatos e volte à mesma pergunta. Não envie o link do questionário agora: ele só vai depois do comprovante (passo 4), salvo se a pessoa pedir.
+1) ENTRE AS ETAPAS. Se o bloco ETAPA ATUAL, no início, indicar uma pergunta pendente: se a pessoa contar o que quer trabalhar, acolha em uma ou duas frases, usando as palavras dela; se fizer outra pergunta, responda com os fatos em poucas frases; nos dois casos, termine repetindo a pergunta pendente de forma curta. Não envie o link do questionário agora: ele só vai depois do comprovante (passo 4), salvo se a pessoa pedir.
 
-2) OPÇÕES DE AGENDAMENTO E VALORES. Quando a pessoa disser sim, ou perguntar valores, prazo, agendamento ou como funciona a contratação, envie TRÊS mensagens separadas por "|||", sem perguntar o motivo e sem repetir os textos informativos:
-   Primeira: "Ok, [NOME], vou lhe enviar o informativo com detalhes sobre as opções de agendamento."
-   Segunda, o informativo, em tom sério e sem emojis (copie igual):
-Modalidade apometria à distância:
-- Entrega de todo o trabalho em 15 dias úteis. Valor: R$ 289,00
-- Emergencial, realização em até 8 dias úteis. Valor: R$ 339,00
-
-Pacote Familiar: R$ 800,00 (máximo 5 pessoas)
-
-Modalidade presencial no instituto (consultar disponibilidade): R$ 650,00
-
-Todos os valores podem ser realizados à vista ou em até 2x no cartão de crédito (não cobramos taxas nem juros).
-
-Observações:
-- Para o agendamento, basta pagar metade do valor e enviar o comprovante. O restante pode ser pago somente quando você receber os relatórios finais.
-- Prezamos por dar o primeiro passo em direção à confiança, porque isso é importante para nós. Assim criamos uma atmosfera saudável e queremos passar segurança desde o início.
-   Terceira, sozinha: "Gostaria de realizar o seu agendamento?"
-   Não adicione outra pergunta nem outro texto. Quando a pessoa perguntar sobre o PDF de dúvidas de pagamento e agendamento, diga que ele será enviado em breve e siga o fluxo.
+2) DEPOIS DA ETAPA 3 (valores já enviados). A foto com valores e formatos já foi enviada. Se a pessoa tirar dúvidas, responda com os fatos e volte a "Gostaria de realizar o seu agendamento?". Se pedir os valores de novo, envie [[FOTO:valores]] sozinho em uma mensagem, depois "|||" e a pergunta de agendamento. Se perguntar de um valor específico (ex.: quanto é o emergencial), responda em uma frase com o valor e o prazo e volte à pergunta de agendamento. Quando a pessoa disser que quer agendar, vá ao passo 3. Se perguntar sobre o PDF de dúvidas de pagamento e agendamento, diga que será enviado em breve e siga o fluxo.
 
 3) ESCOLHA E PAGAMENTO. Quando a pessoa quiser agendar, o agendamento exige pagar apenas metade do valor, e o restante só quando receber os relatórios finais. Se ela não disse qual modalidade quer (individual em 15 dias, emergencial em 8 dias, pacote familiar), pergunte em uma frase curta qual prefere, mostrando as opções. Com a escolha, envie os dados do Pix em uma mensagem, neste formato (sem emojis):
 Chave Pix celular: 17988271998
@@ -226,7 +218,7 @@ Banco: Nubank
 Valor de entrada (metade): [metade do valor da opção] - [nome da opção]
 
 Assim que fizer, nos envie o comprovante para darmos baixa na contabilidade, realizarmos o envio do questionário inicial e demais instruções. Grato.
-   Metades: sessão individual R$ 144,50 (de R$ 289,00); emergencial R$ 169,50 (de R$ 339,00); pacote familiar R$ 400,00 (de R$ 800,00). Nomes: "Sessão de Apometria", "Sessão de Apometria Emergencial", "Apometria Familiar (até 5 pessoas)". Presencial (R$ 650,00): passe para o Paulo, que confirma a disponibilidade.
+   Metades: sessão individual R$ 144,50 (de R$ 289,00); emergencial R$ 169,50 (de R$ 339,00); pacote familiar R$ 400,00 (de R$ 800,00). Nomes: "Sessão de Apometria", "Sessão de Apometria Emergencial", "Apometria Familiar (até 5 pessoas)". Presencial (R$ 660,00): passe para o Paulo, que confirma a disponibilidade.
    Cartão: os links de pagamento disponíveis são do valor inteiro, não da entrada. Se a pessoa pedir cartão, diga que vamos pedir o link do valor de entrada ao Paulo e passe para ele. Transferência ou depósito: envie os mesmos dados do Pix. Pessoa no exterior: diga que o pagamento pode ser por transferência internacional, Wise ou PayPal, com o valor convertido no dia, e passe para o Paulo. Mais de 5 pessoas ou pedido fora do padrão: passe para o Paulo.
    Se a pessoa estiver indecisa, ajude a escolher em uma ou duas frases pelo que ela contou (urgência pede o emergencial; mais de uma pessoa da família pede o pacote familiar), sem insistir.
 
@@ -247,7 +239,7 @@ Seu objetivo é sempre levar a pessoa ao próximo passo da venda, sem pressão e
 - Precisa de religião ou de acreditar? Não. Atendemos pessoas de todas as crenças e também quem não segue nenhuma.
 - Preciso estar presente? Não. O trabalho é feito à distância e não exige que a pessoa esteja presente.
 - Onde vocês ficam? De que cidade? Moro em [cidade] / É à distância? Responda com este texto, adaptando a abertura à cidade que a pessoa citou, quando houver: "Nós somos de São José do Rio Preto, SP. Apesar de também realizarmos a apometria presencial, nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Para esse tipo de trabalho não há necessidade de a pessoa estar presente, uma vez que a conexão com o corpo astral é feita através de diversas informações que colhemos em nosso questionário inicial, da nossa sensibilidade como médium e também com o auxílio dos mentores espirituais presentes na sessão, e para eles a barreira de espaço não tem nenhuma representatividade." Depois siga o passo da venda.
-- Tem como ser presencial? Diga que os novos atendimentos presenciais (R$ 650,00 na sede, se a pessoa perguntar o valor) estão pausados por falta de disponibilidade na agenda, e que o trabalho à distância tem o mesmo resultado, feito com a mesma equipe. Não passe para o Paulo só por isso. Siga o passo da venda.
+- Tem como ser presencial? Diga que os novos atendimentos presenciais (R$ 660,00 na sede, se a pessoa perguntar o valor) estão pausados por falta de disponibilidade na agenda, e que o trabalho à distância tem o mesmo resultado, feito com a mesma equipe. Não passe para o Paulo só por isso. Siga o passo da venda.
 - DATAS: Tem para amanhã? Qual data está disponível? Quando posso fazer? Responda que o trabalho é realizado dentro do prazo estipulado, de 15 dias úteis na sessão individual ou de 08 dias úteis no emergencial, e que não costumamos informar dia e hora exatos. Se ela tem urgência, apresente o emergencial. Não passe para o Paulo por isso.
 - Posso pedir para outra pessoa? Sim. Para filhos menores, basta a autorização dos pais.
 - Uma sessão basta? Na maioria dos casos, a primeira já trata o principal. Se outra for indicada, o Paulo diz isso no relatório, e a continuidade fica sempre a critério da pessoa.
@@ -275,9 +267,36 @@ Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Áudio ou
 
 // ─── MENSAGENS FIXAS ─────────────────────────────────────────────────────────
 const ABERTURA_MSG = "Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil. Somos uma equipe especializada em apometria coordenada pelo Terapeuta Paulo Rodrigues.\n\nNeste canal de atendimento você irá encontrar maiores informações sobre detalhes do procedimento e disponibilidade para agendamento.\n\nPara iniciarmos, qual é o seu nome, por gentileza?";
-const THANKS_MSG = "Agradecemos por ler com atenção e entender as diretrizes do nosso trabalho! Gostaria de receber informações sobre as opções de agendamento e prazo de entrega?";
-const POS_NOME = ["Primeiramente você irá preencher um questionário inicial com as perguntas necessárias para a realização do seu trabalho. As perguntas são sobre os seus estados físicos, mentais, espirituais, emocionais, e outras questões pessoais específicas que você deseja tratar, investigar e obter respostas da espiritualidade. Depois de colher as suas queixas, fazemos um estudo profundo baseado nessas informações para trabalhar da melhor maneira no seu caso. Solicitamos 2 dias úteis para concluir essa etapa.", "Não há necessidade de você estar presente fisicamente no dia do trabalho. Nós somos de São José do Rio Preto-SP e, apesar de também realizarmos a apometria presencialmente, grande parte dos nossos trabalhos são realizados a distância para todo o Brasil e exterior.", "📑 Realizamos a Apometria para atingir seus principais objetivos e além disso investigamos e tratamos esses itens abaixo:\n✓ Seres densos\n✓ Quebra de feitiços e magias\n✓ Retirada de implantes astrais\n✓ Miasmas e energias densas\n✓ Fractais energéticos\n✓ Vínculos com antepassados\n✓ Padrões familiares\n✓ Dissolução de carmas\n✓ Vidas passadas\n✓ Traumas do passado\n✓ Crenças limitantes\n✓ Harmonização dos chacras\n✓ Limpeza energética completa.", "🗒️ Enviamos um relatório minucioso ao final do trabalho, em áudios, explicando todos os aspectos trabalhados e encontrados, orientações, além de mensagens ou conselhos deixados para você pelas equipes espirituais.\nOBS: Os áudios finais sempre são enviados pelo próprio Apometra Paulo Rodrigues, o dirigente do instituto.", "❕ No primeiro atendimento de apometria realizamos gratuitamente também a limpeza energética no endereço do seu lar e o envio de Reiki à distância. Essas atividades ficam como bônus de atendimento. 👍", "📳 A Equipe da Apometria Brasil fica à disposição para acolhimento pessoal depois do tratamento, para dúvidas que possam surgir, de forma gratuita."];
-const PDF_MSG = 'Logo abaixo segue um anexo de um arquivo PDF sobre algumas orientações, instruções e dúvidas frequentes que podem surgir sobre a realização do trabalho.';
+const TITULO_MSG = "*Vamos explicar como funciona o nosso trabalho em 3 etapas:*\n\n1️⃣ O que você recebe\n2️⃣ Detalhes do procedimento\n3️⃣ Opções de agendamento";
+const ETAPA1 = [
+  "*Etapa 1: o que você recebe*",
+  "📑 *O que investigamos e tratamos*\nRealizamos a apometria para atingir seus principais objetivos e, além disso, investigamos e tratamos:\n✓ Seres densos\n✓ Quebra de feitiços e magias\n✓ Retirada de implantes astrais\n✓ Miasmas e energias densas\n✓ Fractais energéticos\n✓ Vínculos com antepassados\n✓ Padrões familiares\n✓ Dissolução de carmas\n✓ Vidas passadas\n✓ Traumas do passado\n✓ Crenças limitantes\n✓ Harmonização dos chacras\n✓ Limpeza energética completa",
+  "🗒️ *Relatório em áudios*\n• Enviamos ao final do trabalho um relatório minucioso, explicando o que foi encontrado e tratado.\n• Vão também as orientações e as mensagens deixadas para você pelas equipes espirituais.\n• Os áudios são enviados pelo próprio apômetra Paulo Rodrigues, dirigente do instituto.",
+  "🎁 *Bônus do primeiro atendimento*\n• Limpeza energética do endereço do seu lar\n• Envio de Reiki à distância\nSem custo adicional.",
+  "🤝 *Equipe à disposição*\nDepois do tratamento, a equipe fica disponível para acolhimento pessoal e para as dúvidas que surgirem, de forma gratuita."
+];
+const PERGUNTA2 = "Podemos seguir para a etapa 2, com os detalhes do procedimento?";
+const ETAPA2 = [
+  "*Etapa 2: detalhes do procedimento*",
+  "1️⃣ *Questionário inicial*\nPrimeiramente você irá preencher um questionário com as perguntas necessárias para o seu trabalho, sobre os seus estados físicos, mentais, espirituais e emocionais e sobre o que deseja tratar, investigar e obter respostas da espiritualidade.",
+  "2️⃣ *Estudo do caso*\nDepois de colher as suas queixas, fazemos um estudo profundo com base nessas informações, para trabalhar da melhor maneira no seu caso. Solicitamos 2 dias úteis para concluir essa etapa.",
+  "3️⃣ *Não precisa estar presente*\nNão há necessidade de você estar presente no dia do trabalho. Somos de São José do Rio Preto, SP, e grande parte dos nossos trabalhos é realizada à distância, para todo o Brasil e exterior."
+];
+const PDF_MSG = "📎 *Orientações gerais*\nLogo abaixo segue um PDF com orientações, instruções importantes, dúvidas frequentes e o que pode ser solicitado no trabalho.";
+const PERGUNTA3 = "Podemos seguir para a etapa 3, com as opções de agendamento?";
+const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*";
+const ETAPA3_NOTA = "💳 *Para confirmar o agendamento*\n• Basta pagar metade do valor e enviar o comprovante.\n• O restante pode ser pago somente quando você receber os relatórios finais.\n• Prezamos por dar o primeiro passo em direção à confiança: queremos passar segurança desde o início.";
+const PERGUNTA_AGENDA = "Gostaria de realizar o seu agendamento?";
+
+function semAcento(t) { return t.normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase().trim(); }
+function ehSim(text) {
+  const t = semAcento(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t || t.length > 40) return /^(👍|🙏)/.test(text.trim());
+  return /^(sim|s|pode|podem|podemos|ok|okay|okk|claro|quero|manda|mande|vamos|bora|continua|continue|seguir|segue|segue sim|pode sim|pode seguir|com certeza|por favor|uhum|aham|isso|gostaria|gostaria sim|certo|beleza|blz|tudo bem|perfeito|ta|ta bom|pode continuar|pode mandar)(\s|$)/.test(t);
+}
+function pedeValores(text) {
+  return /\b(valor|valores|preco|precos|quanto|custa|custo|investimento|agendar|agendamento|pagar|pagamento|pix)\b/.test(semAcento(text));
+}
 function extrairNome(text) {
   var t = text.replace(/(^|\s)(oi+|ol[aá]|bom dia|boa tarde|boa noite|meu nome [eé]|me chamo|sou (o|a)?|aqui [eé] (o|a)?)(?=\s|$|[,.!?])/gi, ' ').replace(/[^\p{L}\s'-]/gu, ' ').trim();
   var w = t.split(/\s+/)[0] || '';
@@ -382,6 +401,17 @@ Quem está no exterior: atendemos brasileiros em outros países. O pagamento pod
 O pagamento funciona como a confirmação do agendamento e libera a realização do trabalho.`
 };
 
+// A imagem de valores sobe como texto base64 (media/valores.jpg.b64) e é decodificada na inicialização.
+try {
+  const b64Path = path.join(MEDIA_DIR, 'valores.jpg.b64');
+  if (fs.existsSync(b64Path)) {
+    fs.writeFileSync(path.join(MEDIA_DIR, 'valores.jpg'), Buffer.from(fs.readFileSync(b64Path, 'utf8').replace(/\s/g, ''), 'base64'));
+    console.log('🖼️  media/valores.jpg gerada a partir de valores.jpg.b64');
+  }
+} catch (err) {
+  console.error('❌ Erro ao gerar valores.jpg:', err.message);
+}
+
 async function enviarFoto(to, nome) {
   const arquivo = path.join(MEDIA_DIR, `${nome}.jpg`);
   if (/^\w+$/.test(nome) && fs.existsSync(arquivo)) {
@@ -443,7 +473,7 @@ async function processWithClaude(session, userMessage) {
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1200,
-      system: buildSystemPrompt(session.clientName),
+      system: buildSystemPrompt(session.clientName, session.etapa),
       messages: session.history
     });
 
@@ -526,30 +556,61 @@ async function handleMessage(from, messageText, mediaInfo = null) {
       return;
     }
     session.stage = 'conversa';
+    session.etapa = 'aguarda2';
     session.clientName = nome;
     const ok = `Ok, ${nome}.`;
     await sleep(1500);
     await sendMessage(from, ok);
-    for (const parte of POS_NOME) {
+    for (const parte of [TITULO_MSG, ...ETAPA1, PERGUNTA2]) {
       await sleep(typingDelay(parte));
       await sendMessage(from, parte);
     }
-    const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'orientacoes.pdf'));
-    let enviouPdf = '';
-    if (pdfOk) {
-      await sleep(typingDelay(PDF_MSG));
-      await sendMessage(from, PDF_MSG);
-      await sendDocument(from, `${PUBLIC_BASE}/media/orientacoes.pdf`, 'Orientacoes-Apometria-Brasil.pdf');
-      enviouPdf = '\n\n' + PDF_MSG;
-    }
-    await sleep(typingDelay(THANKS_MSG));
-    await sendMessage(from, THANKS_MSG);
     session.history.push(
       { role: 'user', content: `Meu nome é ${nome}` },
-      { role: 'assistant', content: ok + '\n\n' + POS_NOME.join('\n\n') + enviouPdf + '\n\n' + THANKS_MSG }
+      { role: 'assistant', content: [ok, TITULO_MSG, ...ETAPA1, PERGUNTA2].join('\n\n') }
     );
     await upsertConversation(from, session.clientName, session.stage);
     return;
+  }
+
+  if (session.etapa === 'aguarda2' || session.etapa === 'aguarda3') {
+    const querValores = pedeValores(text);
+    if (session.etapa === 'aguarda2' && ehSim(text) && !querValores) {
+      session.etapa = 'aguarda3'; // trava antes dos awaits (mensagens em rajada)
+      for (const parte of ETAPA2) {
+        await sleep(typingDelay(parte));
+        await sendMessage(from, parte);
+      }
+      const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'orientacoes.pdf'));
+      await sleep(typingDelay(PDF_MSG));
+      await sendMessage(from, PDF_MSG);
+      if (pdfOk) await sendDocument(from, `${PUBLIC_BASE}/media/orientacoes.pdf`, 'Orientacoes-Apometria-Brasil.pdf');
+      await sleep(typingDelay(PERGUNTA3));
+      await sendMessage(from, PERGUNTA3);
+      session.history.push(
+        { role: 'user', content: text },
+        { role: 'assistant', content: [...ETAPA2, PDF_MSG, PERGUNTA3].join('\n\n') }
+      );
+      await upsertConversation(from, session.clientName, session.stage);
+      return;
+    }
+    if ((session.etapa === 'aguarda3' && ehSim(text)) || querValores) {
+      session.etapa = null; // trava antes dos awaits
+      await sleep(typingDelay(ETAPA3_TITULO));
+      await sendMessage(from, ETAPA3_TITULO);
+      await sleep(2000);
+      await enviarFoto(from, 'valores');
+      await sleep(typingDelay(ETAPA3_NOTA));
+      await sendMessage(from, ETAPA3_NOTA);
+      await sleep(typingDelay(PERGUNTA_AGENDA));
+      await sendMessage(from, PERGUNTA_AGENDA);
+      session.history.push(
+        { role: 'user', content: text },
+        { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', ETAPA3_NOTA, PERGUNTA_AGENDA].join('\n\n') }
+      );
+      await upsertConversation(from, session.clientName, session.stage);
+      return;
+    }
   }
 
   if (session.stage === 'aguardando_relato') session.stage = 'conversa';
