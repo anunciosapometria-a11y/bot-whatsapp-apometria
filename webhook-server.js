@@ -716,6 +716,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   if (mediaInfo) {
     const midia = await baixarMidiaWhatsapp(mediaInfo.id);
     await saveMessage(from, 'in', text, midia?.base64 || null, midia?.mime || mediaInfo.mimeType || null);
+    if (midia && mediaInfo.tipo !== 'audio') encaminharComprovante(from, session.clientName, midia).catch(e => console.error('❌ Encaminhar comprovante:', e.message));
   } else {
     await saveMessage(from, 'in', text);
   }
@@ -1382,6 +1383,32 @@ async function enviarTemplate(to, nome, params) {
   if (params && params.length) body.template.components = [{ type: 'body', parameters: params.map(t => ({ type: 'text', text: String(t) })) }];
   await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`, body,
     { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+}
+
+// Comprovante/imagem recebido: guarda no banco (messages) e reenvia a cópia para os números de aviso da equipe
+async function encaminharComprovante(phone, nome, midia) {
+  const numeros = ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean);
+  if (!numeros.length || !midia || !midia.base64) return;
+  const mime = midia.mime || 'image/jpeg';
+  const ehImg = /^image\//.test(mime);
+  const ext = (mime.split('/')[1] || 'bin').split(';')[0].replace('jpeg', 'jpg');
+  const fd = new FormData();
+  fd.append('messaging_product', 'whatsapp');
+  fd.append('type', mime);
+  fd.append('file', new Blob([Buffer.from(midia.base64, 'base64')], { type: mime }), 'comprovante-' + phone + '.' + ext);
+  const up = await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/media`, { method: 'POST', headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` }, body: fd });
+  const upj = await up.json();
+  if (!upj.id) throw new Error('upload: ' + JSON.stringify(upj));
+  const legenda = '💰 Comprovante recebido\n' + (nome || 'Sem nome') + ' (+' + phone + ')\nPainel: ' + PUBLIC_BASE + '/painel/crm';
+  for (const n of numeros) {
+    try {
+      await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
+        ehImg ? { messaging_product: 'whatsapp', to: n, type: 'image', image: { id: upj.id, caption: legenda } }
+              : { messaging_product: 'whatsapp', to: n, type: 'document', document: { id: upj.id, caption: legenda, filename: 'comprovante-' + phone + '.' + ext } },
+        { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+      console.log('📎 Comprovante encaminhado para ' + n);
+    } catch (e) { console.error('❌ Comprovante para ' + n + ':', e.response?.data || e.message); }
+  }
 }
 
 const alertaRecente = new Map();
