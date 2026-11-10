@@ -312,7 +312,7 @@ const TITULO_MSG = "*Vamos explicar como funciona o nosso trabalho em 3 etapas:*
 const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa\n• Para empresas, imóveis ou animais";
 const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nSomos um instituto especializado na realização de trabalhos apométricos, cursos e terapias energéticas, coordenado pelo terapeuta *Paulo Rodrigues*.";
 const INSTAGRAM_MSG = "📲 *Conheça mais do nosso trabalho*\nAcompanhe o nosso Instagram: *@apometria_brasil*\nhttps://www.instagram.com/apometria_brasil/";
-const GOOGLE_MSG = "⭐ *Quem já foi atendido por nós*\nVeja as avaliações no nosso perfil do Google Maps:\nhttps://www.google.com/maps/search/?api=1&query=Apometria%20Brasil%20Sao%20Jose%20do%20Rio%20Preto&query_place_id=ChIJhaGCweWzvZQRLW5Xc6NECpA";
+const GOOGLE_MSG = "⭐ *Quem já foi atendido por nós*\nVeja as avaliações no nosso perfil do Google Maps:\nhttps://search.google.com/local/reviews?placeid=ChIJhaGCweWzvZQRLW5Xc6NECpA";
 const PERGUNTA_QUEIXA = "";
 const CONTATO_PAULO_MSG = "Segue o contato do Paulo, para você já ter salvo:";
 const ETAPA1 = [
@@ -330,7 +330,7 @@ const ETAPA2 = [
   "✨ *Complemento do primeiro atendimento*\n• Limpeza energética do endereço do seu lar\n• Envio de Reiki à distância\nSem custo adicional.",
   "🤝 *Equipe à disposição*\nDepois do tratamento, a equipe fica disponível para acolhimento pessoal e para as dúvidas que surgirem, de forma gratuita."
 ];
-const PDF_MSG = "📎 *Informativo sobre a apometria*\nVou lhe enviar o informativo com orientações, instruções importantes, dúvidas frequentes e o que pode ser solicitado no trabalho, segue abaixo.";
+const PDF_MSG = "📎 *Orientações gerais*\nLogo abaixo segue um PDF com orientações, instruções importantes, dúvidas frequentes e o que pode ser solicitado no trabalho.";
 const AGENDA_INTRO = "Ok, vou lhe enviar as opções de agendamento, segue abaixo.";
 const AUDIO_MSG = "Este canal de atendimento não consegue ouvir áudios. Se possível, escreva a sua mensagem por aqui.";
 const DESPEDIDA_MSG = "Ok, entendemos perfeitamente. Agradecemos o seu contato e ficamos à disposição sempre que precisar. 🙏";
@@ -415,7 +415,7 @@ async function sendMessage(to, text) {
         messaging_product: 'whatsapp',
         to,
         type: 'text',
-        text: { body: text, preview_url: /instagram\.com|google\.com\/maps/.test(text) }
+        text: { body: text, preview_url: /instagram\.com|google\.com/.test(text) }
       },
       {
         headers: {
@@ -425,6 +425,7 @@ async function sendMessage(to, text) {
       }
     );
     console.log(`✅ Mensagem enviada para ${to}`);
+    if (/instagram\.com|google\.com|mpago\.li/.test(text)) await sleep(3000); // mensagens com link/pré-visualização: espera antes da próxima para manter a ordem
   } catch (err) {
     console.error(`❌ Erro ao enviar mensagem para ${to}:`, err.response?.data || err.message);
   }
@@ -884,7 +885,6 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     await sendMessage(from, ok);
     await sleep(typingDelay(QUEM_SOMOS_MSG));
     await sendMessage(from, QUEM_SOMOS_MSG);
-    await enviarPdf(from, session);
     await sleep(typingDelay(INSTAGRAM_MSG));
     await sendMessage(from, INSTAGRAM_MSG);
     await sleep(typingDelay(GOOGLE_MSG));
@@ -893,7 +893,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     await sendMessage(from, PERGUNTA_PARA_QUEM);
     session.history.push(
       { role: 'user', content: nome ? `Meu nome é ${nome}` : text },
-      { role: 'assistant', content: [ok, QUEM_SOMOS_MSG, PDF_MSG + ' [PDF enviado]', INSTAGRAM_MSG, GOOGLE_MSG, PERGUNTA_PARA_QUEM].join('\n\n') }
+      { role: 'assistant', content: [ok, QUEM_SOMOS_MSG, INSTAGRAM_MSG, GOOGLE_MSG, PERGUNTA_PARA_QUEM].join('\n\n') }
     );
     await upsertConversation(from, session.clientName, session.stage);
     return;
@@ -924,8 +924,9 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
       session.etapa = 'aguarda2'; // trava antes dos awaits (mensagens em rajada)
       session.vistoProc = true;
       for (const parte of ETAPA1) { await sleep(typingDelay(parte)); await sendMessage(from, parte); }
+      await enviarPdf(from, session);
       await sleep(typingDelay(PERGUNTA2)); await sendMessage(from, PERGUNTA2);
-      session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [...ETAPA1, PERGUNTA2].join('\n\n') });
+      session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [...ETAPA1, PDF_MSG + ' [PDF enviado]', PERGUNTA2].join('\n\n') });
       await upsertConversation(from, session.clientName, session.stage);
       return;
     }
