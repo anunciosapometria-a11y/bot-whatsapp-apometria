@@ -308,7 +308,7 @@ Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Imagem fo
 
 // ─── MENSAGENS FIXAS ─────────────────────────────────────────────────────────
 const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil.*\n\n📌 *Neste canal você encontra*\n• Detalhes do procedimento\n• Disponibilidade para agendamento\n\n✍️ *Para iniciarmos, qual é o seu nome, por gentileza?*";
-const TITULO_MSG = "*Vamos explicar como funciona o nosso trabalho em 3 etapas:*\n\n1️⃣ Detalhes do procedimento\n2️⃣ O que você recebe\n3️⃣ Opções de agendamento";
+const TITULO_MSG = "*Gostaria de apresentar as 3 etapas do procedimento do Instituto Apometria Brasil:*\n\n1️⃣ Detalhes do procedimento\n2️⃣ O que você recebe\n3️⃣ Opções de agendamento";
 const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa\n• Para empresas, imóveis ou animais";
 const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nSomos um instituto especializado na realização de trabalhos apométricos, cursos e terapias energéticas, coordenado pelo terapeuta *Paulo Rodrigues*.";
 const INSTAGRAM_MSG = "📲 *Conheça mais do nosso trabalho*\nAcompanhe o nosso Instagram: *@apometria_brasil*\nhttps://www.instagram.com/apometria_brasil/";
@@ -435,7 +435,7 @@ async function sendMessage(to, text) {
 async function sendImage(to, imageUrl, caption) {
   if (!imageUrl) return;
   try {
-    await axios.post(
+    const rImg = await axios.post(
       `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
       {
         messaging_product: 'whatsapp',
@@ -451,7 +451,7 @@ async function sendImage(to, imageUrl, caption) {
       }
     );
     console.log(`🖼️ Imagem enviada para ${to}`);
-    await sleep(4000); // a Meta baixa a imagem pelo link e ela pode chegar depois do próximo texto: espera para manter a ordem
+    await aguardarEntrega(rImg.data?.messages?.[0]?.id, 4000, 25000); // só segue depois que a Meta confirma a entrega da imagem
     return true;
   } catch (err) {
     console.error(`❌ Erro ao enviar imagem para ${to}:`, err.response?.data || err.message);
@@ -485,13 +485,13 @@ async function sendContact(to) {
 
 async function sendDocument(to, link, filename) {
   try {
-    await axios.post(
+    const rDoc = await axios.post(
       `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
       { messaging_product: 'whatsapp', to, type: 'document', document: { link, filename } },
       { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } }
     );
     await saveMessage(to, 'out', `[documento: ${filename}]`);
-    await sleep(5000); // idem: o PDF é baixado pela Meta e pode chegar atrasado
+    await aguardarEntrega(rDoc.data?.messages?.[0]?.id, 4000, 30000); // idem: espera a entrega do PDF
   } catch (err) {
     console.error(`❌ Erro ao enviar documento para ${to}:`, err.response?.data || err.message);
   }
@@ -577,6 +577,25 @@ function typingDelay(text) {
   return d;
 }
 
+// Espera a confirmação de entrega (status delivered/read) de uma mensagem de mídia antes de seguir
+const entregues = new Set();
+const aguardando = new Map();
+function marcarEntrega(id) {
+  entregues.add(id);
+  if (entregues.size > 500) entregues.delete(entregues.values().next().value);
+  const r = aguardando.get(id);
+  if (r) { aguardando.delete(id); r(); }
+}
+async function aguardarEntrega(id, minMs, maxMs) {
+  await sleep(minMs);
+  if (id && !entregues.has(id)) {
+    await new Promise(resolve => {
+      const t = setTimeout(() => { aguardando.delete(id); console.log(`⏱️ Sem confirmação de entrega (${id}), seguindo`); resolve(); }, Math.max(0, maxMs - minMs));
+      aguardando.set(id, () => { clearTimeout(t); resolve(); });
+    });
+  }
+  await sleep(1500);
+}
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -1016,6 +1035,9 @@ app.post('/webhook', async (req, res) => {
     for (const entry of body.entry || []) {
       for (const change of entry.changes || []) {
         const value = change.value;
+        for (const st of value?.statuses || []) {
+          if (st.status === 'delivered' || st.status === 'read' || st.status === 'failed') marcarEntrega(st.id);
+        }
         if (!value?.messages) continue;
 
         for (const message of value.messages) {
