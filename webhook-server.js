@@ -450,6 +450,7 @@ async function sendImage(to, imageUrl, caption) {
       }
     );
     console.log(`🖼️ Imagem enviada para ${to}`);
+    await sleep(4000); // a Meta baixa a imagem pelo link e ela pode chegar depois do próximo texto: espera para manter a ordem
     return true;
   } catch (err) {
     console.error(`❌ Erro ao enviar imagem para ${to}:`, err.response?.data || err.message);
@@ -489,6 +490,7 @@ async function sendDocument(to, link, filename) {
       { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } }
     );
     await saveMessage(to, 'out', `[documento: ${filename}]`);
+    await sleep(5000); // idem: o PDF é baixado pela Meta e pode chegar atrasado
   } catch (err) {
     console.error(`❌ Erro ao enviar documento para ${to}:`, err.response?.data || err.message);
   }
