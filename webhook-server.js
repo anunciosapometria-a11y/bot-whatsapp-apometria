@@ -151,9 +151,11 @@ function getSession(phone) {
 }
 
 // ─── SYSTEM PROMPT DO BOT ─────────────────────────────────────────────────────
-const REGRA_DESVIO = 'Analise o que a pessoa respondeu e responda com acolhimento em no máximo 2 mensagens curtas. Nunca explique as etapas por conta própria, nunca escreva "Etapa 1/2/3" nem envie vários textos seguidos. Termine voltando ao fluxo com sutileza: pergunte o motivo do atendimento ou ofereça explicar o trabalho (procedimento, o que você recebe, agendamento).';
+const REGRA_DESVIO = 'Analise o que a pessoa respondeu e responda com acolhimento em no máximo 2 mensagens curtas. Nunca explique as etapas por conta própria, nunca escreva "Etapa 1/2/3" nem envie vários textos seguidos. Não pergunte o motivo do atendimento. Termine repetindo a pergunta pendente de forma curta.';
 function hintEtapa(etapa) {
   if (etapa === 'oferta') return 'ETAPA ATUAL: a pessoa ainda não respondeu à oferta de explicar outras partes do trabalho (procedimento, o que recebe, agendamento). ' + REGRA_DESVIO;
+  if (etapa === 'modalidade') return 'ETAPA ATUAL: a pessoa recebeu a lista de modalidades (1 Individual, 2 Emergencial, 3 Pacote de 4 sessões, 4 Familiar, 5 Presencial) e perguntamos qual prefere. A resposta dela (número ou nome) é a escolha: siga o passo ESCOLHA E PAGAMENTO e as REGRAS PRIORITÁRIAS de pagamento (Pix e link do cartão juntos). Presencial não está disponível: ofereça o trabalho à distância.';
+  if (etapa === 'aguarda1') return 'ETAPA ATUAL: a pessoa ainda não confirmou seguir para a etapa 1. Pergunta pendente: "' + PERGUNTA1 + '". ' + REGRA_DESVIO;
   if (etapa === 'aguarda2') return 'ETAPA ATUAL: a pessoa ainda não confirmou seguir para a etapa 2. Pergunta pendente: "' + PERGUNTA2 + '". ' + REGRA_DESVIO;
   if (etapa === 'aguarda3') return 'ETAPA ATUAL: a pessoa ainda não confirmou seguir para a etapa 3. Pergunta pendente: "' + PERGUNTA3 + '". ' + REGRA_DESVIO;
   if (etapa === 'nome') return 'ETAPA ATUAL: a pessoa ainda não disse o nome (pergunte uma única vez; se ela não disser, siga sem insistir). Ela respondeu algo que não é um nome. Responda de forma condizente ao que ela disse, em uma ou duas frases, sem tratar nenhuma palavra como nome, e peça o nome com gentileza no final. Não explique o trabalho nem envie valores ainda.';
@@ -163,6 +165,17 @@ function hintEtapa(etapa) {
 
 function buildSystemPrompt(clientName, etapa) {
   return `Você atende pelo WhatsApp em nome da equipe do Instituto Terapias Brasil, conduzido pelo terapeuta Paulo Rodrigues. Seu objetivo é acolher a pessoa, explicar com clareza e levá-la, sem pressão, até a decisão e o pagamento da sessão de apometria. Vendemos somente apometria. Se perguntarem por outra terapia, diga que no momento o atendimento é de apometria.
+
+## REGRAS PRIORITÁRIAS (valem acima de qualquer outra instrução abaixo)
+- TOM SÉRIO E DIRETO. Nunca use "Que bom", "Prazer", "Fico feliz", "Maravilha", "Show", "Adorei", exclamações nem frases animadas. Quando precisar confirmar, use: "Ok, entendo perfeitamente.", "Ok, perfeito.", "Ok, combinado.". No máximo um emoji, e só o 🙏 ao encerrar.
+- ANUNCIE ANTES DE ENVIAR. Antes de cada envio diga em uma frase curta o que vai enviar: "Vou lhe enviar os dados bancários, segue abaixo.", "Vou lhe enviar o link, segue abaixo.", "Vou lhe enviar as opções de agendamento, segue abaixo.", "Vou lhe enviar o informativo, segue abaixo." (mensagem separada por "|||" antes do conteúdo).
+- NUNCA peça áudio, nunca ofereça receber áudio e nunca diga que a pessoa pode mandar áudio. Este canal não ouve áudios. Se a pessoa mencionar áudio, diga que este canal de atendimento não consegue ouvir áudios e peça, se possível, que escreva.
+- NÃO pergunte o motivo do atendimento, a queixa nem o objetivo da pessoa. Se ela contar por conta própria, reconheça em uma frase curta e siga o fluxo. Nunca faça perguntas fora das previstas no fluxo.
+- Responda UMA vez a tudo o que a pessoa enviou. Se a mensagem trouxer vários assuntos, leia o contexto inteiro e dê uma única resposta coerente, sem repetir informações já enviadas na conversa.
+- PAGAMENTO: quando a pessoa escolher a modalidade, envie na MESMA resposta, em mensagens separadas por "|||": 1) "Vou lhe enviar os dados bancários para o Pix e o link para pagamento no cartão, segue abaixo." 2) os dados do Pix no formato indicado, com o valor e o nome da opção 3) "Se preferir pagar no cartão, segue o link:" com o link da opção escolhida (lista em FATOS). Assim ela escolhe a forma que preferir. Só omita o link se a opção não tiver link (presencial).
+- MODALIDADES: quando precisar listar as modalidades, liste TODAS as da foto de valores: Individual R$ 289,00 (15 dias úteis), Emergencial R$ 339,00 (8 dias úteis), Pacote de 4 sessões R$ 800,00 (R$ 200,00 cada), Familiar R$ 600,00 (até 5 pessoas da mesma família) e Presencial R$ 720,00 (indisponível no momento por falta de agenda).
+- PACOTE E FAMILIAR: se a pessoa contratar o pacote de 4 sessões ou o familiar, depois do comprovante peça, na mensagem do nome e endereço, que informe também o nome completo de cada pessoa que será incluída no pacote, para a equipe adicionar cada uma no questionário. Aceite do jeito que vier.
+- Se a pessoa disser que não quer continuar, não quer mais o atendimento ou não tem interesse, não insista e não argumente: apenas "Ok, entendemos perfeitamente. Agradecemos o seu contato e ficamos à disposição sempre que precisar. 🙏".
 
 Nome do cliente nesta conversa: ${clientName || '(não informado)'}. Use o nome com naturalidade, sem repetir em toda mensagem.
 
@@ -240,7 +253,7 @@ Assim que fizer, nos envie o comprovante para darmos baixa na contabilidade, rea
    Se a pessoa estiver indecisa, ajude a escolher em uma ou duas frases pelo que ela contou (urgência pede o emergencial; mais de uma pessoa da família pede o pacote familiar), sem insistir.
 
 4) COMPROVANTE. Quando o cliente enviar o comprovante (o sistema avisa com a frase "[Cliente enviou um comprovante/imagem/documento]"), responda com TRÊS mensagens separadas por "|||":
-   - Primeira: agradeça, diga que recebemos e que vamos redirecionar o atendimento, e que agora enviamos o questionário inicial, que traz perguntas sobre ela e seus objetivos para o estudo do caso. Diga que pode complementar com áudios aqui na conversa.
+   - Primeira: agradeça, diga que recebemos e que vamos redirecionar o atendimento, e que agora enviamos o questionário inicial, que traz perguntas sobre ela e seus objetivos para o estudo do caso.
    - Segunda: o link https://apometriabrasil.com.br/questionario-inicial/ e a frase "Fique à vontade para responder no seu tempo." seguida, na mesma mensagem, da observação: "*Observação:* responda o questionário no nome da pessoa que vai realizar o trabalho. Se for para outra pessoa, preencha em nome dela, com o máximo de informações que souber."
    - Terceira: peça que, depois de enviar o questionário, ela escreva aqui na conversa o nome completo junto com o endereço da residência (para a apometria do lar), para a nossa equipe fazer a conferência do questionário. Aceite do jeito que vier e nunca peça mais informações (CEP, número, complemento ou outro dado). O endereço da pessoa só é pedido aqui, depois do pagamento.
    Não confirme valor nem prazo que você não consiga ver no comprovante, apenas receba.
@@ -275,7 +288,7 @@ Seu objetivo é levar a pessoa ao próximo passo da venda, sem pressão e sem re
 - É confiável? É real? É golpe? Dúvida sobre a veracidade do trabalho ou de quem somos. Responda com acolhimento e estes fatos, em mensagens curtas: "Entendemos perfeitamente a sua preocupação. Como não nos conhecemos e tudo acontece pela internet, é normal surgirem essas dúvidas." Depois: "Somos um instituto de apometria em São José do Rio Preto, chamado Apometria Brasil, reconhecido pelos trabalhos apométricos em todo o Brasil e também no exterior." Depois: "Note também que somos verificados na conta do WhatsApp e do Instagram, processo em que a empresa solicita que se comprove a veracidade das atividades que oferecemos." Depois: "Você também pode pesquisar por Apometria Brasil no Google e ver o nosso perfil no Google Maps e alguns relatos." Depois: "Se preferir, você também pode chamar o Paulo diretamente e conversar com ele para ter mais segurança: (17) 98827-1998." e, em uma mensagem separada, [[CONTATO:paulo]] sozinho, que envia o cartão de contato dele. Não invente outros dados e não passe para o Paulo só por isso.
 - Tenho medo. O trabalho é de limpeza e amparo, conduzido com responsabilidade pela equipe. A pessoa só trata o que é dela.
 - É religião? Não. É uma abordagem terapêutica espiritual e energética, sem vínculo religioso.
-- Cliente enviou um áudio (o sistema avisa com "[Cliente enviou um áudio]" e já guarda o áudio no atendimento dela). Agradeça com carinho, diga que o áudio foi salvo e será ouvido pelo Paulo e pela equipe como complemento do estudo do caso, e que ela pode mandar quantos quiser. Não tente interpretar o conteúdo, não pause o bot e siga o fluxo se ainda faltar algum passo.
+- Cliente enviou um áudio: o sistema já responde sozinho que este canal não consegue ouvir áudios e pede que escreva. Nunca peça nem ofereça áudio.
 - Como recebo o relatório? Em áudios pelo WhatsApp, gravados pelo Paulo.
 - Quando começa ou quando é a sessão? Agora é só aguardar o prazo estipulado para a entrega e a finalização do trabalho. Não costumamos avisar, nem recomendamos, que a pessoa saiba o dia e a hora exatos da sessão: possíveis entidades obsessoras e outras influências presentes no campo também se preparam contra o trabalho. Por isso, por estratégia, informamos que ao final do prazo o relatório final e as demais etapas estarão concluídos. Nunca dê a data.
 - A apometria cura? Resolve a doença? Substitui o tratamento? Responda somente nesse caso, em uma frase simples: "Como é um trabalho complementar, o acompanhamento que você já faz deve continuar." Enquanto a pessoa não perguntar isso, não diga nada sobre o assunto.
@@ -290,7 +303,7 @@ Passe para o Paulo SOMENTE se, mesmo assim, ocorrer um destes casos: a pessoa pe
 Se a pessoa falar em se machucar, em tirar a própria vida ou em desistir de viver: pare de vender. Acolha em duas frases curtas, sem julgar. Diga que a vida dela importa e que, agora, o mais importante é falar com alguém de imediato: CVV pelo 188 (24 horas, gratuito) ou SAMU pelo 192 se houver risco imediato. Diga que vamos avisar o Paulo. Termine com [[PAUSAR]] na última linha.
 
 ## SE NÃO ENTENDER
-Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Áudio ou imagem fora do comprovante: "No momento atendemos por texto aqui. Pode escrever sua mensagem? 🙏"`;
+Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Imagem fora do comprovante: "No momento atendemos por texto aqui. Pode escrever sua mensagem?"`;
 }
 
 // ─── MENSAGENS FIXAS ─────────────────────────────────────────────────────────
@@ -299,8 +312,8 @@ const TITULO_MSG = "*Vamos explicar como funciona o nosso trabalho em 3 etapas:*
 const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa\n• Para empresas, imóveis ou animais";
 const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nSomos um instituto especializado na realização de trabalhos apométricos, cursos e terapias energéticas, coordenado pelo terapeuta *Paulo Rodrigues*.";
 const INSTAGRAM_MSG = "📲 *Conheça mais do nosso trabalho*\nAcompanhe o nosso Instagram: *@apometria_brasil*\nhttps://www.instagram.com/apometria_brasil/";
-const GOOGLE_MSG = "⭐ *Quem já foi atendido por nós*\nVeja as avaliações no nosso perfil do Google Maps:\nhttps://www.google.com/maps/place/?q=place_id:ChIJhaGCweWzvZQRLW5Xc6NECpA";
-const PERGUNTA_QUEIXA = "Qual é a sua principal queixa, ou o que você mais gostaria de tratar com a apometria? Pode escrever do seu jeito, ou mandar um áudio.";
+const GOOGLE_MSG = "⭐ *Quem já foi atendido por nós*\nVeja as avaliações no nosso perfil do Google Maps:\nhttps://www.google.com/maps/search/?api=1&query=Apometria%20Brasil%20Sao%20Jose%20do%20Rio%20Preto&query_place_id=ChIJhaGCweWzvZQRLW5Xc6NECpA";
+const PERGUNTA_QUEIXA = "";
 const CONTATO_PAULO_MSG = "Segue o contato do Paulo, para você já ter salvo:";
 const ETAPA1 = [
   "*Etapa 1: detalhes do procedimento*",
@@ -308,7 +321,8 @@ const ETAPA1 = [
   "🔎 *Estudo do caso*\nDepois de colher as suas queixas, fazemos um estudo profundo com base nessas informações, para trabalhar da melhor maneira no seu caso. Solicitamos 2 dias úteis para concluir essa etapa.",
   "📍 *Não precisa estar presente*\nNão há necessidade de você estar presente no dia do trabalho. Somos de São José do Rio Preto, SP, e grande parte dos nossos trabalhos é realizada à distância, para todo o Brasil e exterior."
 ];
-const PERGUNTA2 = "Podemos seguir para a etapa 2, com o que você recebe?";
+const PERGUNTA1 = "Podemos seguir com a etapa 1, detalhes do procedimento?";
+const PERGUNTA2 = "Podemos seguir com a etapa 2, o que você recebe?";
 const ETAPA2 = [
   "*Etapa 2: o que você recebe*",
   "📑 *O que investigamos e tratamos*\nRealizamos a apometria para atingir seus principais objetivos e, além disso, investigamos e tratamos:\n✓ Seres densos\n✓ Quebra de feitiços e magias\n✓ Retirada de implantes astrais\n✓ Miasmas e energias densas\n✓ Fractais energéticos\n✓ Vínculos com antepassados\n✓ Padrões familiares\n✓ Dissolução de carmas\n✓ Vidas passadas\n✓ Traumas do passado\n✓ Crenças limitantes\n✓ Harmonização dos chacras\n✓ Limpeza energética completa",
@@ -316,9 +330,14 @@ const ETAPA2 = [
   "✨ *Complemento do primeiro atendimento*\n• Limpeza energética do endereço do seu lar\n• Envio de Reiki à distância\nSem custo adicional.",
   "🤝 *Equipe à disposição*\nDepois do tratamento, a equipe fica disponível para acolhimento pessoal e para as dúvidas que surgirem, de forma gratuita."
 ];
-const PDF_MSG = "📎 *Orientações gerais*\nLogo abaixo segue um PDF com orientações, instruções importantes, dúvidas frequentes e o que pode ser solicitado no trabalho.";
-const PERGUNTA3 = "Podemos seguir para a etapa 3, com as opções de agendamento?";
-const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*";
+const PDF_MSG = "📎 *Informativo sobre a apometria*\nVou lhe enviar o informativo com orientações, instruções importantes, dúvidas frequentes e o que pode ser solicitado no trabalho, segue abaixo.";
+const AGENDA_INTRO = "Ok, vou lhe enviar as opções de agendamento, segue abaixo.";
+const AUDIO_MSG = "Este canal de atendimento não consegue ouvir áudios. Se possível, escreva a sua mensagem por aqui.";
+const DESPEDIDA_MSG = "Ok, entendemos perfeitamente. Agradecemos o seu contato e ficamos à disposição sempre que precisar. 🙏";
+const RETORNO_MSG = "Ok. Gostaria de alguma informação ou como podemos ajudar?";
+const MODALIDADES_MSG = "Ok, vou lhe enviar as modalidades disponíveis, segue abaixo.\n\n*Modalidades de atendimento*\n\n1️⃣ *Individual*: R$ 289,00, entrega em até 15 dias úteis\n2️⃣ *Emergencial*: R$ 339,00, vaga de prioridade em até 8 dias úteis\n3️⃣ *Pacote de 4 sessões*: R$ 800,00 (R$ 200,00 cada trabalho), em até 4x sem juros\n4️⃣ *Familiar*: R$ 600,00, máximo de 5 pessoas da mesma família, trabalhos individuais e relatório único\n5️⃣ *Presencial*: R$ 720,00, meio período. No momento está indisponível por falta de agenda\n\nQual dessas modalidades você prefere?";
+const PERGUNTA3 = "Podemos seguir com a etapa 3, opções de agendamento?";
+const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*\nVou lhe enviar as opções de agendamento, segue abaixo.";
 const ETAPA3_NOTA = "*Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante.";
 const APOS_PAGAMENTO_MSG = "*O que acontece após o pagamento*\n• Você irá receber algumas instruções e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
 const PERGUNTA_AGENDA = "Gostaria de realizar o seu agendamento?";
@@ -364,6 +383,17 @@ function saudacao() {
 
 // ─── ENVIAR MENSAGEM DE TEXTO VIA WHATSAPP API ────────────────────────────────
 // WhatsApp usa um asterisco de cada lado para negrito: converte **x** em *x* e marcadores de lista
+function ehRecusa(text, pendente) {
+  const t = semAcento(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t || t.split(' ').length > 14) return false;
+  if (pendente && /^(nao|n|nope|nao obrigad[oa]|obrigad[oa] nao)$/.test(t)) return true;
+  return /\bnao (quero|desejo|pretendo|vou) (mais |continuar|seguir|prosseguir|fazer|agendar|contratar|nada|saber|dar continuidade)/.test(t)
+    || /\bnao tenho (mais )?interesse/.test(t)
+    || /\b(desisti|vou desistir|deixa pra la|deixa para la|pode encerrar|encerrar o atendimento|cancela|cancelar)\b/.test(t)
+    || /\b(nao quero|nao desejo)$/.test(t)
+    || /^nao obrigad[oa]/.test(t)
+    || /\b(agora nao|por enquanto nao|no momento nao|nao por enquanto|nao no momento)\b/.test(t);
+}
 function normalizarNegrito(t) {
   return String(t == null ? '' : t)
     .replace(/\*\*(.+?)\*\*/gs, '*$1*')
@@ -375,6 +405,7 @@ const envios = new Map();
 async function sendMessage(to, text) {
   { const agora = Date.now(); const l = (envios.get(to) || []).filter(x => agora - x < 60000); if (l.length >= 30) { console.warn('⚠️ Trava de rajada: mensagem não enviada para ' + to); return; } l.push(agora); envios.set(to, l); }
   text = normalizarNegrito(text);
+  { const ss0 = sessions.get(to); if (ss0 && /\?\s*$/.test(text.replace(/[\s🙏😊✨]+$/u, ''))) ss0.askedAt = Date.now(); }
   await saveMessage(to, 'out', text);
   crmSaida(to, text);
   try {
@@ -514,6 +545,14 @@ function acharFoto(nome) {
   } catch (e) { return null; }
 }
 
+async function enviarPdf(from, session) {
+  if (session.pdfEnviado) return false;
+  session.pdfEnviado = true;
+  const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'Orientacoes-Apometria-Brasil.pdf'));
+  await sleep(typingDelay(PDF_MSG)); await sendMessage(from, PDF_MSG);
+  if (pdfOk) await sendDocument(from, PUBLIC_BASE + '/media/Orientacoes-Apometria-Brasil.pdf', 'Orientacoes-Apometria-Brasil.pdf');
+  return true;
+}
 async function enviarFoto(to, nome) {
   const arq = acharFoto(nome);
   crmSaida(to);
@@ -628,14 +667,47 @@ function setPausado(phone, pausado) {
 
 // ─── LÓGICA DE ROTEAMENTO DE MENSAGENS ───────────────────────────────────────
 const filas = new Map();
-function handleMessage(from, messageText, mediaInfo = null) {
+const lotes = new Map();
+const BATCH_MS = parseInt(process.env.BATCH_MS || '4000', 10);
+function enfileirar(from, messageText, mediaInfo, recebidoEm) {
   const anterior = filas.get(from) || Promise.resolve();
-  const p = anterior.catch(() => {}).then(() => handleMessageInner(from, messageText, mediaInfo));
+  const p = anterior.catch(() => {}).then(() => handleMessageInner(from, messageText, mediaInfo, recebidoEm));
   filas.set(from, p);
   p.catch(() => {}).then(() => { if (filas.get(from) === p) filas.delete(from); });
   return p;
 }
-async function handleMessageInner(from, messageText, mediaInfo = null) {
+function liberarLote(from) {
+  const l = lotes.get(from);
+  if (!l) return null;
+  clearTimeout(l.t);
+  lotes.delete(from);
+  const textos = l.textos.filter((x, i) => i === 0 || x !== l.textos[i - 1]);
+  return enfileirar(from, textos.join('\n'), null, l.ultimo);
+}
+// Mensagens de texto em sequência viram UMA só (espera BATCH_MS de silêncio): responde uma vez, com o contexto inteiro
+function handleMessage(from, messageText, mediaInfo = null) {
+  if (mediaInfo) { liberarLote(from); return enfileirar(from, messageText, mediaInfo, Date.now()); }
+  let l = lotes.get(from);
+  if (!l) { l = { textos: [], t: null, ultimo: 0 }; lotes.set(from, l); }
+  l.textos.push(messageText);
+  l.ultimo = Date.now();
+  clearTimeout(l.t);
+  l.t = setTimeout(() => {
+    const p = liberarLote(from);
+    if (p) p.catch(err => console.error(`❌ Erro ao processar mensagem de ${from}:`, err));
+  }, BATCH_MS);
+  return Promise.resolve();
+}
+const msgsVistas = new Map();
+function jaProcessada(id) {
+  if (!id) return false;
+  const a = Date.now();
+  for (const [k, t] of msgsVistas) if (a - t > 3600000) msgsVistas.delete(k);
+  if (msgsVistas.has(id)) return true;
+  msgsVistas.set(id, a);
+  return false;
+}
+async function handleMessageInner(from, messageText, mediaInfo = null, recebidoEm = Date.now()) {
   const session = getSession(from);
   let text = messageText.trim();
 
@@ -662,6 +734,14 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
     return;
   }
 
+  // Áudio: este canal não ouve áudios (responde uma vez por minuto)
+  if (mediaInfo && mediaInfo.tipo === 'audio') {
+    const ag = Date.now();
+    if (!session.ultimoAudio || ag - session.ultimoAudio > 60000) { session.ultimoAudio = ag; await sleep(1500); await sendMessage(from, AUDIO_MSG); }
+    await upsertConversation(from, session.clientName, session.stage);
+    return;
+  }
+
   // Estágio travado ANTES de qualquer await (mensagens em rajada)
   if (session.stage === 'abertura') {
     session.stage = 'aguardando_nome';
@@ -681,11 +761,35 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
     return;
   }
 
+  // Depois de uma despedida: responde só com a pergunta de retomada
+  if (session.encerrado && !mediaInfo) {
+    session.encerrado = false; session.etapa = null; session.pediuNome = true;
+    if (session.stage === 'aguardando_nome' || session.stage === 'aguardando_relato') session.stage = 'conversa';
+    await sleep(1500); await sendMessage(from, RETORNO_MSG);
+    session.history.push({ role: 'user', content: text }, { role: 'assistant', content: RETORNO_MSG });
+    await upsertConversation(from, session.clientName, session.stage);
+    return;
+  }
+  const ETAPAS_PENDENTES = ['para_quem', 'aguarda1', 'aguarda2', 'aguarda3', 'oferta', 'agenda', 'mais_detalhes'];
+  if (!mediaInfo && ehRecusa(text, ETAPAS_PENDENTES.includes(session.etapa))) {
+    session.encerrado = true; session.etapa = null;
+    await sleep(1500); await sendMessage(from, DESPEDIDA_MSG);
+    session.history.push({ role: 'user', content: text }, { role: 'assistant', content: DESPEDIDA_MSG });
+    crmSet(from, { followup_off: true }).catch(() => {});
+    await upsertConversation(from, session.clientName, session.stage);
+    return;
+  }
+  // Trava de espera: um "sim/ok" digitado ANTES de a pergunta chegar não vale como resposta a ela
+  if (!mediaInfo && ETAPAS_PENDENTES.includes(session.etapa) && session.askedAt && recebidoEm < session.askedAt && (ehSim(text) || ehLixoEtapa(text) || /^(nao|n)$/.test(semAcento(text)))) {
+    console.log(`🛑 Trava de espera: resposta de ${from} chegou antes da pergunta ("${text}"); ignorada.`);
+    return;
+  }
+
   { const dv = await desvioFluxo(from, text, session); if (dv === true) return; if (dv === 'valores') text = 'quero ver os valores'; }
   // Quebra de fluxo: perguntou os valores antes da hora -> mostra os valores como se tivesse chegado lá, sem falar de etapa
   const pedeValoresFirme = pedeValores(text) && !/quanto tempo|quantos dias|quanto demora|prazo|demora/.test(semAcento(text));
   if (!session.viuValores && !session.valoresEmAndamento && pedeValoresFirme &&
-      (session.stage === 'aguardando_nome' || session.etapa === 'para_quem' || session.etapa === 'queixa' || session.etapa === 'aguarda2' || session.etapa === 'aguarda3' || session.etapa === 'oferta')) {
+      (session.stage === 'aguardando_nome' || session.etapa === 'para_quem' || session.etapa === 'queixa' || session.etapa === 'aguarda1' || session.etapa === 'aguarda2' || session.etapa === 'aguarda3' || session.etapa === 'oferta')) {
     session.valoresEmAndamento = true;
     session.stage = 'conversa';
     session.pediuNome = true;
@@ -693,7 +797,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
     session.etapa = 'mais_detalhes';
     try {
       await sleep(2500);
-      const intro = 'Claro! Seguem os valores e as opções de atendimento.';
+      const intro = 'Ok, vou lhe enviar os valores e as opções de atendimento, segue abaixo.';
       await sendMessage(from, intro);
       await sleep(2500);
       await enviarFoto(from, 'valores');
@@ -704,10 +808,10 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
       if (!session.vistoRecebe) itens.push('✨ *O que você recebe*');
       let fim;
       if (itens.length) {
-        fim = 'Se quiser, posso te explicar também:\n\n' + itens.join('\n') + '\n\nOu, se preferir, já podemos seguir para o seu agendamento. 😊';
+        fim = 'Se quiser, podemos explicar também:\n\n' + itens.join('\n') + '\n\nOu, se preferir, já podemos seguir para o seu agendamento.';
       } else {
         fim = PERGUNTA_AGENDA;
-        session.etapa = null;
+        session.etapa = 'agenda';
       }
       await sleep(typingDelay(fim));
       await sendMessage(from, fim);
@@ -740,16 +844,13 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
         for (const parte of partes) { await sleep(typingDelay(parte)); await sendMessage(from, parte); enviados.push(parte); }
         if (k === 'proc') {
           session.vistoProc = true;
-          const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'Orientacoes-Apometria-Brasil.pdf'));
-          await sleep(typingDelay(PDF_MSG));
-          await sendMessage(from, PDF_MSG);
-          if (pdfOk) await sendDocument(from, PUBLIC_BASE + '/media/Orientacoes-Apometria-Brasil.pdf', 'Orientacoes-Apometria-Brasil.pdf');
+          await enviarPdf(from, session);
         } else session.vistoRecebe = true;
       }
       let fim;
       if (!session.vistoProc) { fim = 'Quer ver também os *detalhes do procedimento*?'; session.etapa = 'mais_detalhes'; }
       else if (!session.vistoRecebe) { fim = 'Quer ver também o que você recebe?'; session.etapa = 'mais_detalhes'; }
-      else { fim = PERGUNTA_AGENDA; session.etapa = null; }
+      else { fim = PERGUNTA_AGENDA; session.etapa = 'agenda'; }
       await sleep(typingDelay(fim));
       await sendMessage(from, fim);
       session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [...enviados, fim].join('\n\n') });
@@ -780,6 +881,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
     await sendMessage(from, ok);
     await sleep(typingDelay(QUEM_SOMOS_MSG));
     await sendMessage(from, QUEM_SOMOS_MSG);
+    await enviarPdf(from, session);
     await sleep(typingDelay(INSTAGRAM_MSG));
     await sendMessage(from, INSTAGRAM_MSG);
     await sleep(typingDelay(GOOGLE_MSG));
@@ -788,46 +890,42 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
     await sendMessage(from, PERGUNTA_PARA_QUEM);
     session.history.push(
       { role: 'user', content: nome ? `Meu nome é ${nome}` : text },
-      { role: 'assistant', content: [ok, QUEM_SOMOS_MSG, INSTAGRAM_MSG, GOOGLE_MSG, PERGUNTA_PARA_QUEM].join('\n\n') }
+      { role: 'assistant', content: [ok, QUEM_SOMOS_MSG, PDF_MSG + ' [PDF enviado]', INSTAGRAM_MSG, GOOGLE_MSG, PERGUNTA_PARA_QUEM].join('\n\n') }
     );
     await upsertConversation(from, session.clientName, session.stage);
     return;
   }
 
   if (session.etapa === 'para_quem' || session.etapa === 'queixa') {
-    const eraPrimeira = session.etapa === 'para_quem';
     session.etapa = 'para_quem_andamento'; // trava antes dos awaits (mensagens em rajada)
-    const respQuem = await processWithClaude(session, text);
-    await sendClaudeResponse(from, respQuem, session);
-    if (session.pausado) { session.etapa = 'aguarda2'; await upsertConversation(from, session.clientName, session.stage); return; }
-    if (eraPrimeira && text.split(/\s+/).filter(Boolean).length <= 6) {
-      // Resposta curta (só para quem é): pergunta a queixa e espera antes de explicar as etapas
-      session.etapa = 'queixa';
-      await sleep(typingDelay(PERGUNTA_QUEIXA));
-      await sendMessage(from, PERGUNTA_QUEIXA);
-      session.history.push({ role: 'assistant', content: PERGUNTA_QUEIXA });
-      await upsertConversation(from, session.clientName, session.stage);
-      return;
+    if (text.split(/\s+/).filter(Boolean).length <= 6) {
+      const ack = 'Ok, entendo perfeitamente.';
+      await sleep(2000); await sendMessage(from, ack);
+      session.history.push({ role: 'user', content: text }, { role: 'assistant', content: ack });
+    } else {
+      const respQuem = await processWithClaude(session, text);
+      await sendClaudeResponse(from, respQuem, session);
     }
-    session.etapa = 'aguarda2';
-    session.vistoProc = true;
-    for (const parte of [TITULO_MSG, ...ETAPA1]) {
-      await sleep(typingDelay(parte));
-      await sendMessage(from, parte);
-    }
-    const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'Orientacoes-Apometria-Brasil.pdf'));
-    await sleep(typingDelay(PDF_MSG));
-    await sendMessage(from, PDF_MSG);
-    if (pdfOk) await sendDocument(from, `${PUBLIC_BASE}/media/Orientacoes-Apometria-Brasil.pdf`, 'Orientacoes-Apometria-Brasil.pdf');
-    await sleep(typingDelay(PERGUNTA2));
-    await sendMessage(from, PERGUNTA2);
-    session.history.push({ role: 'assistant', content: [TITULO_MSG, ...ETAPA1, PDF_MSG, PERGUNTA2].join('\n\n') });
+    if (session.pausado) { session.etapa = 'aguarda1'; await upsertConversation(from, session.clientName, session.stage); return; }
+    await sleep(typingDelay(TITULO_MSG)); await sendMessage(from, TITULO_MSG);
+    await sleep(typingDelay(PERGUNTA1)); await sendMessage(from, PERGUNTA1);
+    session.etapa = 'aguarda1';
+    session.history.push({ role: 'assistant', content: [TITULO_MSG, PERGUNTA1].join('\n\n') });
     await upsertConversation(from, session.clientName, session.stage);
     return;
   }
 
-  if (session.etapa === 'aguarda2' || session.etapa === 'aguarda3') {
+  if (session.etapa === 'aguarda1' || session.etapa === 'aguarda2' || session.etapa === 'aguarda3') {
     const querValores = pedeValores(text);
+    if (session.etapa === 'aguarda1' && ehSim(text) && !querValores) {
+      session.etapa = 'aguarda2'; // trava antes dos awaits (mensagens em rajada)
+      session.vistoProc = true;
+      for (const parte of ETAPA1) { await sleep(typingDelay(parte)); await sendMessage(from, parte); }
+      await sleep(typingDelay(PERGUNTA2)); await sendMessage(from, PERGUNTA2);
+      session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [...ETAPA1, PERGUNTA2].join('\n\n') });
+      await upsertConversation(from, session.clientName, session.stage);
+      return;
+    }
     if (session.etapa === 'aguarda2' && ehSim(text) && !querValores) {
       session.etapa = 'aguarda3'; // trava antes dos awaits (mensagens em rajada)
       session.vistoRecebe = true;
@@ -860,6 +958,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
       await sendContact(from);
       await sleep(typingDelay(PERGUNTA_AGENDA));
       await sendMessage(from, PERGUNTA_AGENDA);
+      session.etapa = 'agenda';
       session.history.push(
         { role: 'user', content: text },
         { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', ETAPA3_NOTA, APOS_PAGAMENTO_MSG, CONTATO_PAULO_MSG, '[cartão de contato do Paulo enviado]', PERGUNTA_AGENDA].join('\n\n') }
@@ -869,9 +968,19 @@ async function handleMessageInner(from, messageText, mediaInfo = null) {
     }
   }
 
+  if (session.etapa === 'agenda' && ehSim(text) && !/individual|emergencial|pacote|familiar|presencial|avulsa|sessoes|sessao/.test(semAcento(text))) {
+    session.etapa = 'modalidade';
+    await sleep(2000); await sendMessage(from, MODALIDADES_MSG);
+    session.history.push({ role: 'user', content: text }, { role: 'assistant', content: MODALIDADES_MSG });
+    await upsertConversation(from, session.clientName, session.stage);
+    return;
+  }
+
   if (session.stage === 'aguardando_relato') session.stage = 'conversa';
 
+  const etapaAntes = session.etapa;
   const response = await processWithClaude(session, text);
+  if (etapaAntes === 'modalidade' && session.etapa === 'modalidade') session.etapa = null;
   await sendClaudeResponse(from, response, session);
   await upsertConversation(from, session.clientName, session.stage);
 }
@@ -907,6 +1016,8 @@ app.post('/webhook', async (req, res) => {
 
         for (const message of value.messages) {
           const from = message.from;
+          if (jaProcessada(message.id)) { console.log(`🔁 Mensagem duplicada ignorada (${message.id})`); continue; }
+          if (message.timestamp && (Date.now() / 1000 - Number(message.timestamp)) > 1200) { console.log(`⌛ Mensagem antiga ignorada (${message.id})`); continue; }
 
           if (message.type === 'text') {
             handleMessage(from, message.text.body).catch(err => {
@@ -1189,10 +1300,10 @@ app.get('/painel', (req, res) => {
 
 // ─── CRM: FUNIL, FOLLOW-UP AUTOMÁTICO E AVISOS ───────────────────────────────
 const CRM_TOKEN = process.env.CRM_TOKEN;
-const RANK = { novo: 0, explicacao: 1, valores: 2, comprovante: 3, pago: 4, questionario: 5 };
+const RANK = { novo: 0, explicacao: 1, valores: 2, comprovante: 3, questionario: 4, pago: 5 };
 const FUNIL_ROTULO = {
   novo: 'Novo contato', explicacao: 'Em explicação', valores: 'Viu os valores',
-  comprovante: 'Comprovante recebido', pago: 'Pago / confirmado', questionario: 'Questionário respondido',
+  comprovante: 'Comprovante recebido', questionario: 'Questionário respondido', pago: 'Pago / confirmado',
   paulo: 'Com o Paulo', sem_resposta: 'Sem resposta', perdido: 'Perdido'
 };
 const FOLLOWUP_HORAS = [3, 28, 52]; // horas desde a última mensagem da pessoa
@@ -1322,7 +1433,8 @@ async function crmEntrada(phone, mediaInfo, session) {
 }
 async function crmSaida(phone, texto) {
   if (!pool) return;
-  if (texto && /17988271998|mpago\.li/i.test(texto)) {
+  if (texto && /17988271998|mpago\.li/i.test(texto) && !(sessions.get(phone)?.ultAlertaPag && Date.now() - sessions.get(phone).ultAlertaPag < 90000)) {
+    { const sp = sessions.get(phone); if (sp) sp.ultAlertaPag = Date.now(); }
     const link = (texto.match(/https?:\/\/mpago\.li\/\S+/i) || [])[0];
     crmAlertar('pagamento_solicitado', phone, link ? 'Link de cartão enviado: ' + link : 'Chave Pix enviada.', sessions.get(phone)?.clientName).catch(() => {});
   }
@@ -1477,7 +1589,7 @@ setInterval(() => { rodarFollowups(); }, 5 * 60 * 1000);
 app.rodarFollowups = rodarFollowups;
 
 // ─── DESVIO DO FLUXO: respostas fora do esperado durante as etapas ───────────────
-const ESTADOS_ETAPAS = ['para_quem', 'queixa', 'aguarda2', 'aguarda3', 'oferta'];
+const ESTADOS_ETAPAS = ['para_quem', 'queixa', 'aguarda1', 'aguarda2', 'aguarda3', 'oferta'];
 function detectarTopicoEtapa(text) {
   const t = semAcento(text).replace(/[^a-z0-9?\s]/g, ' ').replace(/\s+/g, ' ').trim();
   const dig = t.match(/^(opcao |etapa |numero |passo )?([1-3])$/);
@@ -1511,7 +1623,7 @@ function textoOferta(session) {
   if (!session.viuValores) itens.push('as opções de agendamento');
   if (!itens.length) return null;
   const lista = itens.length === 1 ? itens[0] : itens.slice(0, -1).join(', ') + ' ou ' + itens[itens.length - 1];
-  return 'Gostaria que eu explique também sobre ' + lista + '?';
+  return 'Gostaria que expliquemos também sobre ' + lista + '?';
 }
 async function explicarTopico(from, session, topico, rotulo, textoUsuario) {
   const enviados = [];
@@ -1521,16 +1633,11 @@ async function explicarTopico(from, session, topico, rotulo, textoUsuario) {
   for (const parte of partes) { await sleep(typingDelay(parte)); await sendMessage(from, parte); enviados.push(parte); }
   if (topico === 'proc') {
     session.vistoProc = true;
-    if (!session.pdfEnviado) {
-      session.pdfEnviado = true;
-      const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'Orientacoes-Apometria-Brasil.pdf'));
-      await sleep(typingDelay(PDF_MSG)); await sendMessage(from, PDF_MSG);
-      if (pdfOk) await sendDocument(from, PUBLIC_BASE + '/media/Orientacoes-Apometria-Brasil.pdf', 'Orientacoes-Apometria-Brasil.pdf');
-    }
+    await enviarPdf(from, session);
   } else session.vistoRecebe = true;
   const oferta = textoOferta(session);
   if (oferta) { session.etapa = 'oferta'; await sleep(typingDelay(oferta)); await sendMessage(from, oferta); enviados.push(oferta); }
-  else { session.etapa = null; await sleep(typingDelay(PERGUNTA_AGENDA)); await sendMessage(from, PERGUNTA_AGENDA); enviados.push(PERGUNTA_AGENDA); }
+  else { session.etapa = 'agenda'; await sleep(typingDelay(PERGUNTA_AGENDA)); await sendMessage(from, PERGUNTA_AGENDA); enviados.push(PERGUNTA_AGENDA); }
   session.history.push({ role: 'user', content: textoUsuario }, { role: 'assistant', content: enviados.join('\n\n') });
 }
 // Retorna true se tratou a mensagem; 'valores' se a pessoa quer os valores (o fluxo de valores segue); false para seguir o fluxo normal
@@ -1558,9 +1665,11 @@ async function desvioFluxo(from, text, session) {
     const agora = Date.now();
     if (session.ultimoLixo && agora - session.ultimoLixo < 20000) return true; // não responde em rajada
     session.ultimoLixo = agora;
-    const msg = (session.etapa === 'para_quem' || session.etapa === 'queixa')
-      ? 'Entendi. Se preferir, conte com as suas palavras o motivo pelo qual você procura o atendimento, ou posso te explicar como o nosso trabalho funciona. Gostaria de receber mais detalhes sobre o procedimento?'
-      : 'Entendi. Gostaria de receber mais detalhes sobre o procedimento? Se preferir, também pode me contar com as suas palavras o motivo do atendimento.';
+    const msg = (session.etapa === 'para_quem' || session.etapa === 'queixa') ? 'Ok. ' + PERGUNTA_PARA_QUEM.split('\n')[0]
+      : session.etapa === 'aguarda1' ? 'Ok. ' + PERGUNTA1
+      : session.etapa === 'aguarda2' ? 'Ok. ' + PERGUNTA2
+      : session.etapa === 'aguarda3' ? 'Ok. ' + PERGUNTA3
+      : 'Ok. ' + (textoOferta(session) || PERGUNTA_AGENDA);
     await sleep(typingDelay(msg)); await sendMessage(from, msg);
     session.history.push({ role: 'user', content: text }, { role: 'assistant', content: msg });
     await upsertConversation(from, session.clientName, session.stage);
