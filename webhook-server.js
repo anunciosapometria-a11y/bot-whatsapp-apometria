@@ -1379,29 +1379,30 @@ app.post('/painel/api/app/audio/:phone', express.raw({ type: () => true, limit: 
   const mime = String(req.headers['content-type'] || '');
   const ext = /mp4|aac|m4a/.test(mime) ? 'm4a' : /ogg/.test(mime) ? 'ogg' : 'webm';
   const idA = Date.now() + '_' + Math.random().toString(36).slice(2);
-  const inp = pathA.join(osA.tmpdir(), 'a_' + idA + '.' + ext), out = pathA.join(osA.tmpdir(), 'a_' + idA + '.out.m4a');
+  const inp = pathA.join(osA.tmpdir(), 'a_' + idA + '.' + ext), out = pathA.join(osA.tmpdir(), 'a_' + idA + '.out.ogg');
   try {
     fsA.writeFileSync(inp, buf);
     let ffmpegBin = 'ffmpeg';
     if (!fsA.existsSync('/usr/bin/ffmpeg')) { try { ffmpegBin = require('ffmpeg-static') || 'ffmpeg'; } catch (e) {} }
     await new Promise((ok, ko) => {
-      const p = spawn(ffmpegBin, ['-y', '-i', inp, '-vn', '-c:a', 'aac', '-b:a', '64k', '-ar', '44100', '-ac', '1', '-movflags', '+faststart', out]);
+      const p = spawn(ffmpegBin, ['-y', '-i', inp, '-vn', '-c:a', 'libopus', '-b:a', '32k', '-ar', '48000', '-ac', '1', '-application', 'voip', '-f', 'ogg', out]);
       let er = ''; p.stderr.on('data', x => { er += x; });
       p.on('close', cod => cod === 0 ? ok() : ko(new Error('ffmpeg ' + cod + ' ' + er.slice(-200))));
       p.on('error', ko);
     });
     const ogg = fsA.readFileSync(out);
     const fd = new FormData();
-    fd.append('messaging_product', 'whatsapp'); fd.append('type', 'audio/mp4');
-    fd.append('file', new Blob([ogg], { type: 'audio/mp4' }), 'audio.m4a');
+    fd.append('messaging_product', 'whatsapp'); fd.append('type', 'audio/ogg; codecs=opus');
+    fd.append('file', new Blob([ogg], { type: 'audio/ogg; codecs=opus' }), 'audio.ogg');
     const up = await fetch('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/media', { method: 'POST', headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN }, body: fd });
     const uj = await up.json();
     if (!uj.id) throw new Error('upload: ' + JSON.stringify(uj));
+    try { const inf = await axios.get('https://graph.facebook.com/v21.0/' + uj.id, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN } }); console.log('🎤 media na Meta: ' + JSON.stringify(inf.data)); } catch (e) {}
     await axios.post('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/messages', { messaging_product: 'whatsapp', to: phone, type: 'audio', audio: { id: uj.id } }, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN, 'Content-Type': 'application/json' } });
     const session = getSession(phone);
     session.pausado = true; session.pausadoEm = Date.now(); session.pausadoPor = 'humano';
     session.history.push({ role: 'assistant', content: '[áudio enviado pela equipe]' });
-    await saveMessage(phone, 'out', '[áudio]', ogg.toString('base64'), 'audio/mp4');
+    await saveMessage(phone, 'out', '[áudio]', ogg.toString('base64'), 'audio/ogg');
     console.log('🎤 Áudio enviado para ' + phone + ' (' + ogg.length + ' bytes, media ' + uj.id + ')');
     crmSaida(phone, '[áudio]');
     await upsertConversation(phone, session.clientName, session.stage);
