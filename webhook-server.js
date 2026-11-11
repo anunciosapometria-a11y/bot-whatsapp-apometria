@@ -1351,8 +1351,8 @@ app.post('/painel/api/app/audio/:phone', express.raw({ type: () => true, limit: 
     });
     const ogg = fsA.readFileSync(out);
     const fd = new FormData();
-    fd.append('messaging_product', 'whatsapp'); fd.append('type', 'audio/ogg');
-    fd.append('file', new Blob([ogg], { type: 'audio/ogg' }), 'audio.ogg');
+    fd.append('messaging_product', 'whatsapp'); fd.append('type', 'audio/ogg; codecs=opus');
+    fd.append('file', new Blob([ogg], { type: 'audio/ogg; codecs=opus' }), 'audio.ogg');
     const up = await fetch('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/media', { method: 'POST', headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN }, body: fd });
     const uj = await up.json();
     if (!uj.id) throw new Error('upload: ' + JSON.stringify(uj));
