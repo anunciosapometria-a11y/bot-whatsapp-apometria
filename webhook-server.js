@@ -376,6 +376,7 @@ const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apome
 const TITULO_MSG = "*Gostaria de apresentar as 3 etapas do procedimento do Instituto Apometria Brasil:*\n\n1️⃣ Detalhes do procedimento\n2️⃣ O que você recebe\n3️⃣ Opções de agendamento";
 // Pessoa disse que é para outra pessoa: comentário breve antes de oferecer as etapas
 const RE_OUTRA = /\b(outra pessoa|outra|minha (mae|filha|filho|esposa|irma|prima|tia|amiga|sogra|avo|namorada)|meu (marido|filho|pai|irmao|amigo|namorado|esposo|primo|tio|avo)|para (ela|ele)|pra (ela|ele))\b/;
+const RE_RESP_QUEM = /\b(eu|mim|mesmo|mesma|proprio|propria|nos|outra|outro|ele|ela|dele|dela|filh[oa]s?|mae|pai|pais|marido|espos[oa]|irma|irmao|namorad[oa]|amig[oa]|familia|sogr[oa]|avo|ti[oa]|prim[oa]|net[oa]|ex|os dois|as duas|ambos|todos|voce|pessoa|casal)\b/;
 const OUTRA_MSG = "Você pode solicitar a apometria para outra pessoa, mesmo sem a permissão ou a consciência dela. As informações do questionário inicial você responderá por essa pessoa.";
 const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa";
 const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nSomos um instituto especializado na realização de trabalhos apométricos, cursos e terapias energéticas, coordenado pelo terapeuta *Paulo Rodrigues*.";
@@ -422,23 +423,59 @@ function detectaOpcao(t) {
 const PERGUNTA_AGENDA = "Gostaria de realizar o seu agendamento?";
 
 function semAcento(t) { return t.normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase().trim(); }
+const SIM_NUCLEO = /^(s+i+m+|s+|pode|podem|podemos|ok+|okay|claro|quero|manda|mande|vamos|bora|continua|continue|seguir|segue|uhum|aham|isso|gostaria|certo|beleza|blz|perfeito|ta|yes|positivo|show|top|fechado|fechou|combinado|joia|opa|bom|otimo|favor|bem|certeza)$/;
+const SIM_APOIO = /^(por|ser|com|tudo|obrigad[oa]|la|mandar|continuar|explicar|falar|saber|entender|ver|melhor|mais|que|e|a|o|de|eu|me|entao|ja|agora|gentileza|pfv|pf|sobre|tambem|mesmo)$/;
+// Confirmação só vale quando a mensagem INTEIRA é um "sim" (antes bastava começar com "quero", "isso", "ta", "certo"...)
 function ehSim(text) {
-  const t = semAcento(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!t || t.length > 40) return /^(👍|🙏)/.test(text.trim());
-  return /^(sim|s|pode|podem|podemos|ok|okay|okk|claro|quero|manda|mande|vamos|bora|continua|continue|seguir|segue|segue sim|pode sim|pode seguir|com certeza|por favor|uhum|aham|isso|gostaria|gostaria sim|certo|beleza|blz|tudo bem|perfeito|ta|ta bom|pode continuar|pode mandar)(\s|$)/.test(t);
+  const bruto = String(text || '').trim();
+  const t = semAcento(bruto).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return /^(👍|🙏)/.test(bruto);
+  if (/\?/.test(bruto) || /\b(mas|porem|so que|antes|duvida|pergunta|nao)\b/.test(t)) return false;
+  const ws = t.split(' ');
+  if (ws.length > 6) return false;
+  return ws.every(w => SIM_NUCLEO.test(w) || SIM_APOIO.test(w)) && ws.some(w => SIM_NUCLEO.test(w));
 }
+// Pedido de valores: precisa ser um pedido, não uma palavra solta dentro de um relato ("não consigo pagar as contas")
 function pedeValores(text) {
-  return /\b(valor|valores|preco|precos|quanto|custa|custo|investimento|agendar|agendamento|pagar|pagamento|pix)\b/.test(semAcento(text));
+  const t = semAcento(text).replace(/[^a-z0-9$?\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return false;
+  if (t.split(' ').length > 25 && !t.includes('?')) return false;
+  if (/\b(precos?|custa|custam|investimento|tabela|orcamento)\b/.test(t)) return true;
+  if (/\bpix\b/.test(t) && !/\b(fiz|paguei|transferi|enviei|mandei|ja|comprovante)\b/.test(t)) return true;
+  if (/r\$/.test(t)) return true;
+  if (/\bvalor(es)?\b/.test(t) && !/\b(da|dar|deu|dou|dao|dava|tem|ter|sem|meu|seu) valor\b/.test(t)) return true;
+  if (/^quanto$/.test(t) || /\b(ta|esta|fica|sai|custa) quanto\b/.test(t) || /\bquanto (e|eh|custa|fica|sai|ta|esta|cobra|cobram|seria|vai ficar|ficaria|pago|vou pagar|vale|que e|que custa|que fica|sairia)\b/.test(t)) return true;
+  if (/\b(quero|queria|gostaria de|como|posso|podemos|vamos|pra|para|vou|quando posso) (eu |me |ja |fazer o |fazer um |faco para |faco pra |faz para |faz pra )?(agendar|agendamento|marcar)\b/.test(t) || /^(agendar|agendamento)\b/.test(t)) return true;
+  if (/\b(como|onde|posso|quero|forma|formas|para|pra|formas de|forma de|como faco para|como faco pra|como faz para|como faz pra) (eu |de |o |fazer o )?(pagar|pagamento)\b/.test(t) && !/\bnao (consigo|consegue|quer|quis|tenho como|tem como) pagar\b/.test(t)) return true;
+  return false;
 }
+// Fala de risco à vida: nunca tratar como recusa, valores ou "sim"; segue a regra de acolhimento do roteiro
+function ehCrise(text) {
+  const t = semAcento(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  return /\b(suicid\w*|me matar|tirar (a )?(minha|propria) vida|quero morrer|queria morrer|penso em morrer|pensando em morrer|vontade de morrer|nao quero (mais )?viver|desistir de viver|acabar com (tudo|a minha vida|minha vida)|sumir do mundo|nao aguento mais viver|me machucar|me cortar)\b/.test(t);
+}
+const CRISE_MSG = 'Sentimos muito que você esteja passando por isso. A sua vida importa. Neste momento, o mais importante é falar com alguém de imediato: ligue para o CVV no 188 (24 horas, gratuito) ou para o SAMU no 192 se houver risco imediato. Vamos avisar o Paulo, que falará com você por aqui.';
+const FALLBACK_MSG = 'Poderia explicar um pouco melhor a sua dúvida, por gentileza?';
 const NAO_NOME = new Set(('sim nao quero queria queremos preciso precisa gostaria gostaríamos tenho tem estou esta estava como quanto qual quais quando onde porque por pra para que quem valor valores preco precos info informacao informacoes ajuda ajudar saber saberia entender gostei vi vim vendo veio fazer faz faco trabalho trabalhos sessao apometria terapia tratamento consulta atendimento agendar agendamento marcar horario obrigado obrigada tudo bem td blz beleza ok okay certo tá ta oii oie eai fala opa dia tarde noite meu minha meus minhas uma um uns umas de do da dos das no na nos nas em com sem e ou mas se eu voce vc nos ele ela isso isto aquilo esse essa este esta nao-sei duvida duvidas problema problemas ansiedade depressao dor dores').split(/\s+/));
-function extrairNomeSeguro(text) {
+const NAO_NOME2 = new Set(('pode podem claro bora uhum aham yes manda mande vamos positivo perfeito continua continue show top fechado fechou combinado joia vou talvez depois parar pare sair stop denunciar reset start admin repita menu voltar reiniciar atendente humano encerrar recomecar help bot teste pausar ref drop script negrito mim familia os as ambos outra outro deus palhacada fraude golpe robo responde voces cartao me paguei segue transferi voltei individual emergencial familiar presencial opcao link pix boleto alo oi ola eita oxe aff ue opa hum ah oh certo isso gostaria seguir segue cancela cancelar desisti nada ninguem algo alguem aqui ali la hoje amanha ontem agora urgente socorro senhor senhora moco moca amigo amiga querido querida').split(/\s+/));
+const TITULOS_NOME = new Set(['dona', 'dr', 'dra', 'doutor', 'doutora', 'sr', 'sra', 'seu', 'senhor', 'senhora', 'prof', 'professor', 'professora', 'pastor', 'pastora', 'irma', 'irmao']);
+function nomePlausivel(w) {
+  const x = semAcento(String(w || ''));
+  if (x.length < 2 || x.length > 20) return false;
+  if (!/[aeiouy]/.test(x) || /(.)\1{2,}/.test(x)) return false;
+  if (/^(k+|(ha)+|(he)+|(hu)+|rs+|s+i*m*|n+a*o*|hm+|ah+|oh+|ok+|asdf\w*|qwer\w*|teste?\w*)$/.test(x)) return false;
+  return !NAO_NOME.has(x) && !NAO_NOME2.has(x);
+}
+function extrairNomeSeguro(text) { const nm = extrairNomeBruto(text); return nm && nomePlausivel(nm) ? nm : ''; }
+function extrairNomeBruto(text) {
   const orig = String(text || '').trim();
   if (!orig || /\?/.test(orig)) return '';
   const explicito = orig.match(/(?:meu nome\s*(?:é|e|eh)|me chamo|sou\s+(?:o|a)?|aqui\s*(?:é|e)\s*(?:o|a)?|nome\s*(?:é|e|:))\s*([\p{L}'-]{2,})/iu);
   if (explicito && !NAO_NOME.has(semAcento(explicito[1]))) return explicito[1].charAt(0).toUpperCase() + explicito[1].slice(1).toLowerCase();
   const limpo = orig.replace(/(^|\s)(oi+|ol[aá]|bom dia|boa tarde|boa noite|e a[ií]|eai)(?=\s|$|[,.!?])/gi, ' ').replace(/[^\p{L}\s'-]/gu, ' ').replace(/\s+/g, ' ').trim();
   if (!limpo) return '';
-  const ws = limpo.split(' ');
+  let ws = limpo.split(' ');
+  if (ws.length > 1 && TITULOS_NOME.has(semAcento(ws[0]))) ws = ws.slice(1);
   if (ws.length > 4) return '';
   if (ws.some(w => NAO_NOME.has(semAcento(w)))) return '';
   const w = ws[0];
@@ -464,14 +501,19 @@ function saudacao() {
 // WhatsApp usa um asterisco de cada lado para negrito: converte **x** em *x* e marcadores de lista
 function ehRecusa(text, pendente) {
   const t = semAcento(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!t || t.split(' ').length > 14) return false;
+  if (!t || t.split(' ').length > 9 || ehCrise(text)) return false;
   if (pendente && /^(nao|n|nope|nao obrigad[oa]|obrigad[oa] nao)$/.test(t)) return true;
-  return /\bnao (quero|desejo|pretendo|vou) (mais |continuar|seguir|prosseguir|fazer|agendar|contratar|nada|saber|dar continuidade)/.test(t)
-    || /\bnao tenho (mais )?interesse/.test(t)
-    || /\b(desisti|vou desistir|deixa pra la|deixa para la|pode encerrar|encerrar o atendimento|cancela|cancelar)\b/.test(t)
-    || /\b(nao quero|nao desejo)$/.test(t)
-    || /^nao obrigad[oa]/.test(t)
-    || /\b(agora nao|por enquanto nao|no momento nao|nao por enquanto|nao no momento)\b/.test(t);
+  const ALVO = '(continuar|seguir|prosseguir|fazer|agendar|contratar|nada|saber|dar continuidade|isso|o atendimento|o trabalho|a sessao)';
+  return new RegExp('\\bnao (quero|desejo|pretendo|vou) (mais )?' + ALVO + '\\b').test(t)
+    || /\bnao (quero|desejo) mais( obrigad[oa])?$/.test(t)
+    || /\bnao tenho (mais )?interesse( nenhum| algum| obrigad[oa]| no momento| agora| por enquanto)?$/.test(t)
+    || /^(eu )?(desisti|vou desistir)( obrigad[oa]| mesmo| por enquanto)?$/.test(t)
+    || /\b(deixa pra la|deixa para la|pode encerrar|encerrar o atendimento)\b/.test(t)
+    || /^(pode )?(cancela|cancelar)( por favor| o atendimento| tudo| isso)?$/.test(t)
+    || /^(nao quero|nao desejo)( obrigad[oa])?$/.test(t)
+    || /^nao obrigad[oa]( mesmo)?$/.test(t)
+    || /^(nao )?(agora nao|por enquanto nao|no momento nao|por enquanto|no momento)( obrigad[oa]| quero| posso)?$/.test(t)
+    || /^nao (por enquanto|no momento|agora)( obrigad[oa])?$/.test(t);
 }
 function normalizarNegrito(t) {
   return String(t == null ? '' : t)
@@ -481,12 +523,16 @@ function normalizarNegrito(t) {
 }
 
 const envios = new Map();
+const FIXOS_UMA_VEZ = new Map();
+[QUEM_SOMOS_MSG, INSTAGRAM_MSG, GOOGLE_MSG, PERGUNTA_PARA_QUEM, TITULO_MSG + '\n\n' + PERGUNTA1, ...ETAPA1, ...ETAPA2].forEach((x, i) => FIXOS_UMA_VEZ.set(normalizarNegrito(x), 'f' + i));
 async function sendMessage(to, text) {
   { const agora = Date.now(); const l = (envios.get(to) || []).filter(x => agora - x < 60000); if (l.length >= 30) { console.warn('⚠️ Trava de rajada: mensagem não enviada para ' + to); return; } l.push(agora); envios.set(to, l); }
   text = normalizarNegrito(text);
-  { const ag = Date.now(); const U = (sendMessage._u = sendMessage._u || new Map()); const lst = (U.get(to) || []).filter(x => ag - x.ts < 180000);
-    if (text.length > 20 && lst.some(x => x.t === text)) { console.warn('🔁 Trava de repetição: mensagem idêntica ignorada para ' + to); return; }
-    lst.push({ t: text, ts: ag }); U.set(to, lst); }
+  { const ag = Date.now(); const ssF = sessions.get(to); const kf = FIXOS_UMA_VEZ.get(text);
+    if (ssF && kf) { ssF.fx = ssF.fx || {}; if (ssF.fx[kf] && ag - ssF.fx[kf] < 6 * 3600000) { console.warn('🔁 Trava de repetição: bloco fixo já enviado, ignorado para ' + to); return; } ssF.fx[kf] = ag; }
+    // mesma mensagem duas vezes seguidas sem a pessoa ter escrito nada novo entre elas: envia só uma
+    if (ssF && [PERGUNTA1, PERGUNTA2, PERGUNTA3, PERGUNTA_AGENDA].includes(text)) { ssF.pergEm = ssF.pergEm || {}; if (ssF.pergEm[text] && ag - ssF.pergEm[text] < 120000) { console.warn('🔁 Trava de repetição: pergunta pendente já feita há menos de 2 min, ignorada para ' + to); return; } ssF.pergEm[text] = ag; }
+    if (ssF) { if (ssF.lastOut && ssF.lastOut.t === text && (ssF.ultimoIn || 0) <= ssF.lastOut.ts && ag - ssF.lastOut.ts < 600000) { console.warn('🔁 Trava de repetição: mensagem idêntica em sequência ignorada para ' + to); return; } ssF.lastOut = { t: text, ts: ag }; } }
   { const ss0 = sessions.get(to); if (ss0 && /\?\s*$/.test(text.replace(/[\s🙏😊✨]+$/u, ''))) ss0.askedAt = Date.now(); }
   await saveMessage(to, 'out', text);
   crmSaida(to, text);
@@ -544,6 +590,7 @@ async function sendImage(to, imageUrl, caption) {
 // Cartão de contato do Paulo (aparece no WhatsApp com o botão de conversar)
 const PAULO_WA = '5517988271998';
 async function sendContact(to) {
+  { const ssC = sessions.get(to); if (ssC) { if (ssC.contatoEm && Date.now() - ssC.contatoEm < 600000) return; ssC.contatoEm = Date.now(); } }
   try {
     await axios.post(
       `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
@@ -650,6 +697,7 @@ async function enviarEspeciais(to, session, text) {
   return true;
 }
 async function enviarFoto(to, nome) {
+  if (nome === 'valores' || nome === 'pagamento') { const ssV = sessions.get(to); if (ssV) { ssV.fotoEm = ssV.fotoEm || {}; if (ssV.fotoEm[nome] && Date.now() - ssV.fotoEm[nome] < 600000) return; ssV.fotoEm[nome] = Date.now(); } }
   const arq = acharFoto(nome);
   crmSaida(to);
   if (nome === 'valores') { const ss = sessions.get(to); if (ss) ss.viuValores = true; crmSet(to, { viu_valores: true }).catch(() => {}); }
@@ -710,7 +758,8 @@ async function pausarEAvisar(phone, session, motivo) {
 async function sendClaudeResponse(to, rawText, session) {
   const pausar = /\[\[PAUSAR\]\]/.test(rawText);
   const clean = rawText.replace(/\[\[PAUSAR\]\]/g, '');
-  const parts = clean.split('|||').map(p => p.trim()).filter(Boolean).slice(0, 6);
+  let parts = clean.split('|||').map(p => p.trim()).filter(Boolean).filter(p => !FIXOS_UMA_VEZ.has(normalizarNegrito(p)) && !/Para quem voc[eê] gostaria de solicitar a apometria/i.test(p)).slice(0, 6);
+  if (!parts.length && !pausar) parts = [FALLBACK_MSG];
   for (let i = 0; i < parts.length; i++) {
     if (/\[\[CONTATO:\w+\]\]/.test(parts[i])) {
       const restoC = parts[i].replace(/\[\[CONTATO:\w+\]\]/g, '').trim();
@@ -757,22 +806,24 @@ async function processWithClaude(session, userMessage) {
   // A API exige que o primeiro turno seja do usuário
   while (session.history.length && session.history[0].role !== 'user') session.history.shift();
 
-  try {
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1200,
-      system: buildSystemPrompt(session.clientName, session.etapa) + (session.ctxCliente ? '\n\n' + session.ctxCliente : ''),
-      messages: session.history
-    });
-
-    const assistantMessage = response.content[0].text;
-    session.history.push({ role: 'assistant', content: assistantMessage });
-
-    return assistantMessage;
-  } catch (err) {
-    console.error('❌ Erro na API do Claude:', err.message);
-    session.history.pop();
-    return 'Tivemos um problema técnico agora. Tente novamente em instantes ou aguarde o retorno do Paulo. 🙏';
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1200,
+        system: buildSystemPrompt(session.clientName, session.etapa) + (session.ctxCliente ? '\n\n' + session.ctxCliente : ''),
+        messages: session.history
+      });
+      const assistantMessage = (response.content && response.content[0] && response.content[0].text || '').trim();
+      if (!assistantMessage) { if (tentativa === 1) continue; session.history.push({ role: 'assistant', content: FALLBACK_MSG }); return FALLBACK_MSG; }
+      session.history.push({ role: 'assistant', content: assistantMessage });
+      return assistantMessage;
+    } catch (err) {
+      console.error('❌ Erro na API do Claude (tentativa ' + tentativa + '):', err.message);
+      if (tentativa === 1) { await sleep(2000); continue; }
+      session.history.pop();
+      return 'Tivemos um problema técnico agora. Tente novamente em instantes ou aguarde o retorno do Paulo. 🙏';
+    }
   }
 }
 
@@ -802,9 +853,13 @@ function setPausado(phone, pausado) {
 const filas = new Map();
 const lotes = new Map();
 const BATCH_MS = parseInt(process.env.BATCH_MS || '4000', 10);
+const pendentes = new Map();
 function enfileirar(from, messageText, mediaInfo, recebidoEm) {
+  if (!mediaInfo) { const pd = pendentes.get(from); if (pd) { if (pd.textos[pd.textos.length - 1] !== messageText) pd.textos.push(messageText); pd.recebidoEm = recebidoEm; return pd.p; } }
   const anterior = filas.get(from) || Promise.resolve();
-  const p = anterior.catch(() => {}).then(() => handleMessageInner(from, messageText, mediaInfo, recebidoEm));
+  const item = mediaInfo ? null : { textos: [messageText], recebidoEm };
+  const p = anterior.catch(() => {}).then(() => { if (item && pendentes.get(from) === item) pendentes.delete(from); return handleMessageInner(from, item ? item.textos.join('\n') : messageText, mediaInfo, item ? item.recebidoEm : recebidoEm); });
+  if (item) { item.p = p; if (filas.has(from)) pendentes.set(from, item); }
   filas.set(from, p);
   p.catch(() => {}).then(() => { if (filas.get(from) === p) filas.delete(from); });
   return p;
@@ -844,6 +899,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   const session = getSession(from);
   await restaurarSessao(from, session);
   let text = messageText.trim();
+  session.ultimoIn = Math.max(session.ultimoIn || 0, recebidoEm);
   if (!mediaInfo) { const op = detectaOpcao(text); if (op) session.opcaoCtx = op; }
 
   console.log(`📩 Mensagem de ${from}: "${text}" | Estágio: ${session.stage}`);
@@ -893,6 +949,16 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     return;
   }
 
+  if (!mediaInfo && ehCrise(text)) {
+    if (session.stage === 'abertura' || session.stage === 'aguardando_nome') { session.stage = 'conversa'; session.pediuNome = true; }
+    session.encerrado = false;
+    let respC = await processWithClaude(session, text + '\n[Sistema: a pessoa falou em morrer ou desistir de viver. Siga a regra de acolhimento do roteiro: pare de vender, CVV 188, SAMU 192, diga que o Paulo será avisado e termine com [[PAUSAR]].]');
+    if (/problema técnico/.test(respC) || respC === FALLBACK_MSG || !/188/.test(respC)) respC = CRISE_MSG;
+    await sendClaudeResponse(from, respC.replace(/\[\[PAUSAR\]\]/g, ''), session);
+    await pausarEAvisar(from, session, 'possível crise: fala de risco à vida');
+    return;
+  }
+
   // Estágio travado ANTES de qualquer await (mensagens em rajada)
   if (session.stage === 'abertura') {
     session.stage = 'aguardando_nome';
@@ -916,6 +982,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   session.ctxCliente = ctxC.nota;
   if (session.encerrado && ctxC.pago) session.encerrado = false;
   // Depois de uma despedida: responde só com a pergunta de retomada
+  if (session.encerrado && !mediaInfo && (/\?/.test(text) || text.split(/\s+/).filter(Boolean).length > 3) && !ehRecusa(text, false)) { session.encerrado = false; if (session.stage === 'aguardando_relato') session.stage = 'conversa'; }
   if (session.encerrado && !mediaInfo) {
     session.encerrado = false; session.etapa = null; session.pediuNome = true;
     if (session.stage === 'aguardando_nome' || session.stage === 'aguardando_relato') session.stage = 'conversa';
@@ -1052,7 +1119,8 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   if (session.etapa === 'para_quem' || session.etapa === 'queixa') {
     session.etapa = 'para_quem_andamento'; // trava antes dos awaits (mensagens em rajada)
     await enviarEspeciais(from, session, text);
-    if (text.split(/\s+/).filter(Boolean).length <= 6) {
+    const nPal = text.split(/\s+/).filter(Boolean).length;
+    if (nPal <= 6 && !/\?/.test(text) && (nPal <= 2 || ehSim(text) || RE_RESP_QUEM.test(semAcento(text)))) {
       const ack = RE_OUTRA.test(semAcento(text)) ? OUTRA_MSG : '';
       if (ack) { await sleep(2000); await sendMessage(from, ack); }
       session.history.push({ role: 'user', content: text }, { role: 'assistant', content: ack || '[segue o fluxo]' });
@@ -1201,8 +1269,14 @@ app.post('/webhook', async (req, res) => {
             handleMessage(from, '[Cliente enviou um áudio]', { id: message.audio.id, mimeType: message.audio.mime_type, tipo: 'audio' }).catch(err => {
               console.error(`❌ Erro ao processar áudio de ${from}:`, err);
             });
+          } else if (message.type === 'button' || message.type === 'interactive') {
+            const tb = message.button?.text || message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '';
+            if (tb) handleMessage(from, tb).catch(err => console.error(`❌ Erro ao processar botão de ${from}:`, err));
+          } else if (message.type === 'reaction' || message.type === 'sticker') {
+            console.log(`🙂 ${message.type} de ${from} ignorado`);
           } else {
-            sendMessage(from, 'No momento processo apenas texto. Por favor, escreva sua mensagem. 🙏');
+            const ssT = sessions.get(from); const agT = Date.now();
+            if (!ssT || !ssT.soTextoEm || agT - ssT.soTextoEm > 600000) { if (ssT) { ssT.soTextoEm = agT; ssT.lastActivity = agT; } sendMessage(from, 'No momento processo apenas texto. Por favor, escreva sua mensagem. 🙏'); }
           }
         }
       }
@@ -2468,8 +2542,8 @@ function detectarTopicoEtapa(text) {
   if (t.split(' ').length > 9 && !t.includes('?')) return null; // relato longo: não é pergunta sobre etapa
   const mapa = [
     ['proc', /questionario/, 'o questionário'],
-    ['proc', /quanto tempo|quantos dias|demora|prazo|dias uteis/, 'o prazo'],
-    ['proc', /precisa estar|estar presente|presenca|presente/, 'a sua participação'],
+    ['proc', /quanto tempo (demora|leva|dura|para|pra|ate|fica|e)|quantos dias|\bdemora\b|prazo|dias uteis/, 'o prazo'],
+    ['proc', /precis[ao] estar|estar presente|tenho que ir|precis[ao] ir/, 'a sua participação'],
     ['proc', /pdf|orientac/, 'as orientações'],
     ['proc', /estudo do caso|estudo/, 'o estudo do caso'],
     ['proc', /procediment|como funciona|como e feito|passo a passo/, 'o procedimento'],
@@ -2483,7 +2557,7 @@ function detectarTopicoEtapa(text) {
 }
 function ehLixoEtapa(text) {
   const t = semAcento(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (ehSim(text) || /^(nao|n|nope)$/.test(t)) return false;
+  if (ehSim(text) || /^(nao|n|nope)$/.test(t) || pedeValores(text)) return false;
   if (!t) return !/^(👍|🙏|❤|🙌|😊|😀|🙂)/.test(text.trim()) && !/\p{L}/u.test(text);
   return /^\d+$/.test(t) || t.length <= 1; // "eu", "oi", "kk" são respostas válidas; não repetir a pergunta
 }
@@ -2527,6 +2601,7 @@ async function desvioFluxo(from, text, session) {
   if (tp) {
     if (tp.topico === 'valores') return session.viuValores ? false : 'valores';
     const ja = tp.topico === 'proc' ? session.vistoProc : session.vistoRecebe;
+    if (ja) return false;
     session.etapa = 'oferta_andamento';
     await explicarTopico(from, session, tp.topico, tp.rotulo, text);
     await upsertConversation(from, session.clientName, session.stage);
