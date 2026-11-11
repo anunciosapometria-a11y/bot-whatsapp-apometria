@@ -667,6 +667,14 @@ async function paraPaulo(from, session, motivo, textoUsuario) {
   session.history.push({ role: 'user', content: textoUsuario }, { role: 'assistant', content: PAULO_REDIR_MSG });
   await pausarEAvisar(from, session, motivo);
 }
+const CONFIANCA_1 = "Entendemos perfeitamente a sua preocupação. Essa é justamente a nossa intenção: um lugar seguro e confiável para que você possa buscar tratamento espiritual e energético. Como não nos conhecemos e tudo acontece pela internet, é normal surgirem essas dúvidas.";
+const CONFIANCA_2 = "Note também que somos verificados na conta do WhatsApp e do Instagram, e o número do Paulo também é verificado, processo em que a empresa solicita que se comprove a veracidade das atividades que oferecemos.";
+const CONFIANCA_3 = "Se preferir, você também pode chamar o Paulo diretamente e conversar com ele para ter mais segurança:";
+async function enviarConfianca(from, session, textoUsuario) {
+  for (const m of [CONFIANCA_1, CONFIANCA_2, GOOGLE_MSG, INSTAGRAM_MSG, CONFIANCA_3]) { await sleep(typingDelay(m)); await sendMessage(from, m); }
+  await sleep(1500); await sendContact(from);
+  session.history.push({ role: 'user', content: textoUsuario }, { role: 'assistant', content: [CONFIANCA_1, CONFIANCA_2, GOOGLE_MSG, INSTAGRAM_MSG, CONFIANCA_3].join('\n\n') });
+}
 async function enviarDuvidas(from, session) {
   session.etapa = 'oferta';
   await sleep(1200);
@@ -718,12 +726,21 @@ async function tratarMenu(from, text, session, ctxC) {
     session.history.push({ role: 'user', content: text }, { role: 'assistant', content: 'Pode digitar a sua dúvida aqui que respondemos.' });
     return true;
   }
-  if (/^(como funciona|preciso estar presente|e confiavel referencias|tempo para o resultado|formas de pagamento|pedir p outra pessoa|cura tratamento medico)$/.test(t)) {
+  if (/^(e confiavel referencias|e confiavel|e golpe|e real|e verdade|tem referencias|referencias|golpe|confiavel)$/.test(t)) {
+    session.etapa = 'oferta_andamento';
+    await enviarConfianca(from, session, text);
+    session.etapa = etapaAntes === 'agenda' ? 'agenda' : 'oferta';
+    await sleep(1500);
+    await sendBotoes(from, 'Gostaria de ver mais alguma informação?', [{ id: 'fq_valores', title: 'Ver agendamento' }, { id: 'fq_menu', title: 'Voltar ao menu' }]);
+    await upsertConversation(from, session.clientName, session.stage);
+    return true;
+  }
+  if (/^(como funciona|preciso estar presente|tempo para o resultado|formas de pagamento|pedir p outra pessoa|cura tratamento medico)$/.test(t)) {
     session.etapa = 'oferta_andamento';
     const resp = await processWithClaude(session, text);
     session.etapa = etapaAntes === 'agenda' ? 'agenda' : 'oferta';
     await sendClaudeResponse(from, resp, session);
-    if (!session.pausado) await sendBotoes(from, 'Gostaria de ver mais alguma informação?', [{ id: 'fq_valores', title: 'Ver agendamento' }, { id: 'fq_paulo', title: 'Falar com o Paulo' }, { id: 'fq_menu', title: 'Voltar ao menu' }]);
+    if (!session.pausado) await sendBotoes(from, 'Gostaria de ver mais alguma informação?', [{ id: 'fq_valores', title: 'Ver agendamento' }, { id: 'fq_menu', title: 'Voltar ao menu' }]);
     await upsertConversation(from, session.clientName, session.stage);
     return true;
   }
@@ -902,6 +919,7 @@ async function sendClaudeResponse(to, rawText, session) {
   const pausar = /\[\[PAUSAR\]\]/.test(rawText);
   const clean = rawText.replace(/\[\[PAUSAR\]\]/g, '');
   let parts = clean.split('|||').map(p => p.trim()).filter(Boolean).filter(p => !FIXOS_UMA_VEZ.has(normalizarNegrito(p)) && !/Para quem voc[eê] gostaria de solicitar a apometria/i.test(p)).slice(0, 6);
+  parts = parts.map(p => p.replace(/\[(?:cartão|cartao|foto|menu|lista)[^\]]*\]/gi, '').trim()).filter(Boolean);
   if (!parts.length && !pausar) parts = [FALLBACK_MSG];
   for (let i = 0; i < parts.length; i++) {
     if (/\[\[CONTATO:\w+\]\]/.test(parts[i])) {
