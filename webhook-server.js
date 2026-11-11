@@ -1869,7 +1869,7 @@ async function crmAtualizarFunil(phone, session) {
     const atual = rows[0].funil || 'novo';
     let novo;
     if ((RANK[atual] ?? -1) >= RANK.comprovante) novo = atual;
-    else if (session.pausado) novo = 'paulo';
+    // (o card não vai mais para o funil 'paulo' quando o bot pausa ou a equipe assume: continua a etapa normal)
     else {
       const der = funilDerivado(session, rows[0].viu_valores);
       const rAtual = (atual === 'paulo' || atual === 'sem_resposta' || atual === 'perdido') ? -1 : (RANK[atual] ?? 0);
