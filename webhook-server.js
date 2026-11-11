@@ -2162,6 +2162,19 @@ async function criarTemplatesPos() {
 }
 setInterval(() => { rodarPosPagamento(); }, 5 * 60 * 1000);
 setTimeout(() => { criarTemplatesPos(); }, 25000);
+// Zerar o CRM uma única vez (pedido do Guilherme em 11/11/2026: apagar testes e contar métricas desde o início)
+setTimeout(async () => {
+  try {
+    if (!pool || (await cfgGet('zerado_20261111', '0')) === '1') return;
+    await pool.query('DELETE FROM messages');
+    await pool.query('DELETE FROM eventos');
+    await pool.query('DELETE FROM conversations');
+    await pool.query("DELETE FROM crm_config WHERE key LIKE 'sess_%'");
+    sessions.clear();
+    await cfgSet('zerado_20261111', '1');
+    console.log('🗑️ CRM zerado: contatos, cards, conversas e avisos apagados (pedido de 11/11/2026).');
+  } catch (e) { console.error('❌ Zerar CRM:', e.message); }
+}, 8000);
 
 // Contexto do cliente que volta: quem já pagou é tratado como cliente (andamento/prazo), quem só conversou retoma de onde parou
 async function contextoCliente(phone, session) {
