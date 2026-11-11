@@ -79,6 +79,51 @@ async function upsertConversation(phone, clientName, stage) {
     console.error('❌ Erro ao salvar conversa no banco:', err.message);
   }
   await crmAtualizarFunil(phone, sessions.get(phone));
+  salvarSnapshot(phone);
+}
+
+// Guarda o estado da conversa no banco: se a sessão em memória sumir (reinício, 7 dias), o cliente continua de onde parou, sem nova introdução
+function salvarSnapshot(phone) {
+  const s = sessions.get(phone);
+  if (!pool || !s) return;
+  try {
+    const snap = {};
+    for (const [k, v] of Object.entries(s)) {
+      if (['lastActivity', 'pausado', 'pausadoEm', 'pausadoPor', 'askedAt', 'valoresEmAndamento', 'ultimoAudio', '_restaurado'].includes(k)) continue;
+      if (typeof v === 'function') continue;
+      snap[k] = v;
+    }
+    if (typeof snap.etapa === 'string') snap.etapa = snap.etapa.replace(/_andamento$/, '');
+    if (Array.isArray(snap.history)) snap.history = snap.history.slice(-MAX_HISTORY_MESSAGES);
+    pool.query('INSERT INTO crm_config (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value', ['sess_' + phone, JSON.stringify(snap)]).catch(() => {});
+  } catch (e) {}
+}
+
+async function restaurarSessao(phone, session) {
+  if (!pool || session._restaurado) return;
+  session._restaurado = true;
+  if (session.stage !== 'abertura' || (session.history && session.history.length)) return;
+  try {
+    const sn = await pool.query('SELECT value FROM crm_config WHERE key = $1', ['sess_' + phone]);
+    if (sn.rows[0]) {
+      const dados = JSON.parse(sn.rows[0].value);
+      if (dados.stage && dados.stage !== 'abertura') {
+        Object.assign(session, dados);
+        console.log(`♻️ Sessão de ${phone} restaurada (estágio ${session.stage}, etapa ${session.etapa || '-'}).`);
+        return;
+      }
+    }
+    const cv = await pool.query('SELECT stage, client_name FROM conversations WHERE phone = $1', [phone]);
+    if (cv.rows[0] && cv.rows[0].stage && cv.rows[0].stage !== 'abertura') {
+      const { rows } = await pool.query(`SELECT direction, content FROM messages WHERE phone = $1 AND content IS NOT NULL ORDER BY created_at DESC LIMIT 12`, [phone]);
+      session.history = rows.reverse().filter(r => r.content && !/^\[(documento|imagem|áudio)/.test(r.content)).map(r => ({ role: r.direction === 'in' ? 'user' : 'assistant', content: r.content }));
+      while (session.history.length && session.history[0].role !== 'user') session.history.shift();
+      session.stage = 'conversa';
+      session.pediuNome = true;
+      session.clientName = cv.rows[0].client_name || null;
+      console.log(`♻️ Cliente de volta ${phone}: segue a conversa sem nova introdução.`);
+    }
+  } catch (e) { console.error('❌ Restaurar sessão:', e.message); }
 }
 
 async function saveMessage(phone, direction, content, mediaBase64 = null, mediaMime = null) {
@@ -172,8 +217,11 @@ function buildSystemPrompt(clientName, etapa) {
 - NUNCA peça áudio, nunca ofereça receber áudio e nunca diga que a pessoa pode mandar áudio. Este canal não ouve áudios. Se a pessoa mencionar áudio, diga que este canal de atendimento não consegue ouvir áudios e peça, se possível, que escreva.
 - NÃO pergunte o motivo do atendimento, a queixa nem o objetivo da pessoa. Se ela contar por conta própria, reconheça em uma frase curta e siga o fluxo. Nunca faça perguntas fora das previstas no fluxo.
 - Responda UMA vez a tudo o que a pessoa enviou. Se a mensagem trouxer vários assuntos, leia o contexto inteiro e dê uma única resposta coerente, sem repetir informações já enviadas na conversa.
-- PAGAMENTO: quando a pessoa escolher a modalidade, envie na MESMA resposta, em mensagens separadas por "|||": 1) "Vou lhe enviar os dados bancários para o Pix e o link para pagamento no cartão, segue abaixo." 2) os dados do Pix no formato indicado, com o valor e o nome da opção 3) "Se preferir pagar no cartão, segue o link:" com o link da opção escolhida (lista em FATOS). Assim ela escolhe a forma que preferir. Só omita o link se a opção não tiver link (presencial).
-- MODALIDADES: quando precisar listar as modalidades, liste TODAS as da foto de valores: Individual R$ 289,00 (15 dias úteis), Emergencial R$ 339,00 (8 dias úteis), Pacote de 4 sessões R$ 800,00 (R$ 200,00 cada), Familiar R$ 600,00 (até 5 pessoas da mesma família) e Presencial R$ 720,00 (indisponível no momento por falta de agenda).
+- PAGAMENTO: quando a pessoa escolher a modalidade, envie na MESMA resposta, em mensagens separadas por "|||": 1) "Vou lhe enviar os dados bancários para o Pix e o link para pagamento no cartão, segue abaixo." 2) os dados do Pix no formato indicado, com o valor e o nome da opção 3) "Se preferir pagar no cartão, em 2x sem juros (nos pacotes, em até 4x sem juros), segue o link:" com o link da opção escolhida (lista em FATOS). Assim ela escolhe a forma que preferir. Só omita o link se a opção não tiver link (presencial).
+- CONTEXTO DA OPÇÃO: se a pessoa já falou, perguntou ou demonstrou interesse por uma opção ao longo da conversa (pacote, familiar, individual, emergencial, empresa, imóveis, animais), essa é a opção dela. Quando ela quiser agendar ou disser sim, NUNCA pergunte de novo qual opção prefere: siga direto com essa opção, enviando o Pix e o link do cartão. Só liste as modalidades se ela não tiver demonstrado nenhuma preferência. Reduza o atrito até o pagamento.
+- PARCELAMENTO: sempre que enviar o link do cartão, diga que o parcelamento é em 2x sem juros (nos pacotes de 4 sessões e familiar, em até 4x sem juros).
+- NÃO fale em prazo de 2 dias úteis para avaliar as informações nem em estudo do caso com prazo próprio. Os únicos prazos são 15 dias úteis (individual) e 08 dias úteis (emergencial), sempre sem a palavra "até".
+- MODALIDADES: quando precisar listar as modalidades, liste TODAS as da foto de valores: Individual R$ 289,00 (15 dias úteis), Emergencial R$ 339,00 (08 dias úteis), Pacote de 4 sessões R$ 800,00 (R$ 200,00 cada), Familiar R$ 600,00 (até 5 pessoas da mesma família) e Presencial R$ 720,00 (indisponível no momento por falta de agenda).
 - PACOTE E FAMILIAR: se a pessoa contratar o pacote de 4 sessões ou o familiar, depois do comprovante peça, na mensagem do nome e endereço, que informe também o nome completo de cada pessoa que será incluída no pacote, para a equipe adicionar cada uma no questionário. Aceite do jeito que vier.
 - Se a pessoa disser que não quer continuar, não quer mais o atendimento ou não tem interesse, não insista e não argumente: apenas "Ok, entendemos perfeitamente. Agradecemos o seu contato e ficamos à disposição sempre que precisar. 🙏".
 
@@ -206,7 +254,7 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
 - Complemento do primeiro atendimento: apometria para o lar, envio de Reiki à distância e orientações espirituais.
 - Valores e pagamento:
   - Sessão individual, à vista: R$ 289,00, prazo de 15 dias úteis. Pix, transferência, depósito ou 2x sem juros no cartão.
-  - Emergencial: R$ 339,00, realização em até 8 dias úteis. Pix, transferência, depósito ou 2x sem juros no cartão.
+  - Emergencial: R$ 339,00, realização em 08 dias úteis. Pix, transferência, depósito ou 2x sem juros no cartão.
   - Pacote de sessões: R$ 800,00 as 4 sessões (R$ 200,00 cada trabalho), para quem quer continuar o processo com trabalhos periódicos mensais de limpeza e cura ou dividir com outras pessoas. Cada sessão é um trabalho individual, com relatório próprio em áudios. Pix, transferência, depósito ou até 4x sem juros no cartão.
   - Familiar: R$ 600,00, máximo de 5 pessoas da mesma família, mais a apometria do lar. São apometrias individuais, uma para cada pessoa, com um relatório único para toda a família, apresentando as ligações interfamiliares, heranças e padrões que se repetem entre eles. Pix, transferência, depósito ou até 4x sem juros no cartão.
   - Trabalhos específicos, em outra foto: apometria para empresa (aumentar vendas e desbloquear oportunidades), R$ 400,00; apometria para imóveis (vendas e trâmites judiciais), R$ 300,00; apometria para animais de estimação, R$ 150,00. Quando a pessoa perguntar por qualquer um deles, envie [[FOTO:especiais]] sozinho em uma mensagem, depois "|||" e uma frase curta sobre o que ela perguntou. Pagamento nas mesmas condições (Pix, transferência, depósito ou 2x sem juros no cartão); para cartão, envie o link da opção (lista em FATOS).
@@ -232,13 +280,13 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
 - Sede e presencial: somos de São José do Rio Preto (SP). A apometria presencial existe, mas os novos atendimentos presenciais estão pausados por falta de disponibilidade na agenda. Nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Só fale de presencial se a pessoa perguntar.
 
 ## FLUXO
-O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Agradecemos o seu contato, [nome]", explicou quem somos, enviou o Instagram @apometria_brasil e o perfil do Google Maps com as avaliações, e perguntou "Para quem você gostaria de solicitar a apometria?" com três exemplos (para você mesmo, para outra pessoa, para empresas, imóveis ou animais) e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, detalhes do procedimento (questionário inicial, estudo do caso em 2 dias úteis, não precisa estar presente) e o PDF de orientações; Etapa 2, o que a pessoa recebe (itens tratados, relatório em áudios, complemento do lar e Reiki, equipe à disposição); Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
+O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Agradecemos o seu contato, [nome]", explicou quem somos, enviou o Instagram @apometria_brasil e o perfil do Google Maps com as avaliações, e perguntou "Para quem você gostaria de solicitar a apometria?" com três exemplos (para você mesmo, para outra pessoa, para empresas, imóveis ou animais) e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, detalhes do procedimento (questionário inicial, estudo do caso, não precisa estar presente) e o PDF de orientações; Etapa 2, o que a pessoa recebe (itens tratados, relatório em áudios, complemento do lar e Reiki, equipe à disposição); Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
 
 1) ENTRE AS ETAPAS. Se o bloco ETAPA ATUAL, no início, indicar uma pergunta pendente: se a pessoa contar o que quer trabalhar, acolha em uma ou duas frases, usando as palavras dela; se fizer outra pergunta, responda com os fatos em poucas frases; nos dois casos, termine repetindo a pergunta pendente de forma curta. Não envie o link do questionário agora: ele só vai depois do comprovante (passo 4), salvo se a pessoa pedir.
 
 2) DEPOIS DA ETAPA 3 (valores já enviados). A foto com valores e formatos já foi enviada. Se a pessoa tirar dúvidas, responda com os fatos; só volte a "Gostaria de realizar o seu agendamento?" se ainda não a fez nas últimas mensagens, sem repetir a pergunta a cada resposta. Se pedir os valores de novo, envie [[FOTO:valores]] sozinho em uma mensagem, depois "|||" e a pergunta de agendamento. Se perguntar de um valor específico (ex.: quanto é o emergencial), responda em uma frase com o valor e o prazo, sem insistir na pergunta de agendamento. Quando a pessoa disser que quer agendar, vá ao passo 3. Se perguntar sobre o PDF de dúvidas de pagamento e agendamento, diga que será enviado em breve e siga o fluxo.
 
-3) ESCOLHA E PAGAMENTO. Quando a pessoa quiser agendar, o pagamento do valor confirma o agendamento e libera a realização do trabalho. Se ela não disse qual modalidade quer (individual em 15 dias, emergencial em 8 dias, pacote familiar), pergunte em uma frase curta qual prefere, mostrando as opções. Com a escolha, envie os dados do Pix em uma mensagem, neste formato (sem emojis):
+3) ESCOLHA E PAGAMENTO. Quando a pessoa quiser agendar, o pagamento do valor confirma o agendamento e libera a realização do trabalho. Se ela não demonstrou nenhuma opção em toda a conversa, pergunte em uma frase curta qual prefere, mostrando as opções; se ela já falou de uma opção, use essa direto, sem perguntar de novo. Com a escolha, envie os dados do Pix em uma mensagem, neste formato (sem emojis):
 Chave Pix celular: 17988271998
 
 Informações adicionais
@@ -307,7 +355,7 @@ Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Imagem fo
 }
 
 // ─── MENSAGENS FIXAS ─────────────────────────────────────────────────────────
-const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil.*\n\n📌 *Neste canal você encontra*\n• Detalhes do procedimento\n• Disponibilidade para agendamento\n\n✍️ *Para iniciarmos, qual é o seu nome, por gentileza?*";
+const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil.*\n\n📌 *Neste canal você encontra*\n• Detalhes do procedimento\n• Disponibilidade para agendamento\n\n*Para iniciarmos, qual é o seu nome, por gentileza?*";
 const TITULO_MSG = "*Gostaria de apresentar as 3 etapas do procedimento do Instituto Apometria Brasil:*\n\n1️⃣ Detalhes do procedimento\n2️⃣ O que você recebe\n3️⃣ Opções de agendamento";
 const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa\n• Para empresas, imóveis ou animais";
 const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nSomos um instituto especializado na realização de trabalhos apométricos, cursos e terapias energéticas, coordenado pelo terapeuta *Paulo Rodrigues*.";
@@ -318,7 +366,7 @@ const CONTATO_PAULO_MSG = "Segue o contato do Paulo, para você já ter salvo:";
 const ETAPA1 = [
   "*Etapa 1: detalhes do procedimento*",
   "📝 *Questionário inicial*\nPrimeiramente você irá preencher um questionário com as perguntas necessárias para o seu trabalho, sobre os seus estados físicos, mentais, espirituais e emocionais e sobre o que deseja tratar, investigar e obter respostas da espiritualidade.",
-  "🔎 *Estudo do caso*\nDepois de colher as suas queixas, fazemos um estudo profundo com base nessas informações, para trabalhar da melhor maneira no seu caso. Solicitamos 2 dias úteis para concluir essa etapa.",
+  "🔎 *Estudo do caso*\nDepois de colher as suas queixas, fazemos um estudo profundo com base nessas informações, para trabalhar da melhor maneira no seu caso.",
   "📍 *Não precisa estar presente*\nNão há necessidade de você estar presente no dia do trabalho. Somos de São José do Rio Preto, SP, e grande parte dos nossos trabalhos é realizada à distância, para todo o Brasil e exterior."
 ];
 const PERGUNTA1 = "Podemos seguir com a etapa 1, detalhes do procedimento?";
@@ -335,11 +383,22 @@ const AGENDA_INTRO = "Ok, vou lhe enviar as opções de agendamento, segue abaix
 const AUDIO_MSG = "Este canal de atendimento não consegue ouvir áudios. Se possível, escreva a sua mensagem por aqui.";
 const DESPEDIDA_MSG = "Ok, entendemos perfeitamente. Agradecemos o seu contato e ficamos à disposição sempre que precisar. 🙏";
 const RETORNO_MSG = "Ok. Gostaria de alguma informação ou como podemos ajudar?";
-const MODALIDADES_MSG = "Ok, vou lhe enviar as modalidades disponíveis, segue abaixo.\n\n*Modalidades de atendimento*\n\n1️⃣ *Individual*: R$ 289,00, entrega em até 15 dias úteis\n2️⃣ *Emergencial*: R$ 339,00, vaga de prioridade em até 8 dias úteis\n3️⃣ *Pacote de 4 sessões*: R$ 800,00 (R$ 200,00 cada trabalho), em até 4x sem juros\n4️⃣ *Familiar*: R$ 600,00, máximo de 5 pessoas da mesma família, trabalhos individuais e relatório único\n5️⃣ *Presencial*: R$ 720,00, meio período. No momento está indisponível por falta de agenda\n\nQual dessas modalidades você prefere?";
+const MODALIDADES_MSG = "Ok, vou lhe enviar as modalidades disponíveis, segue abaixo.\n\n*Modalidades de atendimento*\n\n1️⃣ *Individual*: R$ 289,00, entrega em 15 dias úteis\n2️⃣ *Emergencial*: R$ 339,00, vaga de prioridade em 08 dias úteis\n3️⃣ *Pacote de 4 sessões*: R$ 800,00 (R$ 200,00 cada trabalho), em até 4x sem juros\n4️⃣ *Familiar*: R$ 600,00, máximo de 5 pessoas da mesma família, trabalhos individuais e relatório único\n5️⃣ *Presencial*: R$ 720,00, meio período. No momento está indisponível por falta de agenda\n\nQual dessas modalidades você prefere?";
 const PERGUNTA3 = "Podemos seguir com a etapa 3, opções de agendamento?";
 const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*\nVou lhe enviar as opções de agendamento, segue abaixo.";
 const ETAPA3_NOTA = "*Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante.";
-const APOS_PAGAMENTO_MSG = "*O que acontece após o pagamento*\n• Você irá receber algumas instruções e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
+const APOS_PAGAMENTO_MSG = "*O que acontece após o pagamento*\n• Você receberá algumas instruções referentes à opção escolhida e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
+function detectaOpcao(t) {
+  const x = semAcento(t);
+  if (/\b(familiar|familia|familias)\b/.test(x) && !/dois trabalhos/.test(x)) return 'Pacote familiar';
+  if (/\b(pacote|pacotes|4 sessoes|quatro sessoes|4x sessoes)\b/.test(x)) return 'Pacote de 4 sessões';
+  if (/\b(emergencial|emergencia|urgente|urgencia)\b/.test(x)) return 'Emergencial';
+  if (/\b(empresa|empresas|empresarial)\b/.test(x)) return 'Apometria para empresa';
+  if (/\b(imovel|imoveis|terreno|terrenos)\b/.test(x)) return 'Apometria para imóveis';
+  if (/\b(animal|animais|estimacao|cachorro|cachorra)\b/.test(x)) return 'Apometria para animais';
+  if (/\b(individual|avulsa|avulso|uma sessao)\b/.test(x)) return 'Individual';
+  return null;
+}
 const PERGUNTA_AGENDA = "Gostaria de realizar o seu agendamento?";
 
 function semAcento(t) { return t.normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase().trim(); }
@@ -510,8 +569,8 @@ const FOTO_TEXTO = {
   especiais: 'Trabalhos específicos:\n\nApometria para empresa (aumentar vendas e desbloquear oportunidades): R$ 400,00\nApometria para imóveis (vendas e trâmites judiciais): R$ 300,00\nApometria para animais de estimação: R$ 150,00',
   valores: `Valores e formatos:
 
-Apometria à distância, individual, entrega em até 15 dias úteis: R$ 289,00
-Emergencial, vaga de prioridade em até 8 dias úteis: R$ 339,00
+Apometria à distância, individual, entrega em 15 dias úteis: R$ 289,00
+Emergencial, vaga de prioridade em 08 dias úteis: R$ 339,00
 Pacote de 4 sessões: R$ 800,00 (R$ 200,00 cada trabalho), até 4x no cartão
 Familiar, máximo de 5 pessoas da mesma família, trabalhos individuais e relatório único: R$ 600,00
 Presencial, meio período (sessão + orientações, 6 horas dedicadas ao seu caso): R$ 720,00
@@ -554,6 +613,15 @@ async function enviarPdf(from, session) {
   const pdfOk = fs.existsSync(path.join(MEDIA_DIR, 'Orientacoes-Apometria-Brasil.pdf'));
   await sleep(typingDelay(PDF_MSG)); await sendMessage(from, PDF_MSG);
   if (pdfOk) await sendDocument(from, PUBLIC_BASE + '/media/Orientacoes-Apometria-Brasil.pdf', 'Orientacoes-Apometria-Brasil.pdf');
+  return true;
+}
+const RE_ESPECIAIS = /\b(empresa|empresas|empresarial|imovel|imoveis|terreno|terrenos|animal|animais|estimacao|cachorro|cachorra)\b/;
+// Pessoa citou empresa, imóvel ou animal: envia o card dos trabalhos específicos (uma vez por conversa)
+async function enviarEspeciais(to, session, text) {
+  if (session.fotoEspeciaisEnviada || !RE_ESPECIAIS.test(semAcento(text))) return false;
+  session.fotoEspeciaisEnviada = true;
+  await sleep(2000); await sendMessage(to, 'Vou lhe enviar os valores dos trabalhos específicos, segue abaixo.');
+  await sleep(1500); await enviarFoto(to, 'especiais');
   return true;
 }
 async function enviarFoto(to, nome) {
@@ -622,7 +690,14 @@ async function sendClaudeResponse(to, rawText, session) {
       continue;
     }
     const fm = parts[i].match(/\[\[FOTO:(\w+)\]\]/);
+    if (fm && session && ((fm[1] === 'pagamento' && session.fotoPagEnviada) || (fm[1] === 'especiais' && session.fotoEspeciaisEnviada))) {
+      const restoD = parts[i].replace(fm[0], '').trim();
+      if (restoD) { await sleep(typingDelay(restoD)); await sendMessage(to, restoD); }
+      continue;
+    }
     if (fm) {
+      if (session && fm[1] === 'pagamento') session.fotoPagEnviada = true;
+      if (session && fm[1] === 'especiais') session.fotoEspeciaisEnviada = true;
       await sleep(3500);
       await enviarFoto(to, fm[1]);
       const resto = parts[i].replace(fm[0], '').trim();
@@ -630,6 +705,12 @@ async function sendClaudeResponse(to, rawText, session) {
       continue;
     }
     if (i > 0 && parts[i].length > 500) await sleep(5000);
+    // Ao enviar o Pix, vai antes o card com as formas de pagamento (mostra o parcelamento em 2x sem juros)
+    if (/17988271998/.test(parts[i]) && session && !session.fotoPagEnviada) {
+      session.fotoPagEnviada = true;
+      await sleep(2000);
+      await enviarFoto(to, 'pagamento');
+    }
     await sleep(typingDelay(parts[i]));
     await sendMessage(to, parts[i]);
   }
@@ -731,7 +812,9 @@ function jaProcessada(id) {
 }
 async function handleMessageInner(from, messageText, mediaInfo = null, recebidoEm = Date.now()) {
   const session = getSession(from);
+  await restaurarSessao(from, session);
   let text = messageText.trim();
+  if (!mediaInfo) { const op = detectaOpcao(text); if (op) session.opcaoCtx = op; }
 
   console.log(`📩 Mensagem de ${from}: "${text}" | Estágio: ${session.stage}`);
 
@@ -824,7 +907,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
       await sendMessage(from, intro);
       await sleep(2500);
       await enviarFoto(from, 'valores');
-      for (const m of [ETAPA3_NOTA, APOS_PAGAMENTO_MSG, CONTATO_PAULO_MSG]) { await sleep(typingDelay(m)); await sendMessage(from, m); }
+      for (const m of [APOS_PAGAMENTO_MSG, ETAPA3_NOTA, CONTATO_PAULO_MSG]) { await sleep(typingDelay(m)); await sendMessage(from, m); }
       await sleep(1200); await sendContact(from);
       const itens = [];
       if (!session.vistoProc) itens.push('🔎 *Detalhes do procedimento*');
@@ -840,7 +923,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
       await sendMessage(from, fim);
       session.history.push(
         { role: 'user', content: text },
-        { role: 'assistant', content: [intro, '[foto com os valores e formatos enviada]', ETAPA3_NOTA, APOS_PAGAMENTO_MSG, CONTATO_PAULO_MSG, '[cartão de contato do Paulo enviado]', fim].join('\n\n') }
+        { role: 'assistant', content: [intro, '[foto com os valores e formatos enviada]', APOS_PAGAMENTO_MSG, ETAPA3_NOTA, CONTATO_PAULO_MSG, '[cartão de contato do Paulo enviado]', fim].join('\n\n') }
       );
     } finally { session.valoresEmAndamento = false; }
     await upsertConversation(from, session.clientName, session.stage);
@@ -920,6 +1003,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
 
   if (session.etapa === 'para_quem' || session.etapa === 'queixa') {
     session.etapa = 'para_quem_andamento'; // trava antes dos awaits (mensagens em rajada)
+    await enviarEspeciais(from, session, text);
     if (text.split(/\s+/).filter(Boolean).length <= 6) {
       const ack = 'Ok, entendo perfeitamente.';
       await sleep(2000); await sendMessage(from, ack);
@@ -971,10 +1055,10 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
       await sendMessage(from, ETAPA3_TITULO);
       await sleep(2000);
       await enviarFoto(from, 'valores');
-      await sleep(typingDelay(ETAPA3_NOTA));
-      await sendMessage(from, ETAPA3_NOTA);
       await sleep(typingDelay(APOS_PAGAMENTO_MSG));
       await sendMessage(from, APOS_PAGAMENTO_MSG);
+      await sleep(typingDelay(ETAPA3_NOTA));
+      await sendMessage(from, ETAPA3_NOTA);
       await sleep(typingDelay(CONTATO_PAULO_MSG));
       await sendMessage(from, CONTATO_PAULO_MSG);
       await sleep(1200);
@@ -984,7 +1068,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
       session.etapa = 'agenda';
       session.history.push(
         { role: 'user', content: text },
-        { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', ETAPA3_NOTA, APOS_PAGAMENTO_MSG, CONTATO_PAULO_MSG, '[cartão de contato do Paulo enviado]', PERGUNTA_AGENDA].join('\n\n') }
+        { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', APOS_PAGAMENTO_MSG, ETAPA3_NOTA, CONTATO_PAULO_MSG, '[cartão de contato do Paulo enviado]', PERGUNTA_AGENDA].join('\n\n') }
       );
       await upsertConversation(from, session.clientName, session.stage);
       return;
@@ -992,16 +1076,23 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   }
 
   if (session.etapa === 'agenda' && ehSim(text) && !/individual|emergencial|pacote|familiar|presencial|avulsa|sessoes|sessao/.test(semAcento(text))) {
+    if (session.opcaoCtx) {
+      // já falou de uma opção: segue direto para o pagamento dela, sem perguntar de novo
+      session.etapa = 'modalidade';
+      text = 'Sim, quero agendar. A opção escolhida é: ' + session.opcaoCtx + '.';
+    } else {
     session.etapa = 'modalidade';
     await sleep(2000); await sendMessage(from, MODALIDADES_MSG);
     session.history.push({ role: 'user', content: text }, { role: 'assistant', content: MODALIDADES_MSG });
     await upsertConversation(from, session.clientName, session.stage);
     return;
+    }
   }
 
   if (session.stage === 'aguardando_relato') session.stage = 'conversa';
 
   const etapaAntes = session.etapa;
+  if (!mediaInfo && await enviarEspeciais(from, session, text)) text += '\n[Sistema: o card com os valores dos trabalhos específicos já foi enviado agora; não envie [[FOTO:especiais]] de novo, apenas responda de forma curta.]';
   const response = await processWithClaude(session, text);
   if (etapaAntes === 'modalidade' && session.etapa === 'modalidade') session.etapa = null;
   await sendClaudeResponse(from, response, session);
