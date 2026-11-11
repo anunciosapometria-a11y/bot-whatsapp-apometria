@@ -229,11 +229,11 @@ function buildSystemPrompt(clientName, etapa) {
   return `Você atende pelo WhatsApp em nome da equipe do Instituto Terapias Brasil, conduzido pelo terapeuta Paulo Rodrigues. Seu objetivo é acolher a pessoa, explicar com clareza e levá-la, sem pressão, até a decisão e o pagamento da sessão de apometria. Vendemos somente apometria. Se perguntarem por outra terapia, diga que no momento o atendimento é de apometria.
 
 ## REGRAS PRIORITÁRIAS (valem acima de qualquer outra instrução abaixo)
-- TOM SÉRIO E DIRETO. Nunca use "Que bom", "Prazer", "Fico feliz", "Maravilha", "Show", "Adorei", exclamações nem frases animadas. Quando precisar confirmar, use: "Ok, entendo perfeitamente.", "Ok, perfeito.", "Ok, combinado.". No máximo um emoji, e só o 🙏 ao encerrar.
+- TOM SÉRIO E DIRETO. Nunca use "Que bom", "Prazer", "Fico feliz", "Maravilha", "Show", "Adorei", exclamações nem frases animadas. Não abra as respostas com confirmações como Ok, Perfeito, Entendo ou Combinado: vá direto ao conteúdo. Use uma confirmação curta só quando for realmente necessária (por exemplo, ao aceitar um pedido) e nunca em duas respostas seguidas. No máximo um emoji, e só o 🙏 ao encerrar.
 - ANUNCIE ANTES DE ENVIAR. Antes de cada envio diga em uma frase curta o que vai enviar: "Vou lhe enviar os dados bancários, segue abaixo.", "Vou lhe enviar o link, segue abaixo.", "Vou lhe enviar as opções de agendamento, segue abaixo.", "Vou lhe enviar o informativo, segue abaixo." (mensagem separada por "|||" antes do conteúdo).
 - NUNCA peça áudio, nunca ofereça receber áudio e nunca diga que a pessoa pode mandar áudio. Este canal não ouve áudios. Se a pessoa mencionar áudio, diga que este canal de atendimento não consegue ouvir áudios e peça, se possível, que escreva.
 - NÃO pergunte o motivo do atendimento, a queixa nem o objetivo da pessoa. Se ela contar por conta própria, reconheça em uma frase curta e siga o fluxo. Nunca faça perguntas fora das previstas no fluxo.
-- Responda UMA vez a tudo o que a pessoa enviou. Se a mensagem trouxer vários assuntos, leia o contexto inteiro e dê uma única resposta coerente, sem repetir informações já enviadas na conversa.
+- UM ASSUNTO POR VEZ. Se a pessoa mandar várias mensagens ou várias dúvidas de uma vez, responda SOMENTE a primeira coisa perguntada, em poucas frases, sem tocar nas outras. Depois avalie: se ainda houver dúvida pendente, termine com uma única pergunta curta sobre a próxima (por exemplo: Quer que eu explique também sobre isso?). Nunca responda tudo de uma vez e nunca repita informações já enviadas na conversa.
 - PAGAMENTO: quando a pessoa escolher a modalidade, envie na MESMA resposta, em mensagens separadas por "|||": 1) "Vou lhe enviar os dados bancários para o Pix e o link para pagamento no cartão, segue abaixo." 2) os dados do Pix no formato indicado, com o valor e o nome da opção 3) "Se preferir pagar no cartão, em 2x sem juros (nos pacotes, em até 4x sem juros), segue o link:" com o link da opção escolhida (lista em FATOS). Assim ela escolhe a forma que preferir. Só omita o link se a opção não tiver link (presencial).
 - CONTEXTO DA OPÇÃO: se a pessoa já falou, perguntou ou demonstrou interesse por uma opção ao longo da conversa (pacote, familiar, individual, emergencial, empresa, imóveis, animais), essa é a opção dela. Quando ela quiser agendar ou disser sim, NUNCA pergunte de novo qual opção prefere: siga direto com essa opção, enviando o Pix e o link do cartão. Só liste as modalidades se ela não tiver demonstrado nenhuma preferência. Reduza o atrito até o pagamento.
 - PARCELAMENTO: sempre que enviar o link do cartão, diga que o parcelamento é em 2x sem juros (nos pacotes de 4 sessões e familiar, em até 4x sem juros).
@@ -376,7 +376,7 @@ const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apome
 const TITULO_MSG = "*Gostaria de apresentar as 3 etapas do procedimento do Instituto Apometria Brasil:*\n\n1️⃣ Detalhes do procedimento\n2️⃣ O que você recebe\n3️⃣ Opções de agendamento";
 // Pessoa disse que é para outra pessoa: comentário breve antes de oferecer as etapas
 const RE_OUTRA = /\b(outra pessoa|outra|minha (mae|filha|filho|esposa|irma|prima|tia|amiga|sogra|avo|namorada)|meu (marido|filho|pai|irmao|amigo|namorado|esposo|primo|tio|avo)|para (ela|ele)|pra (ela|ele))\b/;
-const OUTRA_MSG = "Ok, entendo perfeitamente. Você pode solicitar a apometria para outra pessoa, mesmo sem a permissão ou a consciência dela. As informações do questionário inicial você responderá por essa pessoa.";
+const OUTRA_MSG = "Você pode solicitar a apometria para outra pessoa, mesmo sem a permissão ou a consciência dela. As informações do questionário inicial você responderá por essa pessoa.";
 const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa";
 const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nSomos um instituto especializado na realização de trabalhos apométricos, cursos e terapias energéticas, coordenado pelo terapeuta *Paulo Rodrigues*.";
 const INSTAGRAM_MSG = "📲 *Conheça mais do nosso trabalho*\nAcompanhe o nosso Instagram: *@apometria_brasil*\nhttps://www.instagram.com/apometria_brasil/";
@@ -399,11 +399,11 @@ const ETAPA2 = [
   "🤝 *Equipe à disposição*\nDepois do tratamento, a equipe fica disponível para acolhimento pessoal e para as dúvidas que surgirem, de forma gratuita."
 ];
 const PDF_MSG = "📎 *Orientações gerais*\nLogo abaixo segue um PDF com orientações, instruções importantes, dúvidas frequentes e o que pode ser solicitado no trabalho.";
-const AGENDA_INTRO = "Ok, vou lhe enviar as opções de agendamento, segue abaixo.";
+const AGENDA_INTRO = "Vou lhe enviar as opções de agendamento, segue abaixo.";
 const AUDIO_MSG = "Este canal de atendimento não consegue ouvir áudios. Se possível, escreva a sua mensagem por aqui.";
 const DESPEDIDA_MSG = "Ok, entendemos perfeitamente. Agradecemos o seu contato e ficamos à disposição sempre que precisar. 🙏";
-const RETORNO_MSG = "Ok. Gostaria de alguma informação ou como podemos ajudar?";
-const MODALIDADES_MSG = "Ok, vou lhe enviar as modalidades disponíveis, segue abaixo.\n\n*Modalidades de atendimento*\n\n1️⃣ *Individual*: R$ 289,00, entrega em 15 dias úteis\n2️⃣ *Emergencial*: R$ 339,00, vaga de prioridade em 08 dias úteis\n3️⃣ *Pacote de 4 sessões*: R$ 800,00 (R$ 200,00 cada trabalho), em até 4x sem juros\n4️⃣ *Familiar*: R$ 600,00, máximo de 5 pessoas da mesma família, trabalhos individuais e relatório único\n5️⃣ *Presencial*: R$ 720,00, meio período. No momento está indisponível por falta de agenda\n\nQual dessas modalidades você prefere?";
+const RETORNO_MSG = "Gostaria de alguma informação ou como podemos ajudar?";
+const MODALIDADES_MSG = "Vou lhe enviar as modalidades disponíveis, segue abaixo.\n\n*Modalidades de atendimento*\n\n1️⃣ *Individual*: R$ 289,00, entrega em 15 dias úteis\n2️⃣ *Emergencial*: R$ 339,00, vaga de prioridade em 08 dias úteis\n3️⃣ *Pacote de 4 sessões*: R$ 800,00 (R$ 200,00 cada trabalho), em até 4x sem juros\n4️⃣ *Familiar*: R$ 600,00, máximo de 5 pessoas da mesma família, trabalhos individuais e relatório único\n5️⃣ *Presencial*: R$ 720,00, meio período. No momento está indisponível por falta de agenda\n\nQual dessas modalidades você prefere?";
 const PERGUNTA3 = "Podemos seguir com a etapa 3, opções de agendamento?";
 const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*\nVou lhe enviar as opções de agendamento, segue abaixo.";
 const ETAPA3_NOTA = "*Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante aqui em nossa conversa.";
@@ -948,7 +948,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     session.etapa = 'mais_detalhes';
     try {
       await sleep(2500);
-      const intro = 'Ok, vou lhe enviar os valores e as opções de atendimento, segue abaixo.';
+      const intro = 'Vou lhe enviar os valores e as opções de atendimento, segue abaixo.';
       await sendMessage(from, intro);
       await sleep(2500);
       await enviarFoto(from, 'valores');
@@ -1050,9 +1050,9 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     session.etapa = 'para_quem_andamento'; // trava antes dos awaits (mensagens em rajada)
     await enviarEspeciais(from, session, text);
     if (text.split(/\s+/).filter(Boolean).length <= 6) {
-      const ack = RE_OUTRA.test(semAcento(text)) ? OUTRA_MSG : 'Ok, entendo perfeitamente.';
-      await sleep(2000); await sendMessage(from, ack);
-      session.history.push({ role: 'user', content: text }, { role: 'assistant', content: ack });
+      const ack = RE_OUTRA.test(semAcento(text)) ? OUTRA_MSG : '';
+      if (ack) { await sleep(2000); await sendMessage(from, ack); }
+      session.history.push({ role: 'user', content: text }, { role: 'assistant', content: ack || '[segue o fluxo]' });
     } else {
       const respQuem = await processWithClaude(session, text);
       await sendClaudeResponse(from, respQuem, session);
@@ -2494,7 +2494,7 @@ function textoOferta(session) {
 }
 async function explicarTopico(from, session, topico, rotulo, textoUsuario) {
   const enviados = [];
-  const intro = 'Ok, vou lhe explicar com mais detalhes sobre ' + rotulo + '.';
+  const intro = 'Vou lhe explicar com mais detalhes sobre ' + rotulo + '.';
   await sleep(1500); await sendMessage(from, intro); enviados.push(intro);
   const partes = (topico === 'proc' ? ETAPA1 : ETAPA2).slice(1); // sem o título da etapa
   for (const parte of partes) { await sleep(typingDelay(parte)); await sendMessage(from, parte); enviados.push(parte); }
