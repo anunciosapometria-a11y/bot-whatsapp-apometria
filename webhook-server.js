@@ -825,6 +825,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   } else {
     await saveMessage(from, 'in', text);
   }
+  notificarPush();
   await upsertConversation(from, session.clientName, session.stage);
   await crmEntrada(from, mediaInfo, session);
 
@@ -1253,6 +1254,325 @@ app.post('/painel/api/conversas/:phone/pausar', async (req, res) => {
   await upsertConversation(req.params.phone, session.clientName, session.stage);
   res.json({ ok: true, pausado });
 });
+
+// ─── APP DO CELULAR (PWA instalável, notificações push) ──────────────────────
+// Abrir no Android: https://bot-apometria-production.up.railway.app/painel/app → "Instalar app"
+const nodeCrypto = require('crypto');
+const APP_ICON_MASK = 'eNrtlrFOHDEQhm1ZOjcntqVAWR6BkiJieZR7BEoKxC4VZR6BV1mUIiWvsBEvYDpLsXYyM947POMlSGkiReeTDvHpNDP+Z/zbxhzXcR3Xf7w6mNawB5hXfz6ZZqyxg8HYVPM20NdQ8X4w98ZVmTGExUi3VfiABY3mRHMspcH6vU7QYVLkVleaiGNJNyptJB3w67RKm/lWiTMt3KvdDgt3gy4HOSZXBd2TEsTNpMtETvrf6DJN7sulLnPhZ4JPBy6U8yNzyrJRalJeyuL0trJuxg5qW6yz2tgVB8tzNartIme0K/hdHjjm5YbjfrJwXSgZjMvjWXTMBv5zqznLgzvlOFslj/FuXOVLnSdKtv2+Nkq2RZ9yIpohn69cruZZf2OVzBYAjBS6Xc4jC6F5hzzUnMLkAzyKdjniUHPPfBD8indLa6x4y5yUuD7wr4LvRHszDxXv/sij4OlTniref8ovVvgsePwLDrAXWsZ/5+drfFB1chvh1wonQd+oMUI3x/znCqdGTjWfiY/9pLjPvKu5rzkea594Psntd+Wc+OT2/LrkTWTeBDVXTSBufCz5l3eeSo5z3k4fcUtdaZI6F8zBtLHkDcVn3gXBBwzMHPUpzi/eNm6m+Bb1lNzCA3KyrI30DewJpGYWvkHG0wec5jZW/tPFpS0Ft/hvm3qwoIw+0PntYpOk7xF38BT6oC4Mckh4eeVjWvgq/6Z//QHnyofpYHdvL1d3yrephjaenILyefLMJm0v6U1Q8o0F7LvdwbO6IPH0PsDj1sLGyVcCzSyctdDKe5MsoIPLfu7EvUm9Sg1E+sjHCS4Hr/hJFR/7b/Ao3zpshpN9osNU8WRg7lc4n8dsoZp//4A3imdzhtSBjL/w0Cue3YFGTr3Vsim5xeGEnhjGLw4q9MdK/OLExY3Ekf3i6MUNxr90qvxc6OHJIROHw7dMPHKacfVpauPxeX5cx/Xv1m8oXXyc';
+let _iconPng = null;
+function appIconPng() {
+  if (_iconPng) return _iconPng;
+  const zlib = require('zlib'), N = 192, S = 512;
+  const bits = zlib.inflateSync(Buffer.from(APP_ICON_MASK, 'base64'));
+  const m = (x, y) => (x < 0 || y < 0 || x >= N || y >= N) ? 0 : (bits[(y * N + x) >> 3] >> (7 - ((y * N + x) & 7))) & 1;
+  const raw = Buffer.alloc(S * (S * 3 + 1));
+  for (let y = 0; y < S; y++) {
+    const sy = (y + 0.5) * N / S - 0.5, y0 = Math.floor(sy), fy = sy - y0;
+    raw[y * (S * 3 + 1)] = 0;
+    for (let x = 0; x < S; x++) {
+      const sx = (x + 0.5) * N / S - 0.5, x0 = Math.floor(sx), fx = sx - x0;
+      let a = m(x0, y0) * (1 - fx) * (1 - fy) + m(x0 + 1, y0) * fx * (1 - fy) + m(x0, y0 + 1) * (1 - fx) * fy + m(x0 + 1, y0 + 1) * fx * fy;
+      a = Math.max(0, Math.min(1, (a - 0.5) * 1.6 + 0.5));
+      const o = y * (S * 3 + 1) + 1 + x * 3;
+      raw[o] = Math.round(18 + (245 - 18) * a); raw[o + 1] = Math.round(88 + (241 - 88) * a); raw[o + 2] = Math.round(92 + (232 - 92) * a);
+    }
+  }
+  const tab = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; tab[n] = c >>> 0; }
+  const crc = (b) => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = tab[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  const chunk = (type, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type), data]); const cr = Buffer.alloc(4); cr.writeUInt32BE(crc(td)); return Buffer.concat([len, td, cr]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(S, 0); ihdr.writeUInt32BE(S, 4); ihdr[8] = 8; ihdr[9] = 2;
+  _iconPng = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+  return _iconPng;
+}
+const APP_SW = String.raw`self.addEventListener('install',function(){self.skipWaiting()});
+self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim())});
+self.addEventListener('fetch',function(){});
+self.addEventListener('push',function(e){
+  e.waitUntil((async function(){
+    var d={titulo:'Apometria Brasil',corpo:'Nova mensagem no WhatsApp',phone:''};
+    try{var r=await fetch('/painel/api/app/ultima',{credentials:'include'});if(r.ok)d=await r.json()}catch(x){}
+    var cs=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    var aberto=cs.some(function(c){return c.visibilityState==='visible'});
+    if(aberto)return;
+    await self.registration.showNotification(d.titulo,{body:d.corpo,icon:'/painel/app-icon.png',badge:'/painel/app-icon.png',tag:'msg-'+(d.phone||'x'),renotify:true,vibrate:[120,60,120],data:{phone:d.phone}});
+  })());
+});
+self.addEventListener('notificationclick',function(e){
+  e.notification.close();
+  var p=(e.notification.data&&e.notification.data.phone)||'';
+  e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(cs){
+    for(var i=0;i<cs.length;i++){if('focus' in cs[i]){cs[i].postMessage({abrir:p});return cs[i].focus()}}
+    return self.clients.openWindow('/painel/app'+(p?'#'+p:''));
+  }));
+});
+`;
+const APP_HTML = String.raw`<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#12585C"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/painel/app.webmanifest" crossorigin="use-credentials"><link rel="icon" href="/painel/app-icon.png"><link rel="apple-touch-icon" href="/painel/app-icon.png">
+<title>Apometria Brasil — Conversas</title>
+<style>
+:root{--teal:#12585C;--deep:#08262A;--mint:#B0D6D0;--cream:#F5F1E8;--ink:#14302f;--mut:#5d7170;--verde:#1b8a4b;--ambar:#b86a00;--verm:#c43b2f;--linha:#e2ddd0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--cream);color:var(--ink);overscroll-behavior:none}
+.tela{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--cream)}
+.hide{display:none!important}
+button{font:inherit;cursor:pointer}
+.topo{background:var(--teal);color:#fff;padding:calc(8px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));display:flex;align-items:center;gap:10px;min-height:58px}
+.topo img{width:34px;height:34px}
+.topo h1{font-size:19px;margin:0;font-weight:700;flex:1;line-height:1.1}
+.topo small{display:block;font-weight:400;font-size:12px;opacity:.85}
+.ib{background:rgba(255,255,255,.14);border:0;color:#fff;width:42px;height:42px;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center}
+.ib:active{background:rgba(255,255,255,.28)}
+.abas{display:flex;gap:8px;padding:10px 12px 6px;background:var(--cream);overflow-x:auto}
+.aba{flex:none;border:2px solid var(--teal);background:#fff;color:var(--teal);border-radius:20px;padding:8px 14px;font-weight:700;font-size:14px;min-height:40px}
+.aba.on{background:var(--teal);color:#fff}
+.aba b{margin-left:6px;background:var(--verm);color:#fff;border-radius:10px;padding:1px 7px;font-size:12px}
+.busca{padding:4px 12px 10px;background:var(--cream)}
+.busca input{width:100%;border:2px solid var(--linha);background:#fff;border-radius:14px;padding:11px 14px;font-size:16px;outline:none;color:var(--ink)}
+.busca input:focus{border-color:var(--teal)}
+#lista{flex:1;overflow-y:auto;background:#fff;-webkit-overflow-scrolling:touch}
+.item{display:flex;gap:12px;padding:12px max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left));border-bottom:1px solid #eee9dd;align-items:center;border-left:6px solid transparent;min-height:72px}
+.item:active{background:#eef4f2}
+.item.v{border-left-color:var(--verde)}.item.a{border-left-color:var(--ambar)}
+.item.nl{background:#f3faf7}
+.av{width:48px;height:48px;border-radius:50%;background:var(--mint);color:var(--deep);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;flex:none}
+.meio{flex:1;min-width:0}
+.l1,.l2{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.nome{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hora{font-size:12px;color:var(--mut);flex:none}
+.nl .hora{color:var(--verde);font-weight:700}
+.prev{font-size:14.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;margin-top:3px}
+.nl .prev{color:var(--ink);font-weight:600}
+.chip{font-size:11px;font-weight:800;border-radius:9px;padding:3px 8px;flex:none;letter-spacing:.2px}
+.chip.v{background:#d9f1e3;color:#116236}.chip.a{background:#ffe5bd;color:#7a4500}
+.bol{background:var(--verm);color:#fff;border-radius:11px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;padding:0 6px;flex:none}
+.vazio{padding:40px 24px;text-align:center;color:var(--mut);font-size:16px;line-height:1.5}
+.cab{background:var(--teal);color:#fff;padding:calc(6px + env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) 6px max(8px,env(safe-area-inset-left));display:flex;align-items:center;gap:8px;min-height:62px}
+.cab .av{width:42px;height:42px;font-size:17px}
+.cab .t{flex:1;min-width:0}.cab .t b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cab .t span{font-size:12.5px;opacity:.9}
+.modo{display:flex;align-items:center;gap:10px;padding:9px max(12px,env(safe-area-inset-left));font-size:14px;font-weight:600}
+.modo.v{background:#d9f1e3;color:#0f5a31}.modo.a{background:#ffe5bd;color:#6b3d00}
+.modo span{flex:1;line-height:1.3}
+.modo button{border:0;border-radius:18px;padding:9px 16px;font-weight:800;font-size:14px;min-height:40px;color:#fff}
+.modo.v button{background:var(--ambar)}.modo.a button{background:var(--verde)}
+#msgs{flex:1;overflow-y:auto;padding:12px max(12px,env(safe-area-inset-left)) 12px;display:flex;flex-direction:column;gap:6px;background:#ebe6d9;-webkit-overflow-scrolling:touch}
+.dia{align-self:center;background:#fff;color:var(--mut);font-size:12px;font-weight:700;border-radius:10px;padding:4px 12px;margin:8px 0}
+.b{max-width:82%;padding:9px 12px 6px;border-radius:14px;font-size:16px;line-height:1.38;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.b.in{align-self:flex-start;background:#fff;border-top-left-radius:4px}
+.b.out{align-self:flex-end;background:#c4e4dd;border-top-right-radius:4px}
+.b .h{display:block;text-align:right;font-size:11px;color:var(--mut);margin-top:3px}
+.b img{display:block;max-width:100%;border-radius:8px;margin-bottom:4px}
+.b audio{max-width:100%;margin-bottom:4px}
+.anx{display:inline-block;background:rgba(18,88,92,.12);color:var(--teal);font-weight:700;border-radius:8px;padding:6px 10px;font-size:14px}
+.comp{display:flex;gap:8px;padding:8px max(10px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));background:var(--cream);border-top:1px solid var(--linha);align-items:flex-end}
+.comp textarea{flex:1;border:2px solid var(--linha);border-radius:22px;padding:11px 16px;font:inherit;font-size:16px;resize:none;max-height:120px;outline:none;background:#fff;color:var(--ink)}
+.comp textarea:focus{border-color:var(--teal)}
+.env{width:48px;height:48px;border-radius:50%;border:0;background:var(--teal);color:#fff;font-size:22px;flex:none}
+.env:disabled{opacity:.45}
+.aviso{background:#fff4d6;color:#6b4a00;padding:10px 14px;font-size:14px;display:flex;gap:10px;align-items:center}
+.aviso button{border:0;background:var(--teal);color:#fff;border-radius:16px;padding:8px 14px;font-weight:700;flex:none}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--deep);color:#fff;padding:11px 18px;border-radius:20px;font-size:14px;z-index:9;max-width:90%;text-align:center}
+</style></head><body>
+<div class="tela" id="tl">
+ <div class="topo"><img src="/painel/app-icon.png" alt=""><h1>Apometria Brasil<small id="sub">Conversas do WhatsApp</small></h1><button class="ib" id="bn" title="Notificações" aria-label="Notificações">🔔</button><button class="ib" id="br" title="Atualizar" aria-label="Atualizar">⟳</button></div>
+ <div class="aviso hide" id="av"><span id="avt"></span><button id="avb">Ativar</button></div>
+ <div class="abas"><button class="aba on" data-f="todas">Todas</button><button class="aba" data-f="novas">Não lidas <b id="cn" class="hide">0</b></button><button class="aba" data-f="voce">Você atende</button><button class="aba" data-f="bot">Bot atende</button></div>
+ <div class="busca"><input id="q" type="search" placeholder="Buscar nome ou telefone" autocomplete="off"></div>
+ <div id="lista"></div>
+</div>
+<div class="tela hide" id="ch">
+ <div class="cab"><button class="ib" id="vl" aria-label="Voltar">←</button><div class="av" id="cav"></div><div class="t"><b id="cnm"></b><span id="ctl"></span></div></div>
+ <div class="modo v" id="md"><span id="mdt"></span><button id="mdb"></button></div>
+ <div id="msgs"></div>
+ <div class="comp"><textarea id="tx" rows="1" placeholder="Escreva uma mensagem"></textarea><button class="env" id="en" aria-label="Enviar">➤</button></div>
+</div>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var convs=[],filtro='todas',busca='',atual=null,ultimoId=0,vistas={},pausadoAtual=false,pollL=null,pollC=null;
+try{vistas=JSON.parse(localStorage.getItem('vistas')||'{}')}catch(e){}
+function salvaVistas(){try{localStorage.setItem('vistas',JSON.stringify(vistas))}catch(e){}}
+function api(u,o){o=o||{};o.credentials='include';if(o.body&&typeof o.body!=='string'){o.body=JSON.stringify(o.body);o.headers={'Content-Type':'application/json'}}return fetch(u,o).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fmtTel(p){p=String(p).replace(/\D/g,'');if(p.length===13)return '+'+p.slice(0,2)+' ('+p.slice(2,4)+') '+p.slice(4,9)+'-'+p.slice(9);if(p.length===12)return '+'+p.slice(0,2)+' ('+p.slice(2,4)+') '+p.slice(4,8)+'-'+p.slice(8);return '+'+p}
+function nomeDe(c){return c.client_name&&c.client_name.trim()?c.client_name.trim():fmtTel(c.phone)}
+function ini(c){var n=(c.client_name||'').trim();return n?n[0].toUpperCase():'#'}
+function hora(t){var d=new Date(t),h=new Date(),ontem=new Date(h.getTime()-864e5);var hh=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);if(d.toDateString()===h.toDateString())return hh;if(d.toDateString()===ontem.toDateString())return 'Ontem';return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)}
+function diaTxt(t){var d=new Date(t),h=new Date(),o=new Date(h.getTime()-864e5);if(d.toDateString()===h.toDateString())return 'Hoje';if(d.toDateString()===o.toDateString())return 'Ontem';return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear()}
+function naoLida(c){return c.ultima_dir==='in'&&new Date(c.updated_at).getTime()>(vistas[c.phone]||0)}
+function toast(t){var e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(function(){e.remove()},2600)}
+function prevTxt(t){t=String(t||'');var m=t.match(/^\[(imagem|documento|áudio|audio|contato|Template)[^\]]*\]\s*(.*)$/i);if(m){var ic={imagem:'📷 Foto',documento:'📄 Documento','áudio':'🎤 Áudio',audio:'🎤 Áudio',contato:'👤 Contato',template:'💬 Mensagem'}[m[1].toLowerCase()];return ic+(m[2]?' · '+m[2]:'')}return t}
+
+function desenhaLista(){
+  var q=busca.toLowerCase(),nn=0,h='';
+  convs.forEach(function(c){if(naoLida(c))nn++});
+  var cn=$('cn');cn.textContent=nn;cn.classList.toggle('hide',!nn);
+  var arr=convs.filter(function(c){
+    if(filtro==='novas'&&!naoLida(c))return false;
+    if(filtro==='voce'&&!c.pausado)return false;
+    if(filtro==='bot'&&c.pausado)return false;
+    if(q&&(nomeDe(c)+' '+c.phone).toLowerCase().indexOf(q)<0)return false;return true});
+  if(!arr.length){$('lista').innerHTML='<div class="vazio">'+(convs.length?'Nenhuma conversa neste filtro.':'Nenhuma conversa ainda. Quando alguém chamar no WhatsApp, aparece aqui.')+'</div>';return}
+  arr.forEach(function(c){var nl=naoLida(c);
+    h+='<div class="item '+(c.pausado?'a':'v')+(nl?' nl':'')+'" data-p="'+esc(c.phone)+'"><div class="av">'+esc(ini(c))+'</div><div class="meio"><div class="l1"><span class="nome">'+esc(nomeDe(c))+'</span><span class="hora">'+hora(c.updated_at)+'</span></div><div class="l2"><span class="prev">'+(c.ultima_dir==='out'?'✓ ':'')+esc(prevTxt(c.ultima_mensagem))+'</span>'+(nl?'<span class="bol">●</span>':'')+'<span class="chip '+(c.pausado?'a':'v')+'">'+(c.pausado?'VOCÊ':'BOT')+'</span></div></div></div>'});
+  $('lista').innerHTML=h;
+}
+function carregaLista(){return api('/painel/api/app/lista').then(function(d){var antes={};convs.forEach(function(c){antes[c.phone]=c.updated_at});convs=d;
+  if(atual){var c=convs.filter(function(x){return x.phone===atual})[0];if(c){vistas[atual]=Date.now()+1e4;salvaVistas()}}
+  desenhaLista();$('sub').textContent='Conversas do WhatsApp';var t=0;convs.forEach(function(c){if(naoLida(c))t++});try{if(navigator.setAppBadge){t?navigator.setAppBadge(t):navigator.clearAppBadge()}}catch(e){}
+  }).catch(function(){$('sub').textContent='Sem conexão — tentando de novo…'})}
+
+function bolha(m){var cl=m.direction==='in'?'in':'out',t=String(m.content||''),x='';
+  var mt=t.match(/^\[(imagem|documento|áudio|audio|contato|Template)[^\]]*\]\s*(.*)$/i);
+  if(m.media_base64&&m.media_mime){var u='data:'+m.media_mime+';base64,'+m.media_base64;
+    if(/^image\//.test(m.media_mime))x+='<img src="'+u+'" alt="">';else if(/^audio\//.test(m.media_mime))x+='<audio controls src="'+u+'"></audio>';else x+='<span class="anx">📎 Arquivo</span>'}
+  if(mt&&!m.media_base64){x+='<span class="anx">'+esc(prevTxt(t))+'</span>'}else if(t&&!(m.media_base64&&/^\[/.test(t)&&!mt)){x+=esc(t)}else if(t&&m.media_base64){x+=esc(t)}
+  var d=new Date(m.created_at);return '<div class="b '+cl+'">'+x+'<span class="h">'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+(cl==='out'?' ✓':'')+'</span></div>'}
+var ultimoDia='';
+function adiciona(ms,limpa){var box=$('msgs'),perto=box.scrollHeight-box.scrollTop-box.clientHeight<140,h='';if(limpa){ultimoDia=''}
+  ms.forEach(function(m){var dk=new Date(m.created_at).toDateString();if(dk!==ultimoDia){h+='<div class="dia">'+diaTxt(m.created_at)+'</div>';ultimoDia=dk}h+=bolha(m);if(m.id>ultimoId)ultimoId=m.id});
+  if(limpa)box.innerHTML=h;else box.insertAdjacentHTML('beforeend',h);
+  if(limpa||perto||(ms.length&&ms[ms.length-1].direction==='out'))box.scrollTop=box.scrollHeight}
+function modo(p){pausadoAtual=p;var m=$('md');m.className='modo '+(p?'a':'v');
+  $('mdt').textContent=p?'Você está atendendo. O bot está pausado nesta conversa.':'O bot está atendendo. Ao enviar uma mensagem, ele pausa.';
+  $('mdb').textContent=p?'Devolver ao bot':'Assumir';$('ctl').textContent=p?'Você atende':'Bot atende'}
+function abre(p){atual=p;ultimoId=0;var c=convs.filter(function(x){return x.phone===p})[0]||{phone:p};
+  $('cav').textContent=ini(c);$('cnm').textContent=nomeDe(c);$('msgs').innerHTML='<div class="vazio">Carregando…</div>';modo(!!c.pausado);
+  $('tl').classList.add('hide');$('ch').classList.remove('hide');vistas[p]=Date.now()+1e4;salvaVistas();if(location.hash!=='#'+p)history.pushState(null,'','#'+p);
+  api('/painel/api/app/conversa/'+p).then(function(d){if(atual!==p)return;modo(d.pausado);adiciona(d.mensagens,true)}).catch(function(){$('msgs').innerHTML='<div class="vazio">Não consegui abrir. Volte e tente de novo.</div>'});
+  clearInterval(pollC);pollC=setInterval(function(){if(!atual||document.hidden)return;api('/painel/api/app/conversa/'+atual+'?depois='+ultimoId).then(function(d){if(d.mensagens.length){adiciona(d.mensagens,false);vistas[atual]=Date.now()+1e4;salvaVistas()}if(d.pausado!==pausadoAtual)modo(d.pausado)}).catch(function(){})},3500)}
+function fecha(){atual=null;clearInterval(pollC);$('ch').classList.add('hide');$('tl').classList.remove('hide');if(location.hash)history.replaceState(null,'',location.pathname);carregaLista()}
+$('lista').addEventListener('click',function(e){var it=e.target.closest('.item');if(it)abre(it.getAttribute('data-p'))});
+$('vl').onclick=fecha;
+window.addEventListener('popstate',function(){if(!location.hash&&atual)fecha();else if(location.hash.length>1&&!atual)abre(location.hash.slice(1))});
+document.querySelectorAll('.aba').forEach(function(b){b.onclick=function(){document.querySelectorAll('.aba').forEach(function(x){x.classList.remove('on')});b.classList.add('on');filtro=b.getAttribute('data-f');desenhaLista()}});
+$('q').oninput=function(){busca=this.value;desenhaLista()};
+$('br').onclick=function(){carregaLista().then(function(){toast('Atualizado')})};
+$('mdb').onclick=function(){var p=!pausadoAtual;api('/painel/api/conversas/'+atual+'/pausar',{method:'POST',body:{pausado:p}}).then(function(){modo(p);toast(p?'Você assumiu a conversa':'Bot reativado')}).catch(function(){toast('Não consegui trocar. Tente de novo.')})};
+var tx=$('tx');tx.oninput=function(){tx.style.height='auto';tx.style.height=Math.min(120,tx.scrollHeight)+'px'};
+function envia(){var t=tx.value.trim();if(!t||!atual)return;$('en').disabled=true;
+  api('/painel/api/conversas/'+atual+'/enviar',{method:'POST',body:{texto:t}}).then(function(){tx.value='';tx.style.height='auto';modo(true);return api('/painel/api/app/conversa/'+atual+'?depois='+ultimoId).then(function(d){adiciona(d.mensagens,false)})}).catch(function(){toast('Não enviou. Verifique a conexão e toque em ➤ de novo.')}).then(function(){$('en').disabled=false})}
+$('en').onclick=envia;
+tx.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey&&window.innerWidth>700){e.preventDefault();envia()}});
+
+// notificações
+function b64(s){var p='='.repeat((4-s.length%4)%4),b=(s+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(b),o=new Uint8Array(r.length);for(var i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
+function avisoNotif(){var a=$('av'),perm=window.Notification?Notification.permission:'unsupported';
+  if(perm==='granted'){inscreve(false);a.classList.add('hide');$('bn').textContent='🔔';return}
+  if(perm==='denied'||perm==='unsupported'){a.classList.add('hide');$('bn').textContent='🔕';return}
+  $('avt').textContent='Ative as notificações para saber na hora quando alguém escrever.';a.classList.remove('hide')}
+function inscreve(pede){if(!('serviceWorker' in navigator)||!window.PushManager)return Promise.resolve();
+  return navigator.serviceWorker.ready.then(function(reg){return api('/painel/api/app/pushkey').then(function(k){return reg.pushManager.getSubscription().then(function(s){return s||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(k.key)})})})}).then(function(s){return api('/painel/api/app/subscribe',{method:'POST',body:{subscription:s}})}).catch(function(e){if(pede)toast('Não consegui ativar as notificações neste aparelho.')})}
+function pedeNotif(){if(!window.Notification){toast('Este navegador não suporta notificações.');return}
+  Notification.requestPermission().then(function(p){avisoNotif();if(p==='granted'){toast('Notificações ativadas');inscreve(true)}else toast('Notificações bloqueadas. Libere nas configurações do site.')})}
+$('avb').onclick=pedeNotif;$('bn').onclick=function(){if(Notification.permission==='granted')toast('Notificações já estão ativas');else pedeNotif()};
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/painel/app-sw.js',{scope:'/painel/'}).then(avisoNotif).catch(function(){});navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.abrir){carregaLista().then(function(){abre(e.data.abrir)})}})}else avisoNotif();
+
+// aviso sonoro/visual dentro do app quando chega mensagem nova na lista
+var jaVi={};
+function checaNovas(){api('/painel/api/app/lista').then(function(d){var novo=false;d.forEach(function(c){if(c.ultima_dir==='in'&&jaVi[c.phone]&&jaVi[c.phone]<new Date(c.updated_at).getTime()&&c.phone!==atual)novo=true;jaVi[c.phone]=new Date(c.updated_at).getTime()});convs=d;desenhaLista();if(novo){try{navigator.vibrate&&navigator.vibrate([100,50,100])}catch(e){}}}).catch(function(){})}
+carregaLista().then(function(){convs.forEach(function(c){jaVi[c.phone]=new Date(c.updated_at).getTime()});if(location.hash.length>1)abre(location.hash.slice(1))});
+pollL=setInterval(function(){if(!document.hidden&&!atual)checaNovas()},6000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden){carregaLista();avisoNotif()}});
+})();
+</script></body></html>
+`;
+app.get('/painel/app.webmanifest', (req, res) => {
+  res.type('application/manifest+json').send(JSON.stringify({
+    name: 'Apometria Brasil — Conversas', short_name: 'Apometria', description: 'Conversas do WhatsApp do Instituto Apometria Brasil',
+    start_url: '/painel/app', scope: '/painel/', display: 'standalone', orientation: 'portrait',
+    background_color: '#12585C', theme_color: '#12585C', lang: 'pt-BR',
+    icons: [
+      { src: '/painel/app-icon.png', sizes: '192x192 512x512', type: 'image/png', purpose: 'any' },
+      { src: '/painel/app-icon.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ]
+  }));
+});
+app.get('/painel/app-icon.png', (req, res) => { res.set('Cache-Control', 'public, max-age=86400').type('image/png').send(appIconPng()); });
+app.get('/painel/app-sw.js', (req, res) => { res.set('Service-Worker-Allowed', '/painel/').type('application/javascript').send(APP_SW); });
+app.get('/painel/app', (req, res) => { res.set('Cache-Control', 'no-cache').type('html').send(APP_HTML); });
+
+app.get('/painel/api/app/lista', async (req, res) => {
+  if (!pool) return res.json([]);
+  try {
+    const { rows } = await pool.query('SELECT c.phone, c.client_name, c.stage, c.updated_at, (SELECT content FROM messages m WHERE m.phone = c.phone ORDER BY m.id DESC LIMIT 1) AS ultima_mensagem, (SELECT direction FROM messages m WHERE m.phone = c.phone ORDER BY m.id DESC LIMIT 1) AS ultima_dir, (SELECT created_at FROM messages m WHERE m.phone = c.phone ORDER BY m.id DESC LIMIT 1) AS ultima_em FROM conversations c ORDER BY c.updated_at DESC LIMIT 300');
+    res.json(rows.map(r => ({ ...r, updated_at: r.ultima_em || r.updated_at, pausado: sessions.get(r.phone)?.pausado || false })));
+  } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+app.get('/painel/api/app/conversa/:phone', async (req, res) => {
+  if (!pool) return res.json({ mensagens: [], pausado: false });
+  try {
+    const depois = parseInt(req.query.depois, 10) || 0;
+    const { rows } = depois
+      ? await pool.query('SELECT id, direction, content, media_base64, media_mime, created_at FROM messages WHERE phone = $1 AND id > $2 ORDER BY id ASC', [req.params.phone, depois])
+      : await pool.query('SELECT * FROM (SELECT id, direction, content, media_base64, media_mime, created_at FROM messages WHERE phone = $1 ORDER BY id DESC LIMIT 150) t ORDER BY id ASC', [req.params.phone]);
+    res.json({ mensagens: rows, pausado: sessions.get(req.params.phone)?.pausado || false });
+  } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+app.get('/painel/api/app/ultima', async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT m.phone, m.content, c.client_name FROM messages m LEFT JOIN conversations c ON c.phone = m.phone WHERE m.direction = 'in' ORDER BY m.id DESC LIMIT 1");
+    const r = rows[0];
+    if (!r) return res.json({ titulo: 'Apometria Brasil', corpo: 'Nova mensagem no WhatsApp', phone: '' });
+    let corpo = String(r.content || '').replace(/^\[(imagem|documento|áudio|audio)[^\]]*\]\s*/i, '📎 ').slice(0, 140) || 'Nova mensagem';
+    res.json({ titulo: (r.client_name && r.client_name.trim()) || ('+' + r.phone), corpo, phone: r.phone });
+  } catch (e) { res.json({ titulo: 'Apometria Brasil', corpo: 'Nova mensagem no WhatsApp', phone: '' }); }
+});
+
+let _vapid = null;
+async function getVapid() {
+  if (_vapid) return _vapid;
+  let raw = await cfgGet('vapid_keys');
+  if (raw) { try { _vapid = JSON.parse(raw); } catch (e) {} }
+  if (!_vapid) {
+    const { publicKey, privateKey } = nodeCrypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const jwk = publicKey.export({ format: 'jwk' });
+    const pub = Buffer.concat([Buffer.from([4]), Buffer.from(jwk.x, 'base64url'), Buffer.from(jwk.y, 'base64url')]).toString('base64url');
+    _vapid = { pub, priv: privateKey.export({ format: 'pem', type: 'pkcs8' }) };
+    await cfgSet('vapid_keys', JSON.stringify(_vapid));
+  }
+  return _vapid;
+}
+async function pushSubs() { try { return JSON.parse((await cfgGet('push_subs')) || '[]'); } catch (e) { return []; } }
+app.get('/painel/api/app/pushkey', async (req, res) => { try { res.json({ key: (await getVapid()).pub }); } catch (e) { res.status(500).json({ erro: e.message }); } });
+app.post('/painel/api/app/subscribe', async (req, res) => {
+  const s = req.body && req.body.subscription;
+  if (!s || !s.endpoint) return res.status(400).json({ erro: 'inscrição inválida' });
+  const lista = (await pushSubs()).filter(x => x.endpoint !== s.endpoint);
+  lista.push(s);
+  await cfgSet('push_subs', JSON.stringify(lista.slice(-10)));
+  res.json({ ok: true });
+});
+let _pushUlt = 0;
+async function notificarPush() {
+  try {
+    if (Date.now() - _pushUlt < 2500) return;
+    _pushUlt = Date.now();
+    const subs = await pushSubs();
+    if (!subs.length) return;
+    const v = await getVapid();
+    const key = nodeCrypto.createPrivateKey(v.priv);
+    const vivos = [];
+    for (const s of subs) {
+      try {
+        const aud = new URL(s.endpoint).origin;
+        const h = Buffer.from(JSON.stringify({ typ: 'JWT', alg: 'ES256' })).toString('base64url');
+        const c = Buffer.from(JSON.stringify({ aud, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: 'mailto:anunciosapometria@gmail.com' })).toString('base64url');
+        const sig = nodeCrypto.sign('sha256', Buffer.from(h + '.' + c), { key, dsaEncoding: 'ieee-p1363' }).toString('base64url');
+        await axios.post(s.endpoint, null, { headers: { Authorization: 'vapid t=' + h + '.' + c + '.' + sig + ', k=' + v.pub, TTL: '3600', Urgency: 'high', 'Content-Length': '0' }, timeout: 10000 });
+        vivos.push(s);
+      } catch (e) {
+        const st = e.response && e.response.status;
+        if (st !== 404 && st !== 410) vivos.push(s);
+        console.error('⚠️ Push:', st || e.message);
+      }
+    }
+    if (vivos.length !== subs.length) await cfgSet('push_subs', JSON.stringify(vivos));
+  } catch (e) { console.error('⚠️ notificarPush:', e.message); }
+}
+
 
 // Página HTML do painel
 app.get('/painel', (req, res) => {
