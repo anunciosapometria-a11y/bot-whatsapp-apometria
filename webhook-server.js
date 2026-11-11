@@ -140,6 +140,23 @@ async function saveMessage(phone, direction, content, mediaBase64 = null, mediaM
 }
 
 // ─── BAIXAR MÍDIA (comprovante) ENVIADA PELO CLIENTE ──────────────────────────
+// Transcreve áudio do cliente (Whisper via Groq ou OpenAI). Precisa de GROQ_API_KEY ou OPENAI_API_KEY nas variáveis do Railway.
+async function transcreverAudio(base64, mime) {
+  const usaGroq = !!process.env.GROQ_API_KEY;
+  const key = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+  if (!key || !base64) return null;
+  const url = usaGroq ? 'https://api.groq.com/openai/v1/audio/transcriptions' : 'https://api.openai.com/v1/audio/transcriptions';
+  const fd = new FormData();
+  fd.append('file', new Blob([Buffer.from(base64, 'base64')], { type: mime || 'audio/ogg' }), 'audio.ogg');
+  fd.append('model', usaGroq ? 'whisper-large-v3-turbo' : 'whisper-1');
+  fd.append('language', 'pt');
+  fd.append('response_format', 'json');
+  const r = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd });
+  const j = await r.json();
+  if (!r.ok) throw new Error('STT ' + r.status + ' ' + JSON.stringify(j).slice(0, 200));
+  return String(j.text || '').trim() || null;
+}
+
 async function baixarMidiaWhatsapp(mediaId) {
   try {
     const infoRes = await axios.get(`https://graph.facebook.com/v21.0/${mediaId}`, {
@@ -851,6 +868,20 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     return;
   }
 
+  // Áudio do cliente: se houver chave de transcrição, transcreve e segue o fluxo como se fosse texto
+  if (mediaInfo && mediaInfo.tipo === 'audio') {
+    let transc = null;
+    try {
+      const mAud = await baixarMidiaWhatsapp(mediaInfo.id);
+      if (mAud) transc = await transcreverAudio(mAud.base64, mAud.mime || mediaInfo.mimeType);
+    } catch (e) { console.error('❌ Transcrição:', e.message); }
+    if (transc) {
+      console.log('🎤 Áudio de ' + from + ' transcrito: "' + transc.slice(0, 200) + '"');
+      await saveMessage(from, 'in', '🎤 Transcrição: ' + transc);
+      text = transc; mediaInfo = null;
+    }
+  }
+
   // Áudio: este canal não ouve áudios (responde uma vez por minuto)
   if (mediaInfo && mediaInfo.tipo === 'audio') {
     const ag = Date.now();
@@ -1348,21 +1379,21 @@ app.post('/painel/api/app/audio/:phone', express.raw({ type: () => true, limit: 
   const mime = String(req.headers['content-type'] || '');
   const ext = /mp4|aac|m4a/.test(mime) ? 'm4a' : /ogg/.test(mime) ? 'ogg' : 'webm';
   const idA = Date.now() + '_' + Math.random().toString(36).slice(2);
-  const inp = pathA.join(osA.tmpdir(), 'a_' + idA + '.' + ext), out = pathA.join(osA.tmpdir(), 'a_' + idA + '.out.ogg');
+  const inp = pathA.join(osA.tmpdir(), 'a_' + idA + '.' + ext), out = pathA.join(osA.tmpdir(), 'a_' + idA + '.out.m4a');
   try {
     fsA.writeFileSync(inp, buf);
     let ffmpegBin = 'ffmpeg';
     if (!fsA.existsSync('/usr/bin/ffmpeg')) { try { ffmpegBin = require('ffmpeg-static') || 'ffmpeg'; } catch (e) {} }
     await new Promise((ok, ko) => {
-      const p = spawn(ffmpegBin, ['-y', '-i', inp, '-vn', '-c:a', 'libopus', '-b:a', '32k', '-ar', '48000', '-ac', '1', '-application', 'voip', out]);
+      const p = spawn(ffmpegBin, ['-y', '-i', inp, '-vn', '-c:a', 'aac', '-b:a', '64k', '-ar', '44100', '-ac', '1', '-movflags', '+faststart', out]);
       let er = ''; p.stderr.on('data', x => { er += x; });
       p.on('close', cod => cod === 0 ? ok() : ko(new Error('ffmpeg ' + cod + ' ' + er.slice(-200))));
       p.on('error', ko);
     });
     const ogg = fsA.readFileSync(out);
     const fd = new FormData();
-    fd.append('messaging_product', 'whatsapp'); fd.append('type', 'audio/ogg; codecs=opus');
-    fd.append('file', new Blob([ogg], { type: 'audio/ogg; codecs=opus' }), 'audio.ogg');
+    fd.append('messaging_product', 'whatsapp'); fd.append('type', 'audio/mp4');
+    fd.append('file', new Blob([ogg], { type: 'audio/mp4' }), 'audio.m4a');
     const up = await fetch('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/media', { method: 'POST', headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN }, body: fd });
     const uj = await up.json();
     if (!uj.id) throw new Error('upload: ' + JSON.stringify(uj));
@@ -1370,7 +1401,8 @@ app.post('/painel/api/app/audio/:phone', express.raw({ type: () => true, limit: 
     const session = getSession(phone);
     session.pausado = true; session.pausadoEm = Date.now(); session.pausadoPor = 'humano';
     session.history.push({ role: 'assistant', content: '[áudio enviado pela equipe]' });
-    await saveMessage(phone, 'out', '[áudio]', ogg.toString('base64'), 'audio/ogg');
+    await saveMessage(phone, 'out', '[áudio]', ogg.toString('base64'), 'audio/mp4');
+    console.log('🎤 Áudio enviado para ' + phone + ' (' + ogg.length + ' bytes, media ' + uj.id + ')');
     crmSaida(phone, '[áudio]');
     await upsertConversation(phone, session.clientName, session.stage);
     res.json({ ok: true });
