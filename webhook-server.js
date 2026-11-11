@@ -2129,7 +2129,7 @@ async function rodarPosPagamento() {
 async function criarTemplatesPos() {
   try {
     if (!pool || (await cfgGet('pos_tpl_ok', '0')) === '1') return;
-    let waba = ((await cfgGet('waba_id', '')) || process.env.WABA_ID || '').trim();
+    let waba = ((await cfgGet('waba_id', '')) || process.env.WABA_ID || '1817343589260619').trim();
     if (!waba) {
       const d = await axios.get('https://graph.facebook.com/v21.0/debug_token', { params: { input_token: WHATSAPP_TOKEN, access_token: WHATSAPP_TOKEN } });
       const gs = (d.data && d.data.data && d.data.data.granular_scopes) || [];
