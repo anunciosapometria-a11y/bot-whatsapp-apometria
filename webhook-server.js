@@ -484,6 +484,9 @@ const envios = new Map();
 async function sendMessage(to, text) {
   { const agora = Date.now(); const l = (envios.get(to) || []).filter(x => agora - x < 60000); if (l.length >= 30) { console.warn('⚠️ Trava de rajada: mensagem não enviada para ' + to); return; } l.push(agora); envios.set(to, l); }
   text = normalizarNegrito(text);
+  { const ag = Date.now(); const U = (sendMessage._u = sendMessage._u || new Map()); const lst = (U.get(to) || []).filter(x => ag - x.ts < 180000);
+    if (text.length > 20 && lst.some(x => x.t === text)) { console.warn('🔁 Trava de repetição: mensagem idêntica ignorada para ' + to); return; }
+    lst.push({ t: text, ts: ag }); U.set(to, lst); }
   { const ss0 = sessions.get(to); if (ss0 && /\?\s*$/.test(text.replace(/[\s🙏😊✨]+$/u, ''))) ss0.askedAt = Date.now(); }
   await saveMessage(to, 'out', text);
   crmSaida(to, text);
@@ -2481,8 +2484,8 @@ function detectarTopicoEtapa(text) {
 function ehLixoEtapa(text) {
   const t = semAcento(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   if (ehSim(text) || /^(nao|n|nope)$/.test(t)) return false;
-  if (!t) return !/^(👍|🙏)/.test(text.trim());
-  return t.length <= 2 || /^\d+$/.test(t);
+  if (!t) return !/^(👍|🙏|❤|🙌|😊|😀|🙂)/.test(text.trim()) && !/\p{L}/u.test(text);
+  return /^\d+$/.test(t) || t.length <= 1; // "eu", "oi", "kk" são respostas válidas; não repetir a pergunta
 }
 function textoOferta(session) {
   const itens = [];
@@ -2533,11 +2536,14 @@ async function desvioFluxo(from, text, session) {
     const agora = Date.now();
     if (session.ultimoLixo && agora - session.ultimoLixo < 20000) return true; // não responde em rajada
     session.ultimoLixo = agora;
-    const msg = (session.etapa === 'para_quem' || session.etapa === 'queixa') ? 'Ok. ' + PERGUNTA_PARA_QUEM.split('\n')[0]
-      : session.etapa === 'aguarda1' ? 'Ok. ' + PERGUNTA1
-      : session.etapa === 'aguarda2' ? 'Ok. ' + PERGUNTA2
-      : session.etapa === 'aguarda3' ? 'Ok. ' + PERGUNTA3
-      : 'Ok. ' + (textoOferta(session) || PERGUNTA_AGENDA);
+    // trava: só lembra a pergunta UMA vez por etapa; depois disso fica em silêncio (nunca repete a mesma pergunta)
+    if (session.lixoEtapa === session.etapa) return true;
+    session.lixoEtapa = session.etapa;
+    const msg = (session.etapa === 'para_quem' || session.etapa === 'queixa') ? 'Seria para você mesmo ou para outra pessoa?'
+      : session.etapa === 'aguarda1' ? PERGUNTA1
+      : session.etapa === 'aguarda2' ? PERGUNTA2
+      : session.etapa === 'aguarda3' ? PERGUNTA3
+      : (textoOferta(session) || PERGUNTA_AGENDA);
     await sleep(typingDelay(msg)); await sendMessage(from, msg);
     session.history.push({ role: 'user', content: text }, { role: 'assistant', content: msg });
     await upsertConversation(from, session.clientName, session.stage);
