@@ -1341,7 +1341,8 @@ app.post('/painel/api/app/audio/:phone', express.raw({ type: () => true, limit: 
   const inp = pathA.join(osA.tmpdir(), 'a_' + idA + '.' + ext), out = pathA.join(osA.tmpdir(), 'a_' + idA + '.out.ogg');
   try {
     fsA.writeFileSync(inp, buf);
-    const ffmpegBin = require('ffmpeg-static');
+    let ffmpegBin = 'ffmpeg';
+    if (!fsA.existsSync('/usr/bin/ffmpeg')) { try { ffmpegBin = require('ffmpeg-static') || 'ffmpeg'; } catch (e) {} }
     await new Promise((ok, ko) => {
       const p = spawn(ffmpegBin, ['-y', '-i', inp, '-vn', '-c:a', 'libopus', '-b:a', '32k', '-ar', '48000', '-ac', '1', '-application', 'voip', out]);
       let er = ''; p.stderr.on('data', x => { er += x; });
