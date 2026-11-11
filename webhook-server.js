@@ -362,7 +362,7 @@ const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nSomos um instituto especializado n
 const INSTAGRAM_MSG = "📲 *Conheça mais do nosso trabalho*\nAcompanhe o nosso Instagram: *@apometria_brasil*\nhttps://www.instagram.com/apometria_brasil/";
 const GOOGLE_MSG = "⭐ *Quem já foi atendido por nós*\nVeja as avaliações no nosso perfil do Google Maps:\nhttps://search.google.com/local/reviews?placeid=ChIJhaGCweWzvZQRLW5Xc6NECpA";
 const PERGUNTA_QUEIXA = "";
-const CONTATO_PAULO_MSG = "Segue o contato do Paulo, para você já ter salvo:";
+const CONTATO_PAULO_MSG = "Segue o número pessoal do Paulo, para você já ter salvo. É através dele que você irá receber os relatórios finais com as conclusões do seu caso:";
 const ETAPA1 = [
   "*Etapa 1: detalhes do procedimento*",
   "📝 *Questionário inicial*\nPrimeiramente você irá preencher um questionário com as perguntas necessárias para o seu trabalho, sobre os seus estados físicos, mentais, espirituais e emocionais e sobre o que deseja tratar, investigar e obter respostas da espiritualidade.",
@@ -386,7 +386,7 @@ const RETORNO_MSG = "Ok. Gostaria de alguma informação ou como podemos ajudar?
 const MODALIDADES_MSG = "Ok, vou lhe enviar as modalidades disponíveis, segue abaixo.\n\n*Modalidades de atendimento*\n\n1️⃣ *Individual*: R$ 289,00, entrega em 15 dias úteis\n2️⃣ *Emergencial*: R$ 339,00, vaga de prioridade em 08 dias úteis\n3️⃣ *Pacote de 4 sessões*: R$ 800,00 (R$ 200,00 cada trabalho), em até 4x sem juros\n4️⃣ *Familiar*: R$ 600,00, máximo de 5 pessoas da mesma família, trabalhos individuais e relatório único\n5️⃣ *Presencial*: R$ 720,00, meio período. No momento está indisponível por falta de agenda\n\nQual dessas modalidades você prefere?";
 const PERGUNTA3 = "Podemos seguir com a etapa 3, opções de agendamento?";
 const ETAPA3_TITULO = "*Etapa 3: opções de agendamento*\nVou lhe enviar as opções de agendamento, segue abaixo.";
-const ETAPA3_NOTA = "*Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante.";
+const ETAPA3_NOTA = "*Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante aqui em nossa conversa.";
 const APOS_PAGAMENTO_MSG = "*O que acontece após o pagamento*\n• Você receberá algumas instruções referentes à opção escolhida e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
 function detectaOpcao(t) {
   const x = semAcento(t);
