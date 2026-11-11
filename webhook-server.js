@@ -827,7 +827,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   }
   notificarPush();
   await upsertConversation(from, session.clientName, session.stage);
-  await crmEntrada(from, mediaInfo, session);
+  await crmEntrada(from, mediaInfo, session, text);
 
   if (session.pausado && session.pausadoPor === 'bot' && session.pausadoEm && (Date.now() - session.pausadoEm) > PAUSE_TTL_MS) {
     session.pausado = false;
@@ -1177,24 +1177,95 @@ app.get('/health', (req, res) => {
 });
 
 // ─── PAINEL DE CONVERSAS (protegido por usuário/senha) ────────────────────────
+const authCrypto = require('crypto');
+function painelChave() { return authCrypto.createHash('sha256').update('painel:' + DASHBOARD_USER + ':' + DASHBOARD_PASSWORD).digest(); }
+function painelToken() {
+  const corpo = Buffer.from(JSON.stringify({ u: DASHBOARD_USER, exp: Date.now() + 365 * 86400000 })).toString('base64url');
+  return corpo + '.' + authCrypto.createHmac('sha256', painelChave()).update(corpo).digest('base64url');
+}
+function painelTokenOk(tok) {
+  try {
+    const partes = String(tok || '').split('.');
+    if (partes.length !== 2) return false;
+    const esp = authCrypto.createHmac('sha256', painelChave()).update(partes[0]).digest('base64url');
+    if (partes[1].length !== esp.length || !authCrypto.timingSafeEqual(Buffer.from(partes[1]), Buffer.from(esp))) return false;
+    const d = JSON.parse(Buffer.from(partes[0], 'base64url').toString());
+    return d.u === DASHBOARD_USER && d.exp > Date.now();
+  } catch (e) { return false; }
+}
+function lerCookie(req, nome) {
+  const m = String(req.headers.cookie || '').split(';').map(s => s.trim()).find(s => s.startsWith(nome + '='));
+  return m ? decodeURIComponent(m.slice(nome.length + 1)) : '';
+}
+function credIgual(a, b) {
+  return authCrypto.timingSafeEqual(authCrypto.createHash('sha256').update(String(a)).digest(), authCrypto.createHash('sha256').update(String(b)).digest());
+}
+function gravarCookieLogin(res) {
+  res.append('Set-Cookie', 'painel_sess=' + encodeURIComponent(painelToken()) + '; Max-Age=31536000; Path=/; HttpOnly; Secure; SameSite=Lax');
+}
 function autenticarPainel(req, res, next) {
   if (!DASHBOARD_USER || !DASHBOARD_PASSWORD) {
     return res.status(503).send('Painel não configurado. Defina DASHBOARD_USER e DASHBOARD_PASSWORD no Railway.');
   }
+  if (req.path === '/login' || req.path === '/app-icon.png') return next();
+  if (painelTokenOk(lerCookie(req, 'painel_sess'))) return next();
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="Painel Apometria"');
-    return res.status(401).send('Login necessário.');
+  if (auth && auth.startsWith('Basic ')) {
+    const dec = Buffer.from(auth.slice(6), 'base64').toString();
+    const i = dec.indexOf(':');
+    if (i > 0 && credIgual(dec.slice(0, i), DASHBOARD_USER) && credIgual(dec.slice(i + 1), DASHBOARD_PASSWORD)) { gravarCookieLogin(res); return next(); }
   }
-  const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
-  if (user !== DASHBOARD_USER || pass !== DASHBOARD_PASSWORD) {
-    res.set('WWW-Authenticate', 'Basic realm="Painel Apometria"');
-    return res.status(401).send('Usuário ou senha incorretos.');
-  }
-  next();
+  if (req.method === 'GET' && String(req.headers.accept || '').includes('text/html')) return res.redirect('/painel/login?next=' + encodeURIComponent(req.originalUrl));
+  return res.status(401).json({ erro: 'Sessão expirada. Entre de novo.' });
 }
 
 app.use('/painel', autenticarPainel);
+
+const LOGIN_HTML = [
+  '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#12585C">',
+  '<link rel="icon" href="/painel/app-icon.png"><title>Entrar — Apometria Brasil</title><style>',
+  '*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}',
+  'body{background:#12585C;display:flex;align-items:center;justify-content:center;padding:24px;min-height:100vh}',
+  '.cx{background:#F5F1E8;border-radius:22px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.25)}',
+  '.cx img{width:84px;height:84px;border-radius:20px;display:block;margin:0 auto 14px}',
+  'h1{margin:0 0 4px;text-align:center;color:#08262A;font-size:22px}p{margin:0 0 20px;text-align:center;color:#5d7170;font-size:14px}',
+  'label{display:block;font-weight:700;font-size:14px;color:#14302f;margin:12px 0 6px}',
+  'input{width:100%;border:2px solid #d6d0c1;border-radius:12px;padding:13px 14px;font-size:17px;background:#fff;color:#14302f;outline:none}input:focus{border-color:#12585C}',
+  'button{width:100%;margin-top:20px;background:#12585C;color:#fff;border:0;border-radius:14px;padding:15px;font-size:17px;font-weight:700;cursor:pointer}',
+  '.er{background:#fde3df;color:#8f2a20;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:8px;text-align:center}',
+  '.nt{margin-top:14px;text-align:center;font-size:12.5px;color:#5d7170}</style></head><body>',
+  '<form class="cx" method="post" action="/painel/login"><img src="/painel/app-icon.png" alt=""><h1>Apometria Brasil</h1><p>Painel de atendimento</p>',
+  '@@ERRO@@<input type="hidden" name="next" value="@@NEXT@@">',
+  '<label for="u">Usuário</label><input id="u" name="usuario" autocomplete="username" autocapitalize="none" autocorrect="off" required>',
+  '<label for="s">Senha</label><input id="s" name="senha" type="password" autocomplete="current-password" required>',
+  '<button type="submit">Entrar</button><div class="nt">Este aparelho fica conectado, sem pedir senha de novo.</div></form></body></html>'
+].join('\n');
+const _loginTent = new Map();
+app.get('/painel/login', (req, res) => {
+  if (painelTokenOk(lerCookie(req, 'painel_sess'))) return res.redirect('/painel/app');
+  const next = String(req.query.next || '/painel/app');
+  const seguro = /^\/painel(\/|$|\?)/.test(next) && !next.startsWith('//') ? next : '/painel/app';
+  res.set('Cache-Control', 'no-store').type('html').send(LOGIN_HTML.replace('@@ERRO@@', req.query.erro ? '<div class="er">Usuário ou senha incorretos.</div>' : '').replace('@@NEXT@@', seguro.replace(/"/g, '&quot;').replace(/</g, '&lt;')));
+});
+app.post('/painel/login', express.urlencoded({ extended: false }), (req, res) => {
+  const ip = req.ip || 'x', t = _loginTent.get(ip) || { n: 0, desde: Date.now() };
+  if (Date.now() - t.desde > 900000) { t.n = 0; t.desde = Date.now(); }
+  if (t.n >= 10) return res.status(429).send('Muitas tentativas. Aguarde alguns minutos.');
+  const b = req.body || {};
+  const next = String(b.next || '/painel/app');
+  const seguro = /^\/painel(\/|$|\?)/.test(next) && !next.startsWith('//') ? next : '/painel/app';
+  if (b.usuario && b.senha && credIgual(b.usuario, DASHBOARD_USER) && credIgual(b.senha, DASHBOARD_PASSWORD)) {
+    _loginTent.delete(ip);
+    gravarCookieLogin(res);
+    return res.redirect(303, seguro);
+  }
+  t.n++; _loginTent.set(ip, t);
+  res.redirect(303, '/painel/login?erro=1&next=' + encodeURIComponent(seguro));
+});
+app.get('/painel/sair', (req, res) => {
+  res.append('Set-Cookie', 'painel_sess=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax');
+  res.redirect('/painel/login');
+});
 
 // Lista de conversas (mais recentes primeiro)
 app.get('/painel/api/conversas', async (req, res) => {
@@ -1394,7 +1465,7 @@ var $=function(i){return document.getElementById(i)};
 var convs=[],filtro='todas',busca='',atual=null,ultimoId=0,vistas={},pausadoAtual=false,pollL=null,pollC=null;
 try{vistas=JSON.parse(localStorage.getItem('vistas')||'{}')}catch(e){}
 function salvaVistas(){try{localStorage.setItem('vistas',JSON.stringify(vistas))}catch(e){}}
-function api(u,o){o=o||{};o.credentials='include';if(o.body&&typeof o.body!=='string'){o.body=JSON.stringify(o.body);o.headers={'Content-Type':'application/json'}}return fetch(u,o).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})}
+function api(u,o){o=o||{};o.credentials='include';if(o.body&&typeof o.body!=='string'){o.body=JSON.stringify(o.body);o.headers={'Content-Type':'application/json'}}return fetch(u,o).then(function(r){if(!r.ok){if(r.status===401)location.href='/painel/login?next=/painel/app';throw new Error(r.status)}return r.json()})}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fmtTel(p){p=String(p).replace(/\D/g,'');if(p.length===13)return '+'+p.slice(0,2)+' ('+p.slice(2,4)+') '+p.slice(4,9)+'-'+p.slice(9);if(p.length===12)return '+'+p.slice(0,2)+' ('+p.slice(2,4)+') '+p.slice(4,8)+'-'+p.slice(8);return '+'+p}
 function nomeDe(c){return c.client_name&&c.client_name.trim()?c.client_name.trim():fmtTel(c.phone)}
@@ -1743,7 +1814,7 @@ const FUNIL_ROTULO = {
   comprovante: 'Comprovante recebido', questionario: 'Questionário respondido', pago: 'Pago / confirmado',
   paulo: 'Com o Paulo', sem_resposta: 'Sem resposta', perdido: 'Perdido'
 };
-const FOLLOWUP_HORAS = [3, 28, 52]; // horas desde a última mensagem da pessoa
+const FOLLOWUP_HORAS = [1, 18, 52]; // horas desde a última mensagem da pessoa (1º em 1 h; 2º antes de fechar a janela de 24 h)
 const FOLLOWUP_PADRAO = [
   'Olá, {nome}! Passando para ver se ficou alguma dúvida sobre a apometria. Podemos continuar de onde paramos, no seu tempo. 🙏',
   '{nome}, tudo bem? Seguimos à disposição por aqui. Se quiser retomar de onde paramos ou tirar alguma dúvida, é só responder esta mensagem.',
@@ -1755,7 +1826,7 @@ async function initCrm() {
   const alt = [
     "funil TEXT DEFAULT 'novo'", "viu_valores BOOLEAN DEFAULT false", "last_in_at TIMESTAMPTZ", "last_out_at TIMESTAMPTZ",
     "followups_sent INT DEFAULT 0", "followup_off BOOLEAN DEFAULT false", "last_followup_at TIMESTAMPTZ",
-    "comprovante_at TIMESTAMPTZ", "questionario_at TIMESTAMPTZ", "notas TEXT"
+    "comprovante_at TIMESTAMPTZ", "questionario_at TIMESTAMPTZ", "notas TEXT", "opcao TEXT", "pos_enviados INT DEFAULT 0", "pos_off BOOLEAN DEFAULT false"
   ];
   for (const c of alt) await pool.query('ALTER TABLE conversations ADD COLUMN IF NOT EXISTS ' + c);
   await pool.query(`CREATE TABLE IF NOT EXISTS eventos (
@@ -1883,7 +1954,7 @@ async function crmAlertar(tipo, phone, detalhe, nome) {
 }
 
 // Mensagem recebida: zera o contador de follow-up e trata comprovante
-async function crmEntrada(phone, mediaInfo, session) {
+async function crmEntrada(phone, mediaInfo, session, textoMsg) {
   if (!pool) return;
   try {
     const { rows } = await pool.query('SELECT funil FROM conversations WHERE phone = $1', [phone]);
@@ -1894,10 +1965,15 @@ async function crmEntrada(phone, mediaInfo, session) {
     if (atual === 'sem_resposta' || atual === 'perdido') {
       await pool.query('UPDATE conversations SET funil = $2 WHERE phone = $1', [phone, funilDerivado(session, false)]);
     }
+    if (!mediaInfo && textoMsg && /paguei|fiz o pix|fiz o pagamento|efetuei o pagamento|ja transferi|ja fiz a transferencia|comprovante/.test(semAcento(textoMsg))) {
+      await pool.query('UPDATE conversations SET followup_off = true WHERE phone = $1', [phone]);
+    }
     if (mediaInfo && mediaInfo.tipo === 'audio') {
       await crmEvento(phone, 'audio', 'Áudio do cliente salvo (complemento do trabalho)');
     } else if (mediaInfo && (RANK[atual] ?? -1) < RANK.comprovante) {
-      await pool.query("UPDATE conversations SET funil = 'comprovante', comprovante_at = now() WHERE phone = $1", [phone]);
+      let op = session.opcaoCtx || '';
+      if (!op) { const q = await pool.query("SELECT 1 FROM messages WHERE phone = $1 AND direction = 'out' AND content LIKE '%mpago.li/2rMEjbs%' LIMIT 1", [phone]); if (q.rows.length) op = 'Emergencial'; }
+      await pool.query("UPDATE conversations SET funil = 'comprovante', comprovante_at = now(), followup_off = true, opcao = $2 WHERE phone = $1", [phone, op || null]);
       await crmAlertar('comprovante', phone, 'Comprovante/imagem recebido. Conferir o pagamento.', session.clientName);
     }
   } catch (e) { console.error('❌ CRM entrada:', e.message); }
@@ -1951,7 +2027,7 @@ async function rodarFollowups() {
       const nome = (r.client_name || '').split(' ')[0];
       const texto = textos[passo].replace(/\{nome\}/g, nome || 'tudo bem').replace('Olá, tudo bem!', 'Olá!').replace(/^tudo bem, tudo bem\?/, 'Tudo bem?');
       try {
-        if (horasSilencio < 23) {
+        if (horasSilencio < 23.7) {
           await sendMessage(r.phone, texto);
           if (sess) sess.history.push({ role: 'assistant', content: texto });
         } else {
@@ -1971,6 +2047,117 @@ async function rodarFollowups() {
   } catch (e) { console.error('❌ Follow-ups:', e.message); }
   finally { followupRodando = false; }
 }
+
+// ─── PÓS-PAGAMENTO: avisos em dias úteis (feriados do Brasil, de SP e de São José do Rio Preto) ───
+function dataBR(d) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d); }
+function pascoaMs(ano) {
+  const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1;
+  return Date.UTC(ano, mes - 1, dia);
+}
+const _feriadosCache = {};
+function feriadosDoAno(ano) {
+  if (_feriadosCache[ano]) return _feriadosCache[ano];
+  const s = new Set(), D = 86400000, p = pascoaMs(ano);
+  // nacionais + estadual (09/07) + municipais de São José do Rio Preto (19/03 São José, 08/12 Imaculada Conceição)
+  ['01-01', '03-19', '04-21', '05-01', '07-09', '09-07', '10-12', '11-02', '11-15', '11-20', '12-08', '12-25'].forEach(x => s.add(ano + '-' + x));
+  // Carnaval (segunda e terça), Sexta-feira Santa e Corpus Christi (municipal em Rio Preto)
+  [-48, -47, -2, 60].forEach(n => s.add(new Date(p + n * D).toISOString().slice(0, 10)));
+  return (_feriadosCache[ano] = s);
+}
+function ehDiaUtil(ms) {
+  const dt = new Date(ms), dow = dt.getUTCDay();
+  return dow !== 0 && dow !== 6 && !feriadosDoAno(dt.getUTCFullYear()).has(dt.toISOString().slice(0, 10));
+}
+function paraMs(dataStr) { return Date.parse(dataStr + 'T00:00:00Z'); }
+function uteisDecorridos(baseStr, hojeStr) {
+  let n = 0;
+  for (let ms = paraMs(baseStr) + 86400000; ms <= paraMs(hojeStr); ms += 86400000) if (ehDiaUtil(ms)) n++;
+  return n;
+}
+function somarUteis(baseStr, n) {
+  let ms = paraMs(baseStr), c = 0;
+  while (c < n) { ms += 86400000; if (ehDiaUtil(ms)) c++; }
+  return new Date(ms).toISOString().slice(0, 10);
+}
+function formatoBR(dataStr) { const p = dataStr.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+
+const POS_TEXTOS = [
+  'Olá, {{1}}! Passando para avisar que está tudo certo com o seu trabalho de apometria no Instituto Apometria Brasil. Você não precisa fazer mais nada agora, apenas aguardar o término do prazo. Faltam {{2}} dias úteis para a entrega, prevista para {{3}}. Qualquer dúvida, é só nos chamar por aqui. 🙏',
+  'Olá, {{1}}! O seu trabalho de apometria segue em andamento e já estamos na reta final. Faltam {{2}} dias úteis para o término do prazo, com entrega prevista para {{3}}. Siga apenas aguardando; qualquer dúvida, estamos por aqui. 🙏'
+];
+const POS_NOMES = ['andamento_trabalho_4d', 'andamento_trabalho_11d'];
+function textoPos(i, params) { return POS_TEXTOS[i].replace(/\{\{(\d)\}\}/g, (m, n) => params[parseInt(n, 10) - 1]); }
+let posRodando = false;
+const posTentativa = new Map();
+async function rodarPosPagamento() {
+  if (!pool || posRodando) return;
+  posRodando = true;
+  try {
+    if ((await cfgGet('pos_ativo', '1')) !== '1') return;
+    const h = horaBrasilia();
+    if (h < 9 || h >= 19) return;
+    const hoje = dataBR(new Date());
+    const { rows } = await pool.query("SELECT phone, client_name, opcao, comprovante_at, COALESCE(pos_enviados,0) AS enviados FROM conversations WHERE funil IN ('comprovante','questionario','pago') AND comprovante_at IS NOT NULL AND NOT COALESCE(pos_off,false) AND COALESCE(pos_enviados,0) < 2");
+    for (const r of rows) {
+      const emerg = /emergenc/.test(semAcento(r.opcao || ''));
+      const total = emerg ? 8 : 15, marcos = emerg ? [4] : [4, 11];
+      if (r.enviados >= marcos.length) continue;
+      const base = dataBR(new Date(r.comprovante_at));
+      const dec = uteisDecorridos(base, hoje), marco = marcos[r.enviados];
+      if (dec < marco) continue;
+      if (dec >= total || dec - marco > 2) { await pool.query('UPDATE conversations SET pos_enviados = $2 WHERE phone = $1', [r.phone, dec >= total ? 9 : r.enviados + 1]); continue; }
+      if (posTentativa.get(r.phone) && Date.now() - posTentativa.get(r.phone) < 3600000) continue;
+      const nome = (r.client_name || '').trim().split(' ')[0] || 'cliente';
+      const params = [nome, String(total - dec), formatoBR(somarUteis(base, total))];
+      const tpl = (await cfgGet('pos_template_' + (r.enviados + 1), '')) || POS_NOMES[r.enviados];
+      try {
+        await enviarTemplate(r.phone, tpl, params);
+        const texto = textoPos(r.enviados, params);
+        await saveMessage(r.phone, 'out', '[Template ' + tpl + '] ' + texto);
+        await crmSaida(r.phone);
+        await pool.query('UPDATE conversations SET pos_enviados = COALESCE(pos_enviados,0) + 1 WHERE phone = $1', [r.phone]);
+        await crmEvento(r.phone, 'pos_pagamento', 'Aviso ' + (r.enviados + 1) + ' de ' + marcos.length + ' (dias úteis: faltam ' + params[1] + ', entrega ' + params[2] + ')');
+      } catch (e) { posTentativa.set(r.phone, Date.now()); console.error('❌ Pós-pagamento ' + r.phone + ':', e.response?.data ? JSON.stringify(e.response.data) : e.message); }
+      await sleep(3000);
+    }
+  } catch (e) { console.error('❌ Pós-pagamento:', e.message); }
+  finally { posRodando = false; }
+}
+// Cria os 2 modelos no WhatsApp Manager (uma vez; fica aguardando aprovação da Meta)
+async function criarTemplatesPos() {
+  try {
+    if (!pool || (await cfgGet('pos_tpl_ok', '0')) === '1') return;
+    let waba = ((await cfgGet('waba_id', '')) || process.env.WABA_ID || '').trim();
+    if (!waba) {
+      const d = await axios.get('https://graph.facebook.com/v21.0/debug_token', { params: { input_token: WHATSAPP_TOKEN, access_token: WHATSAPP_TOKEN } });
+      const gs = (d.data && d.data.data && d.data.data.granular_scopes) || [];
+      const alvo = gs.find(x => x.scope === 'whatsapp_business_management') || gs.find(x => /whatsapp_business/.test(x.scope));
+      waba = alvo && alvo.target_ids && alvo.target_ids[0];
+    }
+    if (!waba) { console.error('⚠️ Modelos pós-pagamento: WABA não encontrada (defina WABA_ID).'); return; }
+    const res = [];
+    for (let i = 0; i < 2; i++) {
+      try {
+        await axios.post('https://graph.facebook.com/v21.0/' + waba + '/message_templates', {
+          name: POS_NOMES[i], language: 'pt_BR', category: 'UTILITY',
+          components: [{ type: 'BODY', text: POS_TEXTOS[i], example: { body_text: [['Maria', i === 0 ? '11' : '4', '02/12/2026']] } }]
+        }, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN } });
+        res.push(POS_NOMES[i] + ': criado');
+      } catch (e) {
+        const er = e.response && e.response.data && e.response.data.error;
+        if (er && (er.error_subcode === 2388023 || /already exist|já existe/i.test((er.error_user_msg || '') + (er.message || '')))) res.push(POS_NOMES[i] + ': já existe');
+        else { res.push(POS_NOMES[i] + ': ERRO ' + (er ? er.message + ' | ' + (er.error_user_msg || '') : e.message)); }
+      }
+    }
+    console.log('📨 Modelos pós-pagamento (WABA ' + waba + '): ' + res.join(' ; '));
+    await cfgSet('pos_tpl_status', res.join(' ; '));
+    if (res.every(x => /criado|já existe/.test(x))) await cfgSet('pos_tpl_ok', '1');
+  } catch (e) { console.error('⚠️ Modelos pós-pagamento:', e.response?.data ? JSON.stringify(e.response.data) : e.message); }
+}
+setInterval(() => { rodarPosPagamento(); }, 5 * 60 * 1000);
+setTimeout(() => { criarTemplatesPos(); }, 25000);
 
 // ─── ROTAS DO CRM ─────────────────────────────────────────────────────────────
 app.get('/painel/api/crm', async (req, res) => {
