@@ -639,6 +639,11 @@ async function enviarFoto(to, nome) {
   } else if (FOTO_TEXTO[nome]) {
     await sendMessage(to, FOTO_TEXTO[nome]);
   }
+  // A foto das formas de pagamento/parcelamento sempre vai junto com a foto dos valores (uma vez por conversa)
+  if (nome === 'valores') {
+    const ssP = sessions.get(to);
+    if (ssP && !ssP.fotoPagEnviada) { ssP.fotoPagEnviada = true; await sleep(2500); await enviarFoto(to, 'pagamento'); }
+  }
 }
 
 // ─── DELAY REALISTA ENTRE MENSAGENS ───────────────────────────────────────────
