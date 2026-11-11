@@ -2132,8 +2132,8 @@ async function rodarPosPagamento() {
 // Cria os 2 modelos no WhatsApp Manager (uma vez; fica aguardando aprovação da Meta)
 async function criarTemplatesPos() {
   try {
-    if (!pool || (await cfgGet('pos_tpl_ok', '0')) === '1') return;
-    let waba = ((await cfgGet('waba_id', '')) || process.env.WABA_ID || '1817343589260619').trim();
+    if (!pool || (await cfgGet('pos_tpl_ok2', '0')) === '1') return;
+    let waba = ((await cfgGet('waba_id', '')) || process.env.WABA_ID || '1802521334091114').trim();
     if (!waba) {
       const d = await axios.get('https://graph.facebook.com/v21.0/debug_token', { params: { input_token: WHATSAPP_TOKEN, access_token: WHATSAPP_TOKEN } });
       const gs = (d.data && d.data.data && d.data.data.granular_scopes) || [];
@@ -2157,7 +2157,7 @@ async function criarTemplatesPos() {
     }
     console.log('📨 Modelos pós-pagamento (WABA ' + waba + '): ' + res.join(' ; '));
     await cfgSet('pos_tpl_status', res.join(' ; '));
-    if (res.every(x => /criado|já existe/.test(x))) await cfgSet('pos_tpl_ok', '1');
+    if (res.every(x => /criado|já existe/.test(x))) await cfgSet('pos_tpl_ok2', '1');
   } catch (e) { console.error('⚠️ Modelos pós-pagamento:', e.response?.data ? JSON.stringify(e.response.data) : e.message); }
 }
 setInterval(() => { rodarPosPagamento(); }, 5 * 60 * 1000);
