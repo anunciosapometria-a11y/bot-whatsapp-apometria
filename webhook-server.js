@@ -1329,6 +1329,48 @@ app.post('/painel/api/conversas/:phone/pausar', async (req, res) => {
   res.json({ ok: true, pausado });
 });
 
+// Enviar áudio gravado no app (converte para OGG/Opus, formato de mensagem de voz do WhatsApp)
+app.post('/painel/api/app/audio/:phone', express.raw({ type: () => true, limit: '12mb' }), async (req, res) => {
+  const fsA = require('fs'), osA = require('os'), pathA = require('path'), { spawn } = require('child_process');
+  const phone = req.params.phone;
+  const buf = req.body;
+  if (!Buffer.isBuffer(buf) || buf.length < 500) return res.status(400).json({ erro: 'Áudio vazio.' });
+  const mime = String(req.headers['content-type'] || '');
+  const ext = /mp4|aac|m4a/.test(mime) ? 'm4a' : /ogg/.test(mime) ? 'ogg' : 'webm';
+  const idA = Date.now() + '_' + Math.random().toString(36).slice(2);
+  const inp = pathA.join(osA.tmpdir(), 'a_' + idA + '.' + ext), out = pathA.join(osA.tmpdir(), 'a_' + idA + '.out.ogg');
+  try {
+    fsA.writeFileSync(inp, buf);
+    const ffmpegBin = require('ffmpeg-static');
+    await new Promise((ok, ko) => {
+      const p = spawn(ffmpegBin, ['-y', '-i', inp, '-vn', '-c:a', 'libopus', '-b:a', '32k', '-ar', '48000', '-ac', '1', '-application', 'voip', out]);
+      let er = ''; p.stderr.on('data', x => { er += x; });
+      p.on('close', cod => cod === 0 ? ok() : ko(new Error('ffmpeg ' + cod + ' ' + er.slice(-200))));
+      p.on('error', ko);
+    });
+    const ogg = fsA.readFileSync(out);
+    const fd = new FormData();
+    fd.append('messaging_product', 'whatsapp'); fd.append('type', 'audio/ogg');
+    fd.append('file', new Blob([ogg], { type: 'audio/ogg' }), 'audio.ogg');
+    const up = await fetch('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/media', { method: 'POST', headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN }, body: fd });
+    const uj = await up.json();
+    if (!uj.id) throw new Error('upload: ' + JSON.stringify(uj));
+    await axios.post('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/messages', { messaging_product: 'whatsapp', to: phone, type: 'audio', audio: { id: uj.id } }, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN, 'Content-Type': 'application/json' } });
+    const session = getSession(phone);
+    session.pausado = true; session.pausadoEm = Date.now(); session.pausadoPor = 'humano';
+    session.history.push({ role: 'assistant', content: '[áudio enviado pela equipe]' });
+    await saveMessage(phone, 'out', '[áudio]', ogg.toString('base64'), 'audio/ogg');
+    crmSaida(phone, '[áudio]');
+    await upsertConversation(phone, session.clientName, session.stage);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ Áudio do app:', (err.response && err.response.data) ? JSON.stringify(err.response.data) : err.message);
+    res.status(500).json({ erro: err.message });
+  } finally {
+    try { fsA.unlinkSync(inp); } catch (e) {} try { fsA.unlinkSync(out); } catch (e) {}
+  }
+});
+
 // ─── APP DO CELULAR (PWA instalável, notificações push) ──────────────────────
 // Abrir no Android: https://bot-apometria-production.up.railway.app/painel/app → "Instalar app"
 const nodeCrypto = require('crypto');
@@ -1445,6 +1487,8 @@ button{font:inherit;cursor:pointer}
 .comp textarea:focus{border-color:var(--teal)}
 .env{width:48px;height:48px;border-radius:50%;border:0;background:var(--teal);color:#fff;font-size:22px;flex:none}
 .env:disabled{opacity:.45}
+.env.mic{background:#fff;color:var(--teal);border:2px solid var(--teal);font-size:20px}
+.env.cancel{background:#B5645C}
 .aviso{background:#fff4d6;color:#6b4a00;padding:10px 14px;font-size:14px;display:flex;gap:10px;align-items:center}
 .aviso button{border:0;background:var(--teal);color:#fff;border-radius:16px;padding:8px 14px;font-weight:700;flex:none}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--deep);color:#fff;padding:11px 18px;border-radius:20px;font-size:14px;z-index:9;max-width:90%;text-align:center}
@@ -1460,7 +1504,7 @@ button{font:inherit;cursor:pointer}
  <div class="cab"><button class="ib" id="vl" aria-label="Voltar">←</button><div class="av" id="cav"></div><div class="t"><b id="cnm"></b><span id="ctl"></span></div></div>
  <div class="modo v" id="md"><span id="mdt"></span><button id="mdb"></button></div>
  <div id="msgs"></div>
- <div class="comp"><textarea id="tx" rows="1" placeholder="Escreva uma mensagem"></textarea><button class="env" id="en" aria-label="Enviar">➤</button></div>
+ <div class="comp"><textarea id="tx" rows="1" placeholder="Escreva uma mensagem"></textarea><button class="env mic" id="mic" aria-label="Gravar áudio">🎤</button><button class="env" id="en" aria-label="Enviar">➤</button><div id="rec" style="display:none;flex:1;align-items:center;gap:10px"><button class="env cancel" id="rc" aria-label="Cancelar">✕</button><span id="rt" style="flex:1;font-weight:700;color:#B5645C;font-size:18px">● 0:00</span><button class="env" id="rs" aria-label="Enviar áudio">➤</button></div></div>
 </div>
 <script>
 (function(){
@@ -1524,6 +1568,24 @@ window.addEventListener('popstate',function(){if(!location.hash&&atual)fecha();e
 document.querySelectorAll('.aba').forEach(function(b){b.onclick=function(){document.querySelectorAll('.aba').forEach(function(x){x.classList.remove('on')});b.classList.add('on');filtro=b.getAttribute('data-f');desenhaLista()}});
 $('q').oninput=function(){busca=this.value;desenhaLista()};
 $('br').onclick=function(){carregaLista().then(function(){toast('Atualizado')})};
+var mr=null,chunks=[],tmr=null,t0=0,cancelaRec=false;
+function recUi(on){$('rec').style.display=on?'flex':'none';$('tx').style.display=on?'none':'';$('mic').style.display=on?'none':'';$('en').style.display=on?'none':''}
+function recTempo(){var s=Math.floor((Date.now()-t0)/1000);$('rt').textContent='● '+Math.floor(s/60)+':'+('0'+(s%60)).slice(-2)}
+$('mic').onclick=function(){
+ if(!navigator.mediaDevices||!window.MediaRecorder){toast('Este celular não permite gravar áudio no app.');return}
+ navigator.mediaDevices.getUserMedia({audio:true}).then(function(st){
+  var tipos=['audio/webm;codecs=opus','audio/mp4','audio/webm'],mt='';
+  for(var i=0;i<tipos.length;i++){if(MediaRecorder.isTypeSupported(tipos[i])){mt=tipos[i];break}}
+  mr=mt?new MediaRecorder(st,{mimeType:mt}):new MediaRecorder(st);chunks=[];cancelaRec=false;
+  mr.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
+  mr.onstop=function(){st.getTracks().forEach(function(t){t.stop()});clearInterval(tmr);recUi(false);var tipo=(mr.mimeType||mt||'audio/webm');if(cancelaRec||!chunks.length||Date.now()-t0<700)return;enviaAudio(new Blob(chunks,{type:tipo}))};
+  mr.start();t0=Date.now();recTempo();tmr=setInterval(recTempo,500);recUi(true);
+ }).catch(function(){toast('Permita o microfone para gravar áudio.')})};
+$('rc').onclick=function(){cancelaRec=true;if(mr&&mr.state!=='inactive')mr.stop()};
+$('rs').onclick=function(){if(mr&&mr.state!=='inactive')mr.stop()};
+function enviaAudio(blob){
+ var p=atual;toast('Enviando áudio…');
+ fetch('/painel/api/app/audio/'+p,{method:'POST',credentials:'include',headers:{'Content-Type':blob.type.split(';')[0]},body:blob}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(){modo(true);if(atual===p)return api('/painel/api/app/conversa/'+p+'?depois='+ultimoId).then(function(dd){adiciona(dd.mensagens,false)})}).catch(function(){toast('Áudio não enviado. Tente de novo.')})}
 $('mdb').onclick=function(){var p=!pausadoAtual;api('/painel/api/conversas/'+atual+'/pausar',{method:'POST',body:{pausado:p}}).then(function(){modo(p);toast(p?'Você assumiu a conversa':'Bot reativado')}).catch(function(){toast('Não consegui trocar. Tente de novo.')})};
 var tx=$('tx');tx.oninput=function(){tx.style.height='auto';tx.style.height=Math.min(120,tx.scrollHeight)+'px'};
 function envia(){var t=tx.value.trim();if(!t||!atual)return;$('en').disabled=true;
