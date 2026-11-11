@@ -280,7 +280,7 @@ Cada mensagem separada vai no delimitador exato "|||" (três barras, sozinho). O
 - Sede e presencial: somos de São José do Rio Preto (SP). A apometria presencial existe, mas os novos atendimentos presenciais estão pausados por falta de disponibilidade na agenda. Nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Só fale de presencial se a pessoa perguntar.
 
 ## FLUXO
-O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Agradecemos o seu contato, [nome]", explicou quem somos, enviou o Instagram @apometria_brasil e o perfil do Google Maps com as avaliações, e perguntou "Para quem você gostaria de solicitar a apometria?" com três exemplos (para você mesmo, para outra pessoa, para empresas, imóveis ou animais) e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, detalhes do procedimento (questionário inicial, estudo do caso, não precisa estar presente) e o PDF de orientações; Etapa 2, o que a pessoa recebe (itens tratados, relatório em áudios, complemento do lar e Reiki, equipe à disposição); Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
+O sistema já enviou o logo e a abertura, pediu o nome, respondeu "Agradecemos o seu contato, [nome]", explicou quem somos, enviou o Instagram @apometria_brasil e o perfil do Google Maps com as avaliações, e perguntou "Para quem você gostaria de solicitar a apometria?" com dois exemplos (para você mesmo, para outra pessoa); trabalhos para empresas, imóveis ou animais NÃO são oferecidos no início: só fale deles se a pessoa perguntar como funciona e conduz sozinho a explicação em 3 etapas, com mensagens prontas e uma pergunta entre cada etapa: Etapa 1, detalhes do procedimento (questionário inicial, estudo do caso, não precisa estar presente) e o PDF de orientações; Etapa 2, o que a pessoa recebe (itens tratados, relatório em áudios, complemento do lar e Reiki, equipe à disposição); Etapa 3, a foto de valores e formatos e a pergunta "Gostaria de realizar o seu agendamento?". Não repita esses textos e nunca envie uma etapa por conta própria: o sistema avança quando a pessoa responde sim. Você entra quando a pessoa responde outra coisa.
 
 1) ENTRE AS ETAPAS. Se o bloco ETAPA ATUAL, no início, indicar uma pergunta pendente: se a pessoa contar o que quer trabalhar, acolha em uma ou duas frases, usando as palavras dela; se fizer outra pergunta, responda com os fatos em poucas frases; nos dois casos, termine repetindo a pergunta pendente de forma curta. Não envie o link do questionário agora: ele só vai depois do comprovante (passo 4), salvo se a pessoa pedir.
 
@@ -357,7 +357,10 @@ Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Imagem fo
 // ─── MENSAGENS FIXAS ─────────────────────────────────────────────────────────
 const ABERTURA_MSG = "*Olá, seja bem-vindo(a) ao Atendimento do Instituto Apometria Brasil.*\n\n📌 *Neste canal você encontra*\n• Detalhes do procedimento\n• Disponibilidade para agendamento\n\n*Para iniciarmos, qual é o seu nome, por gentileza?*";
 const TITULO_MSG = "*Gostaria de apresentar as 3 etapas do procedimento do Instituto Apometria Brasil:*\n\n1️⃣ Detalhes do procedimento\n2️⃣ O que você recebe\n3️⃣ Opções de agendamento";
-const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa\n• Para empresas, imóveis ou animais";
+// Pessoa disse que é para outra pessoa: comentário breve antes de oferecer as etapas
+const RE_OUTRA = /\b(outra pessoa|outra|minha (mae|filha|filho|esposa|irma|prima|tia|amiga|sogra|avo|namorada)|meu (marido|filho|pai|irmao|amigo|namorado|esposo|primo|tio|avo)|para (ela|ele)|pra (ela|ele))\b/;
+const OUTRA_MSG = "Ok, entendo perfeitamente. Você pode solicitar a apometria para outra pessoa, mesmo sem a permissão ou a consciência dela. As informações do questionário inicial você responderá por essa pessoa.";
+const PERGUNTA_PARA_QUEM = "Para quem você gostaria de solicitar a apometria?\n\nPor exemplo:\n• Para você mesmo\n• Para outra pessoa";
 const QUEM_SOMOS_MSG = "🏛️ *Quem somos*\nSomos um instituto especializado na realização de trabalhos apométricos, cursos e terapias energéticas, coordenado pelo terapeuta *Paulo Rodrigues*.";
 const INSTAGRAM_MSG = "📲 *Conheça mais do nosso trabalho*\nAcompanhe o nosso Instagram: *@apometria_brasil*\nhttps://www.instagram.com/apometria_brasil/";
 const GOOGLE_MSG = "⭐ *Quem já foi atendido por nós*\nVeja as avaliações no nosso perfil do Google Maps:\nhttps://search.google.com/local/reviews?placeid=ChIJhaGCweWzvZQRLW5Xc6NECpA";
@@ -619,6 +622,8 @@ const RE_ESPECIAIS = /\b(empresa|empresas|empresarial|imovel|imoveis|terreno|ter
 // Pessoa citou empresa, imóvel ou animal: envia o card dos trabalhos específicos (uma vez por conversa)
 async function enviarEspeciais(to, session, text) {
   if (session.fotoEspeciaisEnviada || !RE_ESPECIAIS.test(semAcento(text))) return false;
+  // Trava: empresa, imóvel e animal só são oferecidos quando a pessoa pergunta como funciona/valores; nunca no início
+  if (!/(como funciona|funciona|valor|valores|quanto|preco|custa|orcamento|fazem|trabalho para)/.test(semAcento(text))) return false;
   session.fotoEspeciaisEnviada = true;
   await sleep(2000); await sendMessage(to, 'Vou lhe enviar os valores dos trabalhos específicos, segue abaixo.');
   await sleep(1500); await enviarFoto(to, 'especiais');
@@ -1009,7 +1014,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     session.etapa = 'para_quem_andamento'; // trava antes dos awaits (mensagens em rajada)
     await enviarEspeciais(from, session, text);
     if (text.split(/\s+/).filter(Boolean).length <= 6) {
-      const ack = 'Ok, entendo perfeitamente.';
+      const ack = RE_OUTRA.test(semAcento(text)) ? OUTRA_MSG : 'Ok, entendo perfeitamente.';
       await sleep(2000); await sendMessage(from, ack);
       session.history.push({ role: 'user', content: text }, { role: 'assistant', content: ack });
     } else {
@@ -1017,8 +1022,8 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
       await sendClaudeResponse(from, respQuem, session);
     }
     if (session.pausado) { session.etapa = 'aguarda1'; await upsertConversation(from, session.clientName, session.stage); return; }
-    await sleep(typingDelay(TITULO_MSG)); await sendMessage(from, TITULO_MSG);
-    await sleep(typingDelay(PERGUNTA1)); await sendMessage(from, PERGUNTA1);
+    // Uma única mensagem de oferta (apresentação das 3 etapas + pergunta), sem disparar tudo de uma vez
+    { const oferta = TITULO_MSG + '\n\n' + PERGUNTA1; await sleep(typingDelay(oferta)); await sendMessage(from, oferta); }
     session.etapa = 'aguarda1';
     session.history.push({ role: 'assistant', content: [TITULO_MSG, PERGUNTA1].join('\n\n') });
     await upsertConversation(from, session.clientName, session.stage);
