@@ -2190,10 +2190,10 @@ const FUNIL_ROTULO = {
   comprovante: 'Comprovante recebido', questionario: 'Questionário respondido', pago: 'Pago / confirmado',
   paulo: 'Com o Paulo', sem_resposta: 'Sem resposta', perdido: 'Perdido'
 };
-const FOLLOWUP_HORAS = [1, 18, 52]; // horas desde a última mensagem da pessoa (1º em 1 h; 2º antes de fechar a janela de 24 h)
+const FOLLOWUP_HORAS = [1, 10, 52]; // horas desde a última mensagem da pessoa (1º em 1 h; 2º em 10 h, sempre dentro da janela de 24 h mesmo esperando o horário das 8h às 20h)
 const FOLLOWUP_PADRAO = [
   'Olá, {nome}! Passando para ver se ficou alguma dúvida sobre a apometria. Podemos continuar de onde paramos, no seu tempo. 🙏',
-  '{nome}, tudo bem? Seguimos à disposição por aqui. Se quiser retomar de onde paramos ou tirar alguma dúvida, é só responder esta mensagem.',
+  '{nome}, tudo bem? Enquanto isso, você pode conhecer mais do nosso trabalho:\n\n⭐ Avaliações de quem já foi atendido, no Google Maps:\nhttps://search.google.com/local/reviews?placeid=ChIJhaGCweWzvZQRLW5Xc6NECpA\n\n📲 Nosso Instagram: @apometria_brasil\nhttps://www.instagram.com/apometria_brasil/\n\nSe quiser retomar de onde paramos ou tirar alguma dúvida, é só responder esta mensagem. 🙏',
   '{nome}, esta é a nossa última mensagem por aqui, para não incomodar. Se em algum momento sentir que é hora de cuidar disso, é só nos chamar. Estaremos à disposição. 🙏'
 ];
 
@@ -2376,7 +2376,7 @@ function horaBrasilia() {
   return parseInt(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date()), 10);
 }
 async function followupTextos() {
-  try { const t = JSON.parse(await cfgGet('followup_textos', 'null')); if (Array.isArray(t) && t.length === 3) return t; } catch (e) {}
+  try { const t = JSON.parse(await cfgGet('followup_textos', 'null')); if (Array.isArray(t) && t.length === 3) { if (!/google\.com|instagram\.com/.test(t[1])) t[1] = FOLLOWUP_PADRAO[1]; return t; } } catch (e) {}
   return FOLLOWUP_PADRAO;
 }
 let followupRodando = false;
@@ -2399,7 +2399,7 @@ async function rodarFollowups() {
       if (sess && sess.pausado) continue;
       const horasSilencio = (Date.now() - new Date(r.last_in_at).getTime()) / 3600000;
       if (horasSilencio < FOLLOWUP_HORAS[r.followups_sent]) continue;
-      if (r.last_followup_at && Date.now() - new Date(r.last_followup_at).getTime() < 3600000) continue;
+      if (r.last_followup_at && Date.now() - new Date(r.last_followup_at).getTime() < 4 * 3600000) continue; // intervalo mínimo entre follow-ups
       const passo = r.followups_sent;
       const nome = (r.client_name || '').split(' ')[0];
       const texto = textos[passo].replace(/\{nome\}/g, nome || 'tudo bem').replace('Olá, tudo bem!', 'Olá!').replace(/^tudo bem, tudo bem\?/, 'Tudo bem?');
