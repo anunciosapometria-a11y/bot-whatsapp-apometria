@@ -1432,7 +1432,10 @@ app.post('/webhook', async (req, res) => {
       for (const change of entry.changes || []) {
         const value = change.value;
         for (const st of value?.statuses || []) {
-          if (st.status === 'delivered' || st.status === 'read' || st.status === 'failed') marcarEntrega(st.id);
+          if (st.status === 'failed') {
+            const er = (st.errors && st.errors[0]) || {};
+            console.log(`❌ FALHA DE ENTREGA para ${st.recipient_id}: código ${er.code} - ${er.title || ''} ${er.message || ''} ${(er.error_data && er.error_data.details) || ''}`.slice(0, 600));
+          } else if (st.status === 'delivered' || st.status === 'read') marcarEntrega(st.id);
         }
         if (!value?.messages) continue;
 
