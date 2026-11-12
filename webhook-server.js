@@ -1041,6 +1041,179 @@ function setPausado(phone, pausado) {
   return session;
 }
 
+// ─── MODO NATURAL (atendimento no estilo do Paulo, sem menus) ─────────────────
+// Ligado por configuração: modo_bot = 'natural' (todos) ou natural_fones = lista de números de teste.
+const NAT_SAUDACAO = 'Olá, seja bem-vinda(o). Sou Paulo Rodrigues, especialista em apometria. O que você gostaria de trabalhar na sessão?';
+const NAT_SAUDACAO_CURTA = 'Olá, seja bem-vinda(o). Sou Paulo Rodrigues, especialista em apometria.';
+const NAT_INFORMATIVO = "*Como é realizado o trabalho e como o tratamento funciona -*\n\n📖 Primeiramente é feito um relatório inicial (cerca de 15 a 20 minutos) com perguntas sobre o seu caso, dos seus estados físicos, mentais, espiritual, emocional e quais outras questões você deseja que seja trabalhado. Após colher as suas queixas faço um estudo profundo para trabalhar da melhor maneira no seu caso. Peço 2 dias úteis para fazer essa analise e deixar seu relatório inicial o melhor possível para realizar o trabalho e assim aproveita-lo ao máximo.\n\n\n✨ Não há a necessidade de você estar presente ou assistir o trabalho, pois não acrescenta e nem influencia na eficiência ou nos resultados. O mesmo é feito por ligação do caso, nome, endereço, data de nascimento, entre dados que serão colhidos no relatório inicial. Após o trabalho te envio o relatório completo da sessão com grande nível de detalhes.\n\n\n📅 No dia da realização do trabalho, você pode ter sua rotina normal, de trabalho, estudo ou outra atividade à qual tenha que se dedicar.\n\n\n📑 Trabalho com suas personalidades múltiplas, vidas passadas, obsessores, quebra de trabalhos/magias, sub personalidades, entidades, além de todas a ferramentas a disposição na mesa, para fatos que venham aparecer durante a realização do trabalho que possam ser captadas ou visualizadas através da minha sensibilidade.\n\n\n✨ O tratamento é feito totalmente a distância, através do seu nome, caso e endereço é feita a abertura do duplo etérico e dos corpos fluídicos e a conexão com o seu Eu divino, sua personalidade e psiquismo.\n\n\n🗓️ O trabalho todo e relatório final é concluído e enviado em até no máximo 15 dias úteis.\n\n\n🗒️ Faço um relatório detalhado e minucioso no final do trabalho através de áudios, explicando todos os aspectos que foram trabalhados e encontrados durante a realização, além de mensagens ou conselhos deixados para você através das equipes espirituais.\n\n\n🧘 Em alguns casos através de minha experiência envio dicas e exercícios específicos para que a própria pessoa dê continuidade ao seu processo de tratamento, cultivando assim uma atmosfera energética e espiritual sadia durante a sua jornada.\n\n\n❕ Sempre aproveito a oportunidade para na *primeira* realização de apometria, também realizar *gratuitamente* a limpeza energética do lar e envio de Reiki à distância. Estas atividades ficam como *bônus* de atendimento 👍\n\n\n📳 Fico a sua disposição para acolhimento pessoal após a realização do tratamento, para dúvidas que possam surgir, de forma gratuita.\n\n\n🔂 Você pode ter a experiência e colher os benefícios e resultados de uma única sessão de apometria, ou optar por trabalhos periódicos mensais para continuar o processo de cura e as limpezas energéticas e espirituais constantes.\n\n\n✨ Como trabalho com agendamentos dou prioridade as pessoas que realizaram a *confirmação* através do pagamento, para a realização do trabalho o mais rápido possível, comportando possibilidade de encaixe em casos de urgência.\n\n\n✔️ Havendo oportunidade de antecipação, eu aviso e adiantamos o dia!";
+const NAT_PAGAMENTO = "*Sobre o Pagamento*\n\n\n Valor à vista:\n✅ *R$289,00* (15 dias úteis)\n(Pix / Transferência /Depósito/2x sem juros no cartão)\n\n\n*Emergencial* (Realização em até 08 dias úteis) : *R$ 339,00* (Pix / Transferência / Depósito/2x sem juros no cartão)\n\n\n*Pacote* A partir de 4x sessões de apometria individuais ou para a família\n✅ *R$200,00* cada trabalho.     (Pix / Transferência /Depósito/4x sem juros no cartão)\n\n\n*OBS:* 👉 O pagamento funciona como a confirmação do agendamento e para a realização do trabalho.\n\n______\n\nPara pagamento:\n\n\n\n👉 Solicite o Pix ou Link para pagamento via cartão.\n\n_____";
+const NAT_PIX = v => "Chave pix celular: 17988271998\n\n*Informações adicionais*\nNome: Paulo Cesar Rodrigues.\nBanco: Nubank\n\nValor " + v + "\n\nAssim que fizer me mande o comprovante para que eu possa dar baixa em minha contabilidade, realizar o envio do questionário inicial e demais instruções. Grato 🙏.";
+const NAT_QUEST = "Agora vou lhe enviar o nosso questionário para darmos início ao relatório inicial.\n\nSão perguntas sobre você, os objetivos e outras informações necessárias para a realização do trabalho.\n\nLembrando: Caso precise adicionar ou explicar alguma situação através de áudios, basta fazer o envio aqui em nossa conversa e eu irei adicionar manualmente em sua ficha.\n\nAs informações por escrito são importantes para elaborarmos o trabalho da melhor maneira.\n\nFique a vontade para responder no seu tempo e sem pressa.";
+const NAT_QUEST_LINK = 'https://apometriabrasil.com.br/questionario-inicial/';
+const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e assuntos específicos ligados a esses padrões que se repetem em sua vida, também para os problemas que surgiram no seu corpo físico. A apometria age também principalmente no quesito de investigar, identificar e corrigir diversas situações espirituais/energéticas que estão interligadas a totalidade do seu ser e que tem o poder de influênciar negativamente em diversos aspectos de sua vida que estão desencadeando esses problemas, liberando bloqueios nos acontecimentos prósperos, travas e situações negativas que estão fazendo parte da sua vida.\nNesse caso é feito um trabalho direcionado para leitura e investigação de quais quer tipos de bloqueios nesse sentido que estão fazendo parte da sua vida, buscando e rastreando onde estão as raízes dessas ligações e então é feito as devidas desconexões com a finalidade de liberá-las, encerrando essas conexões, impedindo que isso continue te trazendo esses malefícios e muitas vezes aquela sensação de estar vivendo em um ciclo repetitivo sem fim dos mesmos problemas ou patinando no mesmo lugar.\nBuscamos também para essa finalidade, trazer mensagens dos mentores espirituais direcionadas a você, que servem de esclarecimentos e consciência situacional da sua situação energética momentanea, isso é de grande ajuda para o autoconhecimento e saber como prosseguir diante desses acontecimentos em sua vida, respondendo diversas dúvidas e definindo melhor um \"norte\" em seu caminho.\nÉ muito comum casos que chegam até nós, onde irão ser feitas essa investigação, limpezas e liberação desses bloqueios profundos dessas conexões, também estarem ligados a entidades obsessoras que realizam manipulações e influênciações em sua vida. Fazem isso por diversos motivos que são melhores investigados no trabalho, existe também a possibilidade de ligações com a ancestralidade, antepassados, algum trabalho de magia lançado contra você, maldições familiares, situações carmicas, traumas e crenças limitantes do passado, personalidades multiplas proveniente de outras vidas, essas situações podem estar se manifestando nesse momento da sua vida e podem causar uma série de efeitos negativos.\nNós fazemos o resgate dessas entidades obsessoras e os levamos para socorro no astral, além disso é feito uma reprogramação energética através de um alinhamento de sua vibração em sintonia com a prosperidade e abundância, limpeza profunda no corpo astral, como medida direta para a cura, são feitos os processos de cura no corpo astral através dos mentores espirituais nos hospitais socorristas (popularmente conhecido como cirurgias astrais) harmonização dos níveis energéticos e dos chacras, é um trabalho espiritual e energético bem completo/esclaredor em todos os sentidos! O trabalho que realizamos é feito nos mínimos detalhes e de forma minuciosa, totalmente voltado e elaborado para sua individualidade e objetivos principais. Principalmente se for o seu primeiro contato com a apometria, é algo realmente impactante e revelador.";
+
+function natPrompt(session) {
+  const h = parseInt(new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }).format(new Date()), 10);
+  const periodo = h < 12 ? 'bom dia' : h < 18 ? 'boa tarde' : 'boa noite';
+  return `Você escreve as respostas do WhatsApp do Paulo Rodrigues, especialista em apometria, EXATAMENTE no jeito que ele escreve. Agora é "${periodo}".
+
+FORMATO DA SAÍDA
+- Cada balão do WhatsApp é separado por "|||". Balões de conversa são curtos (1 a 3 frases).
+- Comece um balão com [[CITAR]] quando ele responde a uma pergunta específica da pessoa (o balão sai como resposta à mensagem dela).
+- Blocos prontos (o sistema cola o texto oficial; nunca reescreva): [[INFORMATIVO]] (como funciona + valores), [[PIX: 289,00 - Sessão de Apometria]] (dados para pagamento; escreva depois dos dois pontos o valor e a opção escolhida), [[QUESTIONARIO]] (texto e link do questionário), [[PAUSAR]] (passa a conversa para o atendimento humano).
+- Nunca use travessão, listas com marcadores, negrito, nem linguagem de robô ou de vendedor. Sem "Claro!", "Com certeza!", "Fico à disposição para o que precisar". Emojis: só 🙏 ou 👇, raramente.
+
+JEITO DE ESCREVER DO PAULO
+- Usa "lhe", "Grato", "gratidão", começa respostas com "Ok," ou "Sim,". Chama pelo primeiro nome ou apelido que a pessoa usa. Se não souber o nome, não usa nome e não pergunta.
+- Cumprimento em balão separado: "Oi Claudia, ${periodo}. Tudo bem?" / "Olá, ${periodo} Fabi. Tudo bem?" (só uma vez por dia de conversa).
+- Fala em primeira pessoa ("faço", "envio", "minha equipe"); a equipe tem 4 médiuns sensitivos contando com ele, que é o coordenador e dirigente.
+
+CAMINHO DA CONVERSA (siga a ordem, um passo por vez; a saudação inicial o sistema já enviou)
+1) A pessoa contou o que quer trabalhar: responda em TRÊS balões:
+   a) cumprimento (se ainda não cumprimentou hoje) e "Ok, entendo perfeitamente essa situação. Vou lhe explicar tudo o que podemos realizar através da Apometria e as possibilidades nesse caso."
+   b) o TEXTO DE ENCAIXE: copie o modelo abaixo inteiro, mesma ordem e mesmas frases, trocando só: o nome; o trecho inicial depois de "em diversos campos de sua vida e" pelos assuntos que a pessoa relatou, com as palavras dela (ex.: "para questões específicas relacionadas as bagagens carmicas que ainda refletem nessa vida, rejeições, traumas, crenças e dificuldades em ter um relacionamento estável/duradouro"); e pequenos ajustes ao caso (a frase sobre "problemas que surgiram no seu corpo físico" só entra se a pessoa falou de saúde; "prosperidade e abundância" quando o tema é financeiro, senão "frequências elevadas, proteção do campo"; se falou de magia/feitiço, cite "trabalho de feitiço lançado contra você como comentamos anteriormente"). Se o trabalho for para outra pessoa, escreva em terceira pessoa ("na vida dele", "direcionadas a ela"). Sem nome conhecido, comece "Olha a apometria se encaixa...". O texto termina em "impactante e revelador."
+   c) "Assim que ler me mande um OK para que eu possa lhe enviar o material com todos os detalhes do procedimento e as opções. Grato."
+   MODELO DO TEXTO DE ENCAIXE:
+"""${NAT_ENCAIXE_EX}"""
+2) A pessoa só cumprimentou, respondeu vago ("tudo", "todos que possível") ou não disse o que quer trabalhar: "Tudo bem também, grato!" (se ela perguntou) ||| "Gostaria de trabalhar algum campo específico através da Apometria? Assim posso adequar melhor a minha resposta e lhe indicar as melhores opções." Se continuar vago ("tudo", "quero saber tudo"), siga o passo 1 com o texto de encaixe em forma geral.
+3) Depois do texto de encaixe, se a pessoa reagir ("nossa", "me identifiquei"): "Fico feliz que tenha se identificado [Nome]. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você."
+4) A pessoa mandou OK, pediu valor, preço, como funciona ou formas de pagamento: "Ok [Nome]. Vou lhe enviar o informativo de como funciona todo o procedimento com detalhes e as opções de agendamento. Segue abaixo 👇" ||| [[INFORMATIVO]]. Se ela pedir o valor ANTES do texto de encaixe e já contou o caso, envie primeiro o passo 1 e avise que logo em seguida vai o informativo; se insistir, envie o informativo. Nunca envie o informativo duas vezes; se já enviou, responda a dúvida de forma curta.
+5) Dúvidas depois do informativo: resposta curta, com [[CITAR]], nos moldes:
+   - "O emergencial é só depois de 8 dias úteis?" → "[Nome], caso você escolha a opção emergencial, o trabalho todo é realizado e concluído dentro do prazo de 08 dias úteis."
+   - "Recebe áudio da realização?" → "Sim, após a conclusão você vai receber um relatório detalhado que envio através de audios com tudo o que foi trabalhado, investigado e tratado em sua sessão."
+   - "É só você ou tem várias pessoas?" → "Somos uma equipe de 4 médiuns sensitivos contando comigo, sendo eu também o coordenador e dirigente da sessão."
+   - "Preciso pagar antes de receber o questionário?" → "Sim, isso mesmo, após a sua confirmação do pagamento, daremos início as etapas do trabalho e o questionário faz parte da primeira etapa."
+   - "É feito através de médium? / à distância? / de onde são?" → "Somos de São José do Rio Preto-SP, apesar de também realizarmos a apometria presencial, nossos trabalhos são realizados em sua grande maioria a distância e para todo o Brasil e exterior. Para esse tipo de trabalho não tem a necessidade do consulente estar presente, uma vez que a conexão com o corpo astral é feita através de diversas informações que colhemos em nosso questionário inicial, minha sensibilidade como médium e também através do auxilio dos mentores espirituais presentes na sessão e para estes a barreira de espaço não tem nenhuma representatividade."
+   - "Posso saber o dia e a hora?" → não recomendamos que a pessoa saiba o dia e a hora, pois possíveis entidades obsessoras também se preparam contra o trabalho; ao final do prazo o relatório e todas as etapas estarão concluídas.
+   - Depoimentos / é confiável? → "Veja alguns dos depoimentos em nosso instagram" ||| https://www.instagram.com/apometria_brasil/
+   - Vou sentir diferença após a primeira sessão? → a maioria relata leveza e clareza já nos primeiros dias; sem prometer resultado.
+6) Pediu desconto: "[Nome] o que podemos fazer para você e lhe ajudar é realizar a sessão emergencial pelo valor da sessão normal. Esse é o valor mínimo que conseguimos devido a natureza desse trabalho que demanda um grande tempo e empenho da equipe." Não ofereça desconto sem a pessoa pedir e nunca abaixo disso.
+7) Decidiu fazer / pediu o Pix: "Ok, combinado [Nome]! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" ||| [[PIX: valor - opção]]. Valores: Sessão de Apometria 289,00 (15 dias úteis); Sessão de Apometria Emergencial 339,00 (08 dias úteis; 289,00 se você concedeu o desconto do passo 6); Pacote 4 sessões 800,00. Se ela não disse qual opção, pergunte antes: "Qual opção você gostaria?". Pagamento no cartão, boleto ou link: "Ok! Vou gerar para você e já lhe envio." ||| [[PAUSAR]]
+8) Enviou o comprovante (o sistema avisa "[cliente enviou imagem/documento]"): "Ok, gratidão [Nome]. Vou lhe explicar como prosseguiremos." ||| [[QUESTIONARIO]]
+9) Disse que vai pensar / ver depois / sem dinheiro agora: resposta curta e respeitosa ("Ok [Nome], sem problemas. Fico a disposição. Grato 🙏"), sem insistir.
+
+LIMITES
+- Não invente informações, prazos, valores ou promessas que não estejam aqui. Não prometa cura nem resultado; não diga para parar tratamento médico ou remédios.
+- Se perguntarem se é robô, atendimento automático ou IA: não negue. Responda "Este é o atendimento da equipe do Paulo. Vou pedir para ele lhe responder pessoalmente por aqui." ||| [[PAUSAR]]
+- Pessoa já cliente perguntando do andamento, reclamação, pedido de ligação, assunto fora do que está aqui ou dúvida que você não sabe: "Ok [Nome], vou verificar e já lhe retorno. 🙏" ||| [[PAUSAR]]
+- Responda só ao que falta responder; não repita balões já enviados na conversa.${session && session.clientName ? '\n\nNome da pessoa: ' + session.clientName : ''}${NAT_EXTRA ? '\n\nEXEMPLOS E ORIENTAÇÕES ADICIONAIS DO PAULO (seguir):\n' + NAT_EXTRA : ''}`;
+}
+let NAT_EXTRA = '';
+let natCfg = { modo: '', fones: [], vel: 1, em: 0 };
+async function natAtivo(phone) {
+  if (Date.now() - natCfg.em > 30000) {
+    natCfg = { modo: process.env.MODO_BOT || await cfgGet('modo_bot', ''), fones: String(await cfgGet('natural_fones', '') || '').split(/[\s,;]+/).map(x => x.replace(/\D/g, '')).filter(Boolean), vel: parseFloat(process.env.NAT_VEL || await cfgGet('nat_vel', '1')) || 1, em: Date.now() };
+    NAT_EXTRA = String(await cfgGet('nat_exemplos', '') || '').slice(0, 12000);
+  }
+  return natCfg.modo === 'natural' || natCfg.fones.includes(String(phone).replace(/\D/g, ''));
+}
+const natRand = (a, b) => Math.round((a + Math.random() * (b - a)) * natCfg.vel);
+// Marca a mensagem como lida e mostra "digitando..." (dura até 25 s na API oficial)
+async function natDigitando(session, comDigitando) {
+  if (!session || !session.ultimoId) return;
+  try {
+    await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
+      { messaging_product: 'whatsapp', status: 'read', message_id: session.ultimoId, ...(comDigitando ? { typing_indicator: { type: 'text' } } : {}) },
+      { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+  } catch (e) { console.warn('⚠️ digitando/lida: ' + (e.response?.data?.error?.message || e.message)); }
+}
+// Espera 'ms' mostrando "digitando..." nos últimos segundos (renova a cada 20 s)
+async function natEsperaDigitando(session, ms) {
+  const mostrar = Math.min(ms, 60000 * natCfg.vel);
+  if (ms > mostrar) await sleep(ms - mostrar);
+  let resta = mostrar;
+  while (resta > 0) { await natDigitando(session, true); const p = Math.min(resta, 20000); await sleep(p); resta -= p; }
+}
+function natTempoDigitar(t) { return Math.min(Math.max(t.length * 70, 3000), 45000) * natCfg.vel; }
+async function natEnviar(to, session, bruto) {
+  const pausar = /\[\[PAUSAR\]\]/.test(bruto);
+  const partes = bruto.replace(/\[\[PAUSAR\]\]/g, '').split('|||').map(p => p.trim()).filter(Boolean).slice(0, 8);
+  const nat = session.nat;
+  let primeiro = true;
+  for (let p of partes) {
+    const citar = /^\[\[CITAR\]\]/.test(p); p = p.replace(/\[\[CITAR\]\]/g, '').trim();
+    const blocos = [];
+    if (/\[\[INFORMATIVO\]\]/.test(p)) {
+      const resto = p.replace(/\[\[INFORMATIVO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
+      if (!nat.info) { nat.info = Date.now(); session.viuValores = true; blocos.push({ t: NAT_INFORMATIVO, colado: true }, { t: NAT_PAGAMENTO, colado: true }); }
+    } else if (/\[\[PIX:([^\]]*)\]\]/.test(p)) {
+      const v = p.match(/\[\[PIX:([^\]]*)\]\]/)[1].trim() || '289,00 - Sessão de Apometria';
+      const resto = p.replace(/\[\[PIX:[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
+      nat.pix = Date.now(); blocos.push({ t: NAT_PIX(v), colado: true });
+      crmAlertar('pix_solicitado', to, 'Chave Pix enviada (' + v + ').', session.clientName).catch(() => {});
+    } else if (/\[\[QUESTIONARIO\]\]/.test(p)) {
+      const resto = p.replace(/\[\[QUESTIONARIO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
+      if (!nat.quest) { nat.quest = Date.now(); blocos.push({ t: NAT_QUEST, colado: true }, { t: NAT_QUEST_LINK, colado: true }); }
+    } else if (p.replace(/\[\[[^\]]*\]\]/g, '').trim()) blocos.push({ t: p.replace(/\[\[[^\]]*\]\]/g, '').trim() });
+    for (const b of blocos) {
+      // texto colado sai rápido; texto longo "escrito na hora" (encaixe) demora alguns minutos; balão curto, o tempo de digitar
+      const ms = b.colado ? natRand(6000, 14000) : b.t.length > 900 ? natRand(180000, 420000) : natTempoDigitar(b.t) + (primeiro ? 0 : natRand(1500, 5000));
+      await natEsperaDigitando(session, ms);
+      if (citar && session.ultimoId && session.digitou) session.citarId = session.ultimoId;
+      await sendMessage(to, b.t);
+      session.citarId = null; primeiro = false;
+    }
+  }
+  if (pausar) await pausarEAvisar(to, session, 'modo natural: passou para o atendimento humano');
+}
+async function natClaude(session, userMessage) {
+  session.history.push({ role: 'user', content: userMessage });
+  if (session.history.length > 30) session.history = session.history.slice(-30);
+  while (session.history.length && session.history[0].role !== 'user') session.history.shift();
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    try {
+      const r = await anthropic.messages.create({ model: process.env.NAT_MODEL || 'claude-haiku-4-5-20251001', max_tokens: 2500, system: natPrompt(session) + (session.ctxCliente ? '\n\n' + session.ctxCliente : ''), messages: session.history });
+      const t = (r.content && r.content[0] && r.content[0].text || '').trim();
+      if (t) { session.history.push({ role: 'assistant', content: t }); return t; }
+    } catch (err) { console.error('❌ Claude (natural, tentativa ' + tentativa + '):', err.message); if (tentativa === 1) await sleep(2000); }
+  }
+  session.history.pop();
+  return null;
+}
+// Retorna true se tratou a mensagem
+async function natFluxo(from, text, session, mediaInfo) {
+  session.nat = session.nat || {};
+  const nat = session.nat;
+  const novo = session.stage === 'abertura';
+  session.stage = 'conversa'; session.etapa = null; session.pediuNome = true; session.encerrado = false;
+  if (!session.clientName) { const nm = extrairNomeSeguro(text); if (nm && /\b(me chamo|meu nome|sou [oa]?\s*[A-ZÀ-Ú])/i.test(text)) session.clientName = nm; }
+  // "abre" a conversa depois de um tempo, como uma pessoa
+  await sleep(novo ? natRand(25000, 70000) : natRand(8000, 45000));
+  await natDigitando(session, false);
+  const ctx = await contextoCliente(from, session);
+  session.ctxCliente = ctx.nota;
+  const soSite = RE_MSG_SITE.test(text) || semAcento(text).replace(/[^a-z ]/g, '').trim().split(/\s+/).length <= 3;
+  if (novo && !ctx.pago) {
+    const sd = soSite ? NAT_SAUDACAO : NAT_SAUDACAO_CURTA;
+    await natEsperaDigitando(session, natTempoDigitar(sd));
+    await sendMessage(from, sd);
+    nat.saudou = Date.now();
+    session.history.push({ role: 'user', content: text }, { role: 'assistant', content: sd });
+    await upsertConversation(from, session.clientName, session.stage);
+    if (soSite) return true;
+    session.history.pop(); session.history.pop();
+    session.history.push({ role: 'user', content: '(início da conversa)' }, { role: 'assistant', content: sd });
+  }
+  let entrada = mediaInfo ? '[cliente enviou ' + (mediaInfo.tipo === 'document' ? 'um documento' : mediaInfo.tipo === 'audio' ? 'um áudio que não pôde ser ouvido' : 'uma imagem') + (nat.pix ? ', provavelmente o comprovante' : '') + ']' + (text && !/^\[/.test(text) ? ' ' + text : '') : text;
+  const resp = await natClaude(session, entrada);
+  if (!resp) { await pausarEAvisar(from, session, 'modo natural: falha da IA'); return true; }
+  await natEnviar(from, session, resp);
+  await upsertConversation(from, session.clientName, session.stage);
+  crmAtualizarFunil(from, session).catch(() => {});
+  return true;
+}
+app.post('/painel/api/natural', async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (typeof b.modo === 'string') await cfgSet('modo_bot', b.modo === 'natural' ? 'natural' : '');
+    if (typeof b.fones === 'string') await cfgSet('natural_fones', b.fones);
+    if (typeof b.vel === 'string' || typeof b.vel === 'number') await cfgSet('nat_vel', String(b.vel));
+    if (typeof b.exemplos === 'string') await cfgSet('nat_exemplos', b.exemplos);
+    natCfg.em = 0;
+    res.json({ modo: await cfgGet('modo_bot', ''), fones: await cfgGet('natural_fones', ''), vel: await cfgGet('nat_vel', '1'), exemplos: (await cfgGet('nat_exemplos', '') || '').length });
+  } catch (e) { res.status(500).json({ erro: e.message }); }
+});
+
 // ─── LÓGICA DE ROTEAMENTO DE MENSAGENS ───────────────────────────────────────
 const filas = new Map();
 const lotes = new Map();
@@ -1075,7 +1248,7 @@ function handleMessage(from, messageText, mediaInfo = null) {
   l.t = setTimeout(() => {
     const p = liberarLote(from);
     if (p) p.catch(err => console.error(`❌ Erro ao processar mensagem de ${from}:`, err));
-  }, BATCH_MS);
+  }, (natCfg.modo === 'natural' || natCfg.fones.includes(String(from))) ? Math.round(25000 * natCfg.vel) : BATCH_MS);
   return Promise.resolve();
 }
 const msgsVistas = new Map();
@@ -1150,6 +1323,9 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     await pausarEAvisar(from, session, 'possível crise: fala de risco à vida');
     return;
   }
+
+  // Modo natural (estilo do Paulo): assume a conversa inteira quando ligado para este número
+  if (await natAtivo(from)) { if (await natFluxo(from, text, session, mediaInfo)) return; }
 
   // Estágio travado ANTES de qualquer await (mensagens em rajada)
   if (session.stage === 'abertura') {
