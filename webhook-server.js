@@ -544,6 +544,7 @@ async function sendMessage(to, text) {
   { const ss0 = sessions.get(to); if (ss0 && /\?\s*$/.test(text.replace(/[\s🙏😊✨]+$/u, ''))) ss0.askedAt = Date.now(); }
   await saveMessage(to, 'out', text);
   crmSaida(to, text);
+  let citarAgora = null; { const sc = sessions.get(to); if (sc && sc.citarId) { citarAgora = sc.citarId; sc.citarId = null; } }
   try {
     await axios.post(
       `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
@@ -551,7 +552,8 @@ async function sendMessage(to, text) {
         messaging_product: 'whatsapp',
         to,
         type: 'text',
-        text: { body: text, preview_url: /instagram\.com|google\.com/.test(text) }
+        text: { body: text, preview_url: /instagram\.com|google\.com/.test(text) },
+        ...(citarAgora ? { context: { message_id: citarAgora } } : {})
       },
       {
         headers: {
@@ -641,6 +643,8 @@ async function enviarMenu(from, session, modo) {
 }
 async function enviarOpcoesAgendamento(from, session, textoUsuario) {
   session.etapa = null; // trava antes dos awaits
+  // escolha deliberada no menu: reenvia tudo, sem as travas anti-rajada
+  session.fotoEm = {}; session.contatoEm = 0; session.fotoPagEnviada = false;
   await sleep(typingDelay(ETAPA3_TITULO));
   await sendMessage(from, ETAPA3_TITULO);
   await sleep(2000);
@@ -691,6 +695,31 @@ async function enviarDuvidas(from, session) {
   session.history.push({ role: 'assistant', content: DUVIDAS_MSG + ' [lista de dúvidas enviada]' });
 }
 // Linhas das listas e botões voltam como texto (o título). Retorna true se tratou a mensagem.
+const RE_MSG_SITE = /vim atrav[eé]s do site/i;
+// Início do fluxo: logo + legenda, (se a pessoa já fez uma pergunta, responde) e botões "para quem"
+async function abrirFluxo(from, session, text, reinicio) {
+  const m = text.match(/Ref\.?\s*:?\s*(\d{3,})/i);
+  if (m) session.ref = m[1];
+  const logoArq = acharFoto('logo');
+  const logoUrl = logoArq ? `${PUBLIC_BASE}/media/${logoArq}` : LOGO_URL;
+  const imgOk = logoUrl ? await sendImage(from, logoUrl, ABERTURA_MSG) : false;
+  if (imgOk) { await saveMessage(from, 'out', ABERTURA_MSG); }
+  else { await sleep(typingDelay(ABERTURA_MSG)); await sendMessage(from, ABERTURA_MSG); }
+  const pergunta = !RE_MSG_SITE.test(text) && text.length > 3 && (/\?/.test(text) || /^(vcs|voc[eê]s|onde|como|quanto|qual|quem|quando|tem|posso|precisa|e de|[eé] de|d[aá])\b/i.test(text));
+  if (pergunta) {
+    await sleep(2000);
+    session.citarId = session.ultimoId || null;
+    session.etapa = null;
+    const resp = await processWithClaude(session, text + '\n[Sistema: a pessoa fez uma pergunta logo no início, antes de qualquer menu. Responda a pergunta dela com os fatos do roteiro, em no máximo 2 mensagens curtas. NÃO pergunte para quem é o atendimento e não fale de valores: o sistema envia essa pergunta em seguida.]');
+    await sendClaudeResponse(from, resp, session);
+    session.etapa = 'para_quem';
+  }
+  await sleep(2500);
+  await sendBotoes(from, PERGUNTA_PARA_QUEM, [{ id: 'pq_eu', title: 'Para mim' }, { id: 'pq_outra', title: 'Para outra pessoa' }]);
+  if (!pergunta) session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [ABERTURA_MSG, PERGUNTA_PARA_QUEM].join('\n\n') });
+  else session.history.push({ role: 'assistant', content: PERGUNTA_PARA_QUEM });
+  await upsertConversation(from, session.clientName, session.stage);
+}
 async function tratarMenu(from, text, session, ctxC) {
   if (session.stage !== 'conversa' || session.pausado || (ctxC && ctxC.pago)) return false;
   if (['para_quem', 'queixa', 'para_quem_andamento', 'nome', 'oferta_andamento'].includes(session.etapa)) return false;
@@ -698,14 +727,12 @@ async function tratarMenu(from, text, session, ctxC) {
   if (!t || t.length > 40) return false;
   const etapaAntes = session.etapa;
   if (/^detalhes do procedimento$/.test(t)) {
-    if (session.vistoProc) { await enviarMenu(from, session, 'voltar'); return true; }
     session.etapa = 'oferta_andamento';
     await explicarTopico(from, session, 'proc', 'o procedimento', text, true);
     await upsertConversation(from, session.clientName, session.stage);
     return true;
   }
   if (/^o que voce recebe$/.test(t)) {
-    if (session.vistoRecebe) { await enviarMenu(from, session, 'voltar'); return true; }
     session.etapa = 'oferta_andamento';
     await explicarTopico(from, session, 'recebe', 'o que você recebe', text, true);
     await upsertConversation(from, session.clientName, session.stage);
@@ -916,6 +943,10 @@ async function pausarEAvisar(phone, session, motivo) {
 }
 
 async function sendClaudeResponse(to, rawText, session) {
+  if (session && session.ultimoId && !session.citarId && session.digitou) session.citarId = session.ultimoId;
+  try { await sendClaudeResponseInner(to, rawText, session); } finally { if (session) session.citarId = null; }
+}
+async function sendClaudeResponseInner(to, rawText, session) {
   const pausar = /\[\[PAUSAR\]\]/.test(rawText);
   const clean = rawText.replace(/\[\[PAUSAR\]\]/g, '');
   let parts = clean.split('|||').map(p => p.trim()).filter(Boolean).filter(p => !FIXOS_UMA_VEZ.has(normalizarNegrito(p)) && !/Para quem voc[eê] gostaria de solicitar a apometria/i.test(p)).slice(0, 6);
@@ -1125,23 +1156,13 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
     session.stage = 'conversa';
     session.etapa = 'para_quem';
     session.pediuNome = true;
-    const m = text.match(/Ref\.?\s*:?\s*(\d{3,})/i);
-    if (m) session.ref = m[1];
-    // Logo do instituto com o texto de apresentação na legenda (usa media/logo.jpg se existir; senão o LOGO_URL)
-    const logoArq = acharFoto('logo');
-    const logoUrl = logoArq ? `${PUBLIC_BASE}/media/${logoArq}` : LOGO_URL;
-    const imgOk = logoUrl ? await sendImage(from, logoUrl, ABERTURA_MSG) : false;
-    if (imgOk) {
-      await saveMessage(from, 'out', ABERTURA_MSG);
-    } else {
-      await sleep(typingDelay(ABERTURA_MSG));
-      await sendMessage(from, ABERTURA_MSG);
-    }
-    await sleep(2500);
-    await sendBotoes(from, PERGUNTA_PARA_QUEM, [{ id: 'pq_eu', title: 'Para mim' }, { id: 'pq_outra', title: 'Para outra pessoa' }]);
-    session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [ABERTURA_MSG, PERGUNTA_PARA_QUEM].join('\n\n') });
-    await upsertConversation(from, session.clientName, session.stage);
+    await abrirFluxo(from, session, text);
     return;
+  }
+  // Mensagem padrão do site de novo (a pessoa clicou/enviou outra vez): recomeça o fluxo do início, sem mandar valores
+  if (!mediaInfo && RE_MSG_SITE.test(text) && !session.pausado && session.stage === 'conversa') {
+    const ctxS = await contextoCliente(from, session);
+    if (!ctxS.pago) { session.etapa = 'para_quem'; await abrirFluxo(from, session, text, true); return; }
   }
 
   const ctxC = await contextoCliente(from, session);
@@ -1420,6 +1441,7 @@ app.post('/webhook', async (req, res) => {
           if (jaProcessada(message.id)) { console.log(`🔁 Mensagem duplicada ignorada (${message.id})`); continue; }
           if (message.timestamp && (Date.now() / 1000 - Number(message.timestamp)) > 1200) { console.log(`⌛ Mensagem antiga ignorada (${message.id})`); continue; }
 
+          { const sI = getSession(from); sI.ultimoId = message.id; sI.digitou = message.type === 'text'; }
           if (message.type === 'text') {
             handleMessage(from, message.text.body).catch(err => {
               console.error(`❌ Erro ao processar mensagem de ${from}:`, err);
