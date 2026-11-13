@@ -115,7 +115,7 @@ async function restaurarSessao(phone, session) {
     }
     const cv = await pool.query('SELECT stage, client_name FROM conversations WHERE phone = $1', [phone]);
     if (cv.rows[0] && cv.rows[0].stage && cv.rows[0].stage !== 'abertura') {
-      const { rows } = await pool.query(`SELECT direction, content FROM messages WHERE phone = $1 AND content IS NOT NULL ORDER BY created_at DESC LIMIT 12`, [phone]);
+      const { rows } = await pool.query(`SELECT direction, content FROM messages WHERE phone = $1 AND content IS NOT NULL ORDER BY created_at DESC LIMIT 30`, [phone]);
       session.history = rows.reverse().filter(r => r.content && !/^\[(documento|imagem|áudio)/.test(r.content)).map(r => ({ role: r.direction === 'in' ? 'user' : 'assistant', content: r.content }));
       while (session.history.length && session.history[0].role !== 'user') session.history.shift();
       session.stage = 'conversa';
@@ -184,7 +184,7 @@ const sessions = new Map();
 
 // A conversa continua de onde parou mesmo depois de horas ou dias sem resposta (antes reiniciava em 30 min)
 const SESSION_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_HISTORY_MESSAGES = 20;
+const MAX_HISTORY_MESSAGES = 40;
 const PAUSE_TTL_MS = 4 * 60 * 60 * 1000; // pausa do bot expira sozinha se ninguém assumir
 
 function getSession(phone) {
@@ -1050,7 +1050,7 @@ const NAT_PAGAMENTO = "*Sobre o Pagamento*\n\n\n Valor à vista:\n✅ *R$289,00*
 const NAT_PIX = v => "Chave pix celular: 17988271998\n\n*Informações adicionais*\nNome: Paulo Cesar Rodrigues.\nBanco: Nubank\n\nValor " + v + "\n\nAssim que fizer me mande o comprovante para que eu possa dar baixa em minha contabilidade, realizar o envio do questionário inicial e demais instruções. Grato 🙏.";
 const NAT_QUEST = "Agora vou lhe enviar o nosso questionário para darmos início ao relatório inicial.\n\nSão perguntas sobre você, os objetivos e outras informações necessárias para a realização do trabalho.\n\nLembrando: Caso precise adicionar ou explicar alguma situação através de áudios, basta fazer o envio aqui em nossa conversa e eu irei adicionar manualmente em sua ficha.\n\nAs informações por escrito são importantes para elaborarmos o trabalho da melhor maneira.\n\nFique a vontade para responder no seu tempo e sem pressa.";
 const NAT_QUEST_LINK = 'https://apometriabrasil.com.br/questionario-inicial/';
-const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e assuntos específicos ligados a esses padrões que se repetem em sua vida, também para os problemas que surgiram no seu corpo físico. A apometria age também principalmente no quesito de investigar, identificar e corrigir diversas situações espirituais/energéticas que estão interligadas a totalidade do seu ser e que tem o poder de influênciar negativamente em diversos aspectos de sua vida que estão desencadeando esses problemas, liberando bloqueios nos acontecimentos prósperos, travas e situações negativas que estão fazendo parte da sua vida.\nNesse caso é feito um trabalho direcionado para leitura e investigação de quais quer tipos de bloqueios nesse sentido que estão fazendo parte da sua vida, buscando e rastreando onde estão as raízes dessas ligações e então é feito as devidas desconexões com a finalidade de liberá-las, encerrando essas conexões, impedindo que isso continue te trazendo esses malefícios e muitas vezes aquela sensação de estar vivendo em um ciclo repetitivo sem fim dos mesmos problemas ou patinando no mesmo lugar.\nBuscamos também para essa finalidade, trazer mensagens dos mentores espirituais direcionadas a você, que servem de esclarecimentos e consciência situacional da sua situação energética momentanea, isso é de grande ajuda para o autoconhecimento e saber como prosseguir diante desses acontecimentos em sua vida, respondendo diversas dúvidas e definindo melhor um \"norte\" em seu caminho.\nÉ muito comum casos que chegam até nós, onde irão ser feitas essa investigação, limpezas e liberação desses bloqueios profundos dessas conexões, também estarem ligados a entidades obsessoras que realizam manipulações e influênciações em sua vida. Fazem isso por diversos motivos que são melhores investigados no trabalho, existe também a possibilidade de ligações com a ancestralidade, antepassados, algum trabalho de magia lançado contra você, maldições familiares, situações carmicas, traumas e crenças limitantes do passado, personalidades multiplas proveniente de outras vidas, essas situações podem estar se manifestando nesse momento da sua vida e podem causar uma série de efeitos negativos.\nNós fazemos o resgate dessas entidades obsessoras e os levamos para socorro no astral, além disso é feito uma reprogramação energética através de um alinhamento de sua vibração em sintonia com a prosperidade e abundância, limpeza profunda no corpo astral, como medida direta para a cura, são feitos os processos de cura no corpo astral através dos mentores espirituais nos hospitais socorristas (popularmente conhecido como cirurgias astrais) harmonização dos níveis energéticos e dos chacras, é um trabalho espiritual e energético bem completo/esclaredor em todos os sentidos! O trabalho que realizamos é feito nos mínimos detalhes e de forma minuciosa, totalmente voltado e elaborado para sua individualidade e objetivos principais. Principalmente se for o seu primeiro contato com a apometria, é algo realmente impactante e revelador.";
+const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e [ASSUNTO: questões específicas ligadas ao que a pessoa relatou, com as palavras dela]. A apometria age também principalmente no quesito de investigar, identificar e corrigir diversas situações espirituais/energéticas que estão interligadas a totalidade do seu ser e que tem o poder de influênciar negativamente em diversos aspectos de sua vida que estão desencadeando esses problemas, liberando bloqueios e situações negativas ligadas a [ASSUNTO] que estão fazendo parte da sua vida.\nNesse caso é feito um trabalho direcionado para leitura e investigação de quais quer tipos de bloqueios ligados a [ASSUNTO] que estão fazendo parte da sua vida, buscando e rastreando onde estão as raízes dessas ligações e então é feito as devidas desconexões com a finalidade de liberá-las, encerrando essas conexões, impedindo que isso continue te trazendo esses malefícios e muitas vezes aquela sensação de [CONSEQUÊNCIA DO ASSUNTO: ex. estar vivendo em um ciclo repetitivo, só se o tema for padrões que se repetem; para saúde: não conseguir melhorar mesmo com os tratamentos; para traumas: carregar o peso do passado].\nBuscamos também para essa finalidade, trazer mensagens dos mentores espirituais direcionadas a você, que servem de esclarecimentos e consciência situacional sobre [ASSUNTO] e a sua situação energética momentanea, isso é de grande ajuda para o autoconhecimento e saber como prosseguir diante desses acontecimentos em sua vida, respondendo diversas dúvidas e definindo melhor um \"norte\" em seu caminho.\nÉ muito comum casos que chegam até nós, onde irão ser feitas essa investigação, limpezas e liberação desses bloqueios profundos dessas conexões, também estarem ligados a entidades obsessoras que realizam manipulações e influênciações em sua vida. Fazem isso por diversos motivos que são melhores investigados no trabalho, existe também a possibilidade de ligações com a ancestralidade, antepassados, algum trabalho de magia lançado contra você, maldições familiares, situações carmicas, traumas e crenças limitantes do passado, personalidades multiplas proveniente de outras vidas, essas situações podem estar se manifestando nesse momento da sua vida e podem causar uma série de efeitos negativos.\nNós fazemos o resgate dessas entidades obsessoras e os levamos para socorro no astral, além disso é feito uma reprogramação energética através de um alinhamento de sua vibração em sintonia com [FREQUÊNCIA DO ASSUNTO: um corpo saudável, se for saúde; equilíbrio emocional, se for trauma/ansiedade; relações saudáveis, se for relacionamento; prosperidade e abundância SOMENTE se for financeiro; senão: frequências elevadas], limpeza profunda no corpo astral, como medida direta para a cura, são feitos os processos de cura no corpo astral através dos mentores espirituais nos hospitais socorristas (popularmente conhecido como cirurgias astrais) harmonização dos níveis energéticos e dos chacras, é um trabalho espiritual e energético bem completo/esclaredor em todos os sentidos! O trabalho que realizamos é feito nos mínimos detalhes e de forma minuciosa, totalmente voltado e elaborado para sua individualidade e objetivos principais. Principalmente se for o seu primeiro contato com a apometria, é algo realmente impactante e revelador.";
 
 function natPrompt(session) {
   const h = parseInt(new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }).format(new Date()), 10);
@@ -1059,9 +1059,11 @@ function natPrompt(session) {
 
 FORMATO DA SAÍDA
 - Cada balão do WhatsApp é separado por "|||". Balões de conversa são curtos (1 a 3 frases).
-- Comece um balão com [[CITAR]] quando ele responde a uma pergunta específica da pessoa (o balão sai como resposta à mensagem dela).
+- Comece um balão com [[CITAR]] quando ele responde a uma dúvida ou pergunta da pessoa (o balão sai como resposta à mensagem dela, citando a pergunta). Quando a pessoa faz uma dúvida no meio do caminho: primeiro balão com [[CITAR]] respondendo a dúvida, e logo em seguida os balões do passo em que a conversa estava (ex.: o encaixe, o informativo), sem esperar nova mensagem.
 - Blocos prontos (o sistema cola o texto oficial; nunca reescreva): [[INFORMATIVO]] (como funciona + valores), [[PIX: 289,00 - Sessão de Apometria]] (dados para pagamento; escreva depois dos dois pontos o valor e a opção escolhida), [[QUESTIONARIO]] (texto e link do questionário), [[PAUSAR]] (passa a conversa para o atendimento humano).
-- Nunca use travessão, listas com marcadores, negrito, nem linguagem de robô ou de vendedor. Sem "Claro!", "Com certeza!", "Fico à disposição para o que precisar". Emojis: só 🙏 ou 👇, raramente.
+- Nunca use travessão, listas com marcadores, negrito, nem linguagem de robô ou de vendedor. Sem "Claro!", "Com certeza!", "Fico à disposição para o que precisar".
+- Emojis: NÃO use emoji nas mensagens, com estas únicas exceções: 👇 em "Segue abaixo 👇"; 🙏 somente na despedida quando a pessoa não vai seguir agora ("Estou à disposição caso queira realizar no futuro... Grato 🙏") e em "Vamos adicionar estas questões para serem trabalhadas na sua sessão 🤝🙏" quando ela manda mais informações/áudios. O Pix e o link de cartão já trazem o seu "Grato 🙏" prontos. Em qualquer outra mensagem, sem emoji.
+- Marcador [[SEM_RESPOSTA]]: use sozinho (sem mais nada) quando não há o que responder, por exemplo "ok/aguardo" que a pessoa escreveu antes de ler seus últimos balões (o sistema avisa isso na mensagem).
 
 JEITO DE ESCREVER DO PAULO
 - Usa "lhe", "Grato", "gratidão", começa respostas com "Ok," ou "Sim,". Chama pelo primeiro nome ou apelido que a pessoa usa. Se não souber o nome, não usa nome e não pergunta.
@@ -1071,13 +1073,13 @@ JEITO DE ESCREVER DO PAULO
 CAMINHO DA CONVERSA (siga a ordem, um passo por vez; a saudação inicial o sistema já enviou)
 1) A pessoa contou o que quer trabalhar: responda em TRÊS balões:
    a) cumprimento (se ainda não cumprimentou hoje) e "Ok, entendo perfeitamente essa situação. Vou lhe explicar tudo o que podemos realizar através da Apometria e as possibilidades nesse caso."
-   b) o TEXTO DE ENCAIXE: copie o modelo abaixo inteiro, mesma ordem e mesmas frases, trocando só: o nome; o trecho inicial depois de "em diversos campos de sua vida e" pelos assuntos que a pessoa relatou, com as palavras dela (ex.: "para questões específicas relacionadas as bagagens carmicas que ainda refletem nessa vida, rejeições, traumas, crenças e dificuldades em ter um relacionamento estável/duradouro"); e pequenos ajustes ao caso (a frase sobre "problemas que surgiram no seu corpo físico" só entra se a pessoa falou de saúde; "prosperidade e abundância" quando o tema é financeiro, senão "frequências elevadas, proteção do campo"; se falou de magia/feitiço, cite "trabalho de feitiço lançado contra você como comentamos anteriormente"). Se o trabalho for para outra pessoa, escreva em terceira pessoa ("na vida dele", "direcionadas a ela"). Sem nome conhecido, comece "Olha a apometria se encaixa...". O texto termina em "impactante e revelador."
+   b) o TEXTO DE ENCAIXE, adaptado ao problema que a pessoa relatou. O modelo abaixo é só a ESTRUTURA e o tom; os trechos entre [colchetes] são os pontos que você substitui. REGRA PRINCIPAL: o assunto do texto é SEMPRE o problema que a pessoa mencionou, com as palavras dela, no 1º parágrafo (onde a apometria se encaixa), no 2º (o trabalho direcionado), na frase dos mentores e na frase da reprogramação energética. Nunca desvie o foco: doença grave ou saúde, o texto inteiro gira em torno de saúde e cura (siga a variação de saúde dos exemplos: medicina convencional atua no plano físico, cada problema físico tem um aspecto espiritual correspondente, frequências de um corpo saudável, cirurgias astrais, sem prometer cura); traumas, fale de traumas; relacionamento, de relacionamento; financeiro, de financeiro; vício, de vício. É PROIBIDO citar assuntos que a pessoa não mencionou (prosperidade e abundância, finanças, ansiedade, relacionamentos, corpo físico, ciclo repetitivo etc.). Só o trecho do meio (obsessores, ancestralidade, magia, carma, traumas e crenças do passado, resgate, chacras) fica genérico, como "o que pode ser encontrado" na investigação, sem afirmar que a pessoa tem aquilo; tire dali qualquer item que contrarie o caso. Se falou de magia/feitiço, cite "trabalho de feitiço lançado contra você como comentamos anteriormente". Se o trabalho for para outra pessoa, escreva em terceira pessoa ("na vida dele", "direcionadas a ela"). Sem nome conhecido, comece "Olha a apometria se encaixa...". O texto termina em "impactante e revelador."
    c) "Assim que ler me mande um OK para que eu possa lhe enviar o material com todos os detalhes do procedimento e as opções. Grato."
    MODELO DO TEXTO DE ENCAIXE:
 """${NAT_ENCAIXE_EX}"""
 2) A pessoa só cumprimentou, respondeu vago ("tudo", "todos que possível") ou não disse o que quer trabalhar: "Tudo bem também, grato!" (se ela perguntou) ||| "Gostaria de trabalhar algum campo específico através da Apometria? Assim posso adequar melhor a minha resposta e lhe indicar as melhores opções." Se continuar vago ("tudo", "quero saber tudo"), siga o passo 1 com o texto de encaixe em forma geral.
 3) Depois do texto de encaixe, se a pessoa reagir ("nossa", "me identifiquei"): "Fico feliz que tenha se identificado [Nome]. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você."
-4) A pessoa mandou OK, pediu valor, preço, como funciona ou formas de pagamento: "Ok [Nome]. Vou lhe enviar o informativo de como funciona todo o procedimento com detalhes e as opções de agendamento. Segue abaixo 👇" ||| [[INFORMATIVO]]. Se ela pedir o valor ANTES do texto de encaixe e já contou o caso, envie primeiro o passo 1 e avise que logo em seguida vai o informativo; se insistir, envie o informativo. Nunca envie o informativo duas vezes; se já enviou, responda a dúvida de forma curta.
+4) A pessoa mandou OK, ou perguntou valor, preço, quanto custa, quanto sai, como funciona ou formas de pagamento: SEMPRE responda com "Ok [Nome]. Vou lhe enviar o informativo de como funciona todo o procedimento com detalhes e o valor. Segue abaixo 👇" ||| [[INFORMATIVO]]. O [[INFORMATIVO]] é o material completo (como funciona + valores + formas de pagamento) e é a ÚNICA forma de passar valores: nunca digite valores ou a tabela por conta própria, nunca mande só os valores. Vale mesmo que ela peça o preço antes do texto de encaixe ou que o informativo já tenha sido enviado antes (nesse caso reenvie). Só quando ela perguntar o valor de UMA opção específica depois de já ter visto o informativo, responda curto com [[CITAR]].
 5) Dúvidas depois do informativo: resposta curta, com [[CITAR]], nos moldes:
    - "O emergencial é só depois de 8 dias úteis?" → "[Nome], caso você escolha a opção emergencial, o trabalho todo é realizado e concluído dentro do prazo de 08 dias úteis."
    - "Recebe áudio da realização?" → "Sim, após a conclusão você vai receber um relatório detalhado que envio através de audios com tudo o que foi trabalhado, investigado e tratado em sua sessão."
@@ -1085,20 +1087,48 @@ CAMINHO DA CONVERSA (siga a ordem, um passo por vez; a saudação inicial o sist
    - "Preciso pagar antes de receber o questionário?" → "Sim, isso mesmo, após a sua confirmação do pagamento, daremos início as etapas do trabalho e o questionário faz parte da primeira etapa."
    - "É feito através de médium? / à distância? / de onde são?" → "Somos de São José do Rio Preto-SP, apesar de também realizarmos a apometria presencial, nossos trabalhos são realizados em sua grande maioria a distância e para todo o Brasil e exterior. Para esse tipo de trabalho não tem a necessidade do consulente estar presente, uma vez que a conexão com o corpo astral é feita através de diversas informações que colhemos em nosso questionário inicial, minha sensibilidade como médium e também através do auxilio dos mentores espirituais presentes na sessão e para estes a barreira de espaço não tem nenhuma representatividade."
    - "Posso saber o dia e a hora?" → não recomendamos que a pessoa saiba o dia e a hora, pois possíveis entidades obsessoras também se preparam contra o trabalho; ao final do prazo o relatório e todas as etapas estarão concluídas.
+   - Dúvida sobre pagamento: Pix, transferência, depósito, 2x sem juros no cartão (pacote até 4x); no cartão ela recebe o link da opção.
    - Depoimentos / é confiável? → "Veja alguns dos depoimentos em nosso instagram" ||| https://www.instagram.com/apometria_brasil/
    - Vou sentir diferença após a primeira sessão? → a maioria relata leveza e clareza já nos primeiros dias; sem prometer resultado.
 6) Pediu desconto: "[Nome] o que podemos fazer para você e lhe ajudar é realizar a sessão emergencial pelo valor da sessão normal. Esse é o valor mínimo que conseguimos devido a natureza desse trabalho que demanda um grande tempo e empenho da equipe." Não ofereça desconto sem a pessoa pedir e nunca abaixo disso.
-7) Decidiu fazer / pediu o Pix: "Ok, combinado [Nome]! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" ||| [[PIX: valor - opção]]. Valores: Sessão de Apometria 289,00 (15 dias úteis); Sessão de Apometria Emergencial 339,00 (08 dias úteis; 289,00 se você concedeu o desconto do passo 6); Pacote 4 sessões 800,00. Se ela não disse qual opção, pergunte antes: "Qual opção você gostaria?". Pagamento no cartão, boleto ou link: "Ok! Vou gerar para você e já lhe envio." ||| [[PAUSAR]]
+7) Decidiu fazer / pediu o Pix: "Ok, combinado [Nome]! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" ||| [[PIX: valor - opção]]. Valores: Sessão de Apometria 289,00 (15 dias úteis); Sessão de Apometria Emergencial 339,00 (08 dias úteis; 289,00 se você concedeu o desconto do passo 6); Pacote 4 sessões 800,00. Se ela não disse qual opção, pergunte antes: "Qual opção você gostaria?". Pagamento no cartão: "Ok [Nome]. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇" ||| [[LINK: chave]], com chave = individual, emergencial, pacote (4 sessões), familiar, dois (dois trabalhos da família), empresa, imoveis ou animais; se ela não disse a opção, pergunte antes. Boleto, parcelamento maior, pagamento do exterior: "Ok! Vou verificar a melhor forma e já lhe retorno." ||| [[PAUSAR]]
 8) Enviou o comprovante (o sistema avisa "[cliente enviou imagem/documento]"): "Ok, gratidão [Nome]. Vou lhe explicar como prosseguiremos." ||| [[QUESTIONARIO]]
-9) Disse que vai pensar / ver depois / sem dinheiro agora: resposta curta e respeitosa ("Ok [Nome], sem problemas. Fico a disposição. Grato 🙏"), sem insistir.
+9) Disse que vai pensar / ver depois / sem dinheiro agora: resposta curta e respeitosa ("Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏"), sem insistir. Se ela disse que já fechou com outro terapeuta: "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro ou outro trabalho complementar com o que já vai fazer. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏".
 
 LIMITES
 - Não invente informações, prazos, valores ou promessas que não estejam aqui. Não prometa cura nem resultado; não diga para parar tratamento médico ou remédios.
 - Se perguntarem se é robô, atendimento automático ou IA: não negue. Responda "Este é o atendimento da equipe do Paulo. Vou pedir para ele lhe responder pessoalmente por aqui." ||| [[PAUSAR]]
-- Pessoa já cliente perguntando do andamento, reclamação, pedido de ligação, assunto fora do que está aqui ou dúvida que você não sabe: "Ok [Nome], vou verificar e já lhe retorno. 🙏" ||| [[PAUSAR]]
-- Responda só ao que falta responder; não repita balões já enviados na conversa.${session && session.clientName ? '\n\nNome da pessoa: ' + session.clientName : ''}${NAT_EXTRA ? '\n\nEXEMPLOS E ORIENTAÇÕES ADICIONAIS DO PAULO (seguir):\n' + NAT_EXTRA : ''}`;
+- Pessoa já cliente perguntando do andamento, reclamação, pedido de ligação, assunto fora do que está aqui ou dúvida que você não sabe: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR]]
+- MEMÓRIA: sempre que a pessoa disser algo que importa para o atendimento (o problema, para quem é o trabalho, dúvidas e objeções que ela levantou, cidade, opção de sessão escolhida, o que já recebeu), acrescente no FINAL da sua resposta, fora dos balões, um marcador curto [[FATO: ...]] (um por informação, no máximo 3 por resposta). Ele é invisível para a pessoa e fica guardado. Se a pessoa voltar depois de um tempo, retome com naturalidade lembrando o que ela já contou e perguntou, sem repetir saudação nem textos que já foram enviados, e responda sempre com base nos problemas que ela já disse.
+- Responda só ao que falta responder; não repita balões já enviados na conversa (exceto o informativo, que sempre se reenvia quando pedem valor).
+- Nome: use o nome da pessoa só se ele estiver em "Nome da pessoa" abaixo ou ela mesma o disse. Nunca invente nem deduza nome; sem nome, não use.
+- Trabalho para outra pessoa (marido, mãe, filho): escreva em terceira pessoa em todos os balões, como nos exemplos do Paulo ("na vida dele", "o caso dele").${session && session.clientName ? '\n\nNome da pessoa: ' + session.clientName : ''}${session && session.nat && session.nat.fatos && session.nat.fatos.length ? '\n\nO QUE JÁ SEI SOBRE ESTA PESSOA (guardado das conversas anteriores; use para responder com base no que ela já disse e não perguntar de novo):\n- ' + session.nat.fatos.join('\n- ') : ''}${NAT_EXTRA ? '\n\nEXEMPLOS E ORIENTAÇÕES ADICIONAIS DO PAULO (seguir):\n' + NAT_EXTRA : ''}`;
 }
 let NAT_EXTRA = '';
+const NAT_NAO_NOME = /^(loja|studio|estudio|oficial|official|store|shop|clinica|empresa|contato|atendimento|vendas|suporte|admin|user|usuario|whatsapp|zap|meu|minha|sem|nome|instituto|espaco|casa|grupo|equipe|team|ltda|mei|moto|motos|auto|pet|bar|salao|atelie|barbearia|consultorio|dr|dra|pr|pastor|pastora|irma|irmao|mae|pai|vo|vovo|tia|tio|amor|vida|princesa|linda|lindo|deus|jesus|anjo|bebe|lord|queen|king|boss|negocios|digital|marketing|imoveis|corretor|corretora|advogado|advogada|personal|nutri|psi|terapeuta|therapist|love|life|happy|smile|oi|ola)$/;
+// Nome do perfil do WhatsApp: usa o primeiro nome só se parecer nome de pessoa; senão descarta
+function nomePerfil(raw) {
+  let s = String(raw || '').trim().replace(/^[^\p{L}]+/u, '');
+  if (!s || /[0-9@#_\/\\|+&$%*=<>^]/.test(s.split(/\s+/)[0])) return '';
+  const tok = s.split(/\s+/)[0];
+  const m = tok.match(/^\p{L}[\p{L}'-]*/u);
+  if (!m) return '';
+  const w = m[0];
+  if (tok.slice(w.length).replace(/[^\p{L}0-9]/gu, '')) return '';
+  if (w.length < 3 || w.length > 15) return '';
+  if (!/^(\p{Lu}\p{Ll}+|\p{Ll}+|\p{Lu}+)$/u.test(w.replace(/['-]/g, ''))) return '';
+  const x = semAcento(w);
+  if (NAT_NAO_NOME.test(x) || TITULOS_NOME.has(x) || !nomePlausivel(w)) return '';
+  return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+}
+const NAT_LINKS = { individual: ['Sessão de Apometria', 'https://mpago.li/2LvFGYD'], emergencial: ['Sessão de Apometria Emergencial', 'https://mpago.li/2rMEjbs'], pacote: ['Pacote 4x sessões de Apometria', 'https://mpago.li/26zevnv'], familiar: ['Pacote familiar', 'https://mpago.li/1EZ8Rqy'], dois: ['Dois trabalhos da mesma família', 'https://mpago.li/1exmCjM'], empresa: ['Apometria para empresa', 'https://mpago.li/1tmmLwP'], imoveis: ['Apometria para imóveis', 'https://mpago.li/2auDbze'], animais: ['Apometria para animais', 'https://mpago.li/1wfQuFU'] };
+const NAT_POS_LINK = 'Assim que efetuar o pagamento me mande o comprovante para que eu possa dar baixa em minha contabilidade, realizar o envio do questionário inicial e demais instruções. Grato 🙏.';
+// Emojis: só os que o Paulo usa, e 🙏 apenas nas mensagens em que ele costuma usar
+function natLimpaEmoji(t) {
+  const permiteReza = /(à|a) disposi[çc][aã]o|adicionar (est|ess)|trabalhadas na sua sess/i.test(t);
+  const permiteSeta = /segue abaixo/i.test(t);
+  return t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, e => (e === '🙏' && permiteReza) || (e === '🤝' && permiteReza) || (e === '👇' && permiteSeta) || e === '\u{FE0F}' ? e : '').replace(/[ \t]+([.,!?])/g, '$1').replace(/[ \t]{2,}/g, ' ').trim();
+}
 let natCfg = { modo: '', fones: [], vel: 1, em: 0 };
 async function natAtivo(phone) {
   if (Date.now() - natCfg.em > 30000) {
@@ -1126,39 +1156,61 @@ async function natEsperaDigitando(session, ms) {
 }
 function natTempoDigitar(t) { return Math.min(Math.max(t.length * 70, 3000), 45000) * natCfg.vel; }
 async function natEnviar(to, session, bruto) {
+  { const fx = [...bruto.matchAll(/\[\[FATO:([^\]]*)\]\]/g)].map(m => m[1].trim().slice(0, 220)).filter(Boolean);
+    if (fx.length) { session.nat = session.nat || {}; const lista = session.nat.fatos || []; for (const f of fx) if (!lista.includes(f)) lista.push(f); session.nat.fatos = lista.slice(-25); console.log('🧠 Fato guardado (' + to + '): ' + fx.join(' | ')); }
+    bruto = bruto.replace(/\[\[FATO:[^\]]*\]\]/g, '').trim(); if (!bruto) return; }
+  if (/\[\[SEM_RESPOSTA\]\]/.test(bruto)) { console.log('🤫 Modo natural: sem resposta necessária para ' + to); return; }
   const pausar = /\[\[PAUSAR\]\]/.test(bruto);
   const partes = bruto.replace(/\[\[PAUSAR\]\]/g, '').split('|||').map(p => p.trim()).filter(Boolean).slice(0, 8);
   const nat = session.nat;
-  let primeiro = true;
+  let primeiro = true; let pausar2 = false;
   for (let p of partes) {
     const citar = /^\[\[CITAR\]\]/.test(p); p = p.replace(/\[\[CITAR\]\]/g, '').trim();
     const blocos = [];
     if (/\[\[INFORMATIVO\]\]/.test(p)) {
       const resto = p.replace(/\[\[INFORMATIVO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
-      if (!nat.info) { nat.info = Date.now(); session.viuValores = true; blocos.push({ t: NAT_INFORMATIVO, colado: true }, { t: NAT_PAGAMENTO, colado: true }); }
+      if (!nat.info || Date.now() - nat.info > 180000) { nat.info = Date.now(); session.viuValores = true; blocos.push({ t: NAT_INFORMATIVO, colado: true }, { t: NAT_PAGAMENTO, colado: true }); }
     } else if (/\[\[PIX:([^\]]*)\]\]/.test(p)) {
       const v = p.match(/\[\[PIX:([^\]]*)\]\]/)[1].trim() || '289,00 - Sessão de Apometria';
       const resto = p.replace(/\[\[PIX:[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
       nat.pix = Date.now(); blocos.push({ t: NAT_PIX(v), colado: true });
-      crmAlertar('pix_solicitado', to, 'Chave Pix enviada (' + v + ').', session.clientName).catch(() => {});
+    } else if (/\[\[LINK:([^\]]*)\]\]/.test(p)) {
+      const ch = semAcento(p.match(/\[\[LINK:([^\]]*)\]\]/)[1]).trim().toLowerCase();
+      const alvo = NAT_LINKS[ch] || NAT_LINKS[Object.keys(NAT_LINKS).find(k => ch.includes(k))];
+      const resto = p.replace(/\[\[LINK:[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
+      if (alvo) { nat.link = Date.now(); blocos.push({ t: alvo[1], colado: true }, { t: NAT_POS_LINK, colado: true }); }
+      else { blocos.push({ t: 'Ok! Vou gerar o link para você e já lhe envio.' }); pausar2 = true; }
     } else if (/\[\[QUESTIONARIO\]\]/.test(p)) {
       const resto = p.replace(/\[\[QUESTIONARIO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
       if (!nat.quest) { nat.quest = Date.now(); blocos.push({ t: NAT_QUEST, colado: true }, { t: NAT_QUEST_LINK, colado: true }); }
     } else if (p.replace(/\[\[[^\]]*\]\]/g, '').trim()) blocos.push({ t: p.replace(/\[\[[^\]]*\]\]/g, '').trim() });
     for (const b of blocos) {
+      if (!b.colado) b.t = natLimpaEmoji(b.t);
+      if (!b.t) continue;
       // texto colado sai rápido; texto longo "escrito na hora" (encaixe) demora alguns minutos; balão curto, o tempo de digitar
       const ms = b.colado ? natRand(6000, 14000) : b.t.length > 900 ? natRand(180000, 420000) : natTempoDigitar(b.t) + (primeiro ? 0 : natRand(1500, 5000));
       await natEsperaDigitando(session, ms);
-      if (citar && session.ultimoId && session.digitou) session.citarId = session.ultimoId;
+      if (citar && primeiro) { const al = natAlvoCitar(session); if (al) session.citarId = al; }
       await sendMessage(to, b.t);
       session.citarId = null; primeiro = false;
+      nat.saidas = (nat.saidas || []).concat({ t: b.t.slice(0, 140), ts: Date.now() }).slice(-12);
     }
   }
-  if (pausar) await pausarEAvisar(to, session, 'modo natural: passou para o atendimento humano');
+  if (pausar || pausar2) await pausarEAvisar(to, session, 'modo natural: passou para o atendimento humano');
+}
+// Mensagem a ser citada: a última pergunta da pessoa (com "?") desde a última resposta; senão a última mensagem de texto
+function natAlvoCitar(session) {
+  const en = session.entradas || [];
+  const desde = ((session.nat && session.nat.saidas) || []).slice(-1)[0];
+  const novas = en.filter(e => !desde || e.ts > desde.ts - 600000);
+  const perg = novas.slice().reverse().find(e => /\?/.test(e.t));
+  if (perg) return perg.id;
+  if (session.digitou && session.ultimoId) return session.ultimoId;
+  return en.length ? en[en.length - 1].id : null;
 }
 async function natClaude(session, userMessage) {
   session.history.push({ role: 'user', content: userMessage });
-  if (session.history.length > 30) session.history = session.history.slice(-30);
+  if (session.history.length > 40) session.history = session.history.slice(-40);
   while (session.history.length && session.history[0].role !== 'user') session.history.shift();
   for (let tentativa = 1; tentativa <= 2; tentativa++) {
     try {
@@ -1171,12 +1223,13 @@ async function natClaude(session, userMessage) {
   return null;
 }
 // Retorna true se tratou a mensagem
-async function natFluxo(from, text, session, mediaInfo) {
+async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   session.nat = session.nat || {};
   const nat = session.nat;
   const novo = session.stage === 'abertura';
   session.stage = 'conversa'; session.etapa = null; session.pediuNome = true; session.encerrado = false;
   if (!session.clientName) { const nm = extrairNomeSeguro(text); if (nm && /\b(me chamo|meu nome|sou [oa]?\s*[A-ZÀ-Ú])/i.test(text)) session.clientName = nm; }
+  if (!session.clientName && session.perfilNome) { const np = nomePerfil(session.perfilNome); if (np) { session.clientName = np; console.log('👤 Nome pelo perfil do WhatsApp: ' + np + ' (' + from + ')'); } }
   // "abre" a conversa depois de um tempo, como uma pessoa
   await sleep(novo ? natRand(25000, 70000) : natRand(8000, 45000));
   await natDigitando(session, false);
@@ -1187,14 +1240,22 @@ async function natFluxo(from, text, session, mediaInfo) {
     const sd = soSite ? NAT_SAUDACAO : NAT_SAUDACAO_CURTA;
     await natEsperaDigitando(session, natTempoDigitar(sd));
     await sendMessage(from, sd);
-    nat.saudou = Date.now();
+    nat.saudou = Date.now(); nat.saidas = (nat.saidas || []).concat({ t: sd, ts: Date.now() }).slice(-12);
     session.history.push({ role: 'user', content: text }, { role: 'assistant', content: sd });
     await upsertConversation(from, session.clientName, session.stage);
     if (soSite) return true;
     session.history.pop(); session.history.pop();
     session.history.push({ role: 'user', content: '(início da conversa)' }, { role: 'assistant', content: sd });
   }
+  const gapMs = nat.ultimaMsg ? Date.now() - nat.ultimaMsg : 0; nat.ultimaMsg = Date.now();
+  let avisoVolta = '';
+  if (!novo && gapMs > 6 * 3600000) avisoVolta = '\n\n[AVISO DO SISTEMA: a pessoa voltou a escrever depois de ' + (gapMs > 48 * 3600000 ? Math.round(gapMs / 86400000) + ' dias' : Math.round(gapMs / 3600000) + ' horas') + '. Retome a conversa com naturalidade, lembrando o que ela já contou e perguntou (veja o histórico e "O que já sei sobre esta pessoa"). Não repita saudação nem textos já enviados.]';
   let entrada = mediaInfo ? '[cliente enviou ' + (mediaInfo.tipo === 'document' ? 'um documento' : mediaInfo.tipo === 'audio' ? 'um áudio que não pôde ser ouvido' : 'uma imagem') + (nat.pix ? ', provavelmente o comprovante' : '') + ']' + (text && !/^\[/.test(text) ? ' ' + text : '') : text;
+  { // a pessoa escreveu antes de receber os últimos balões enviados? então não é resposta a eles
+    const depois = (nat.saidas || []).filter(x => recebidoEm && x.ts > recebidoEm + 1000);
+    if (depois.length && !mediaInfo) entrada += '\n\n[AVISO DO SISTEMA, não faz parte da mensagem da pessoa: ela escreveu o texto acima ANTES de receber ' + (depois.length > 1 ? 'estes balões seus' : 'este balão seu') + ' (' + depois.map(x => '"' + x.t + '"').join(' / ') + '). Ao escrever, ela ainda não tinha lido isso; portanto NÃO é resposta a eles. Se for só um "ok/aguardo/certo" que não pede nada, responda somente [[SEM_RESPOSTA]] e aguarde. Se tiver pergunta ou informação nova, responda a isso normalmente.]';
+  }
+  entrada += avisoVolta;
   const resp = await natClaude(session, entrada);
   if (!resp) { await pausarEAvisar(from, session, 'modo natural: falha da IA'); return true; }
   await natEnviar(from, session, resp);
@@ -1325,7 +1386,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   }
 
   // Modo natural (estilo do Paulo): assume a conversa inteira quando ligado para este número
-  if (await natAtivo(from)) { if (await natFluxo(from, text, session, mediaInfo)) return; }
+  if (await natAtivo(from)) { if (await natFluxo(from, text, session, mediaInfo, recebidoEm)) return; }
 
   // Estágio travado ANTES de qualquer await (mensagens em rajada)
   if (session.stage === 'abertura') {
@@ -1620,7 +1681,10 @@ app.post('/webhook', async (req, res) => {
           if (jaProcessada(message.id)) { console.log(`🔁 Mensagem duplicada ignorada (${message.id})`); continue; }
           if (message.timestamp && (Date.now() / 1000 - Number(message.timestamp)) > 1200) { console.log(`⌛ Mensagem antiga ignorada (${message.id})`); continue; }
 
-          { const sI = getSession(from); sI.ultimoId = message.id; sI.digitou = message.type === 'text'; }
+          { const sI = getSession(from); sI.ultimoId = message.id; sI.digitou = message.type === 'text';
+            const ct = (value.contacts || []).find(c => c && c.wa_id === from) || (value.contacts || [])[0];
+            if (ct && ct.profile && ct.profile.name) sI.perfilNome = ct.profile.name;
+            if (message.type === 'text') { sI.entradas = (sI.entradas || []).concat({ id: message.id, t: message.text.body, ts: Date.now() }).slice(-12); } }
           if (message.type === 'text') {
             handleMessage(from, message.text.body).catch(err => {
               console.error(`❌ Erro ao processar mensagem de ${from}:`, err);
@@ -2488,6 +2552,7 @@ async function crmAlertar(tipo, phone, detalhe, nome) {
   const janela = (tipo === 'pagamento_solicitado' ? 60 : 10) * 60 * 1000;
   if (alertaRecente.get(chave) && Date.now() - alertaRecente.get(chave) < janela) return;
   alertaRecente.set(chave, Date.now());
+  if (tipo === 'pagamento_solicitado' || tipo === 'saiu_do_fluxo') { const g = 'grupo:' + phone; if (alertaRecente.get(g) && Date.now() - alertaRecente.get(g) < 120000) return; alertaRecente.set(g, Date.now()); }
   const numeros = ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean);
   if (!numeros.length) return;
   const rotulos = { novo_contato: '🆕 Novo contato', saiu_do_fluxo: '⚠️ Conversa precisa do Paulo', pagamento_solicitado: '💳 Pix ou cartão solicitado', comprovante: '💰 Comprovante recebido (conferir pagamento)', questionario: '📝 Questionário respondido' };
