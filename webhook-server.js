@@ -1105,7 +1105,7 @@ REGRA GERAL: NUNCA pergunte para quem é o trabalho nem se é "para você ou par
 6) Pediu desconto: "[Nome] o que podemos fazer para você e lhe ajudar é realizar a sessão emergencial pelo valor da sessão normal. Esse é o valor mínimo que conseguimos devido a natureza desse trabalho que demanda um grande tempo e empenho da equipe." Não ofereça desconto sem a pessoa pedir e nunca abaixo disso.
 7) Decidiu fazer / pediu o Pix: "Ok, combinado [Nome]! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" ||| [[PIX: valor - opção]]. Valores: Sessão de Apometria 289,00 (15 dias úteis); Sessão de Apometria Emergencial 339,00 (08 dias úteis; 289,00 se você concedeu o desconto do passo 6); Pacote 4 sessões 800,00. Se ela não disse qual opção, pergunte antes: "Qual opção você gostaria?". Pagamento no cartão: "Ok [Nome]. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇" ||| [[LINK: chave]], com chave = individual, emergencial, pacote (4 sessões), familiar, dois (dois trabalhos da família), empresa, imoveis ou animais; se ela não disse a opção, pergunte antes. PIX EM DUAS VEZES: se a pessoa pedir para pagar o Pix em duas vezes, ACEITE: "Ok [Nome], podemos continuar dessa forma. Segue abaixo os dados para a primeira parte 👇" ||| [[PIX: valor da primeira parte (metade do valor da opção, ex.: 144,50 para a sessão de 289,00) - opção]]. Depois do primeiro comprovante o sistema envia o questionário e as informações sem esperar a segunda parte (você não precisa escrever nada sobre isso; o sistema avisa que o restante pode ser enviado depois). Boleto, parcelamento maior, pagamento do exterior: "Ok! Vou verificar a melhor forma e já lhe retorno." ||| [[PAUSAR]]
 8) Enviou o comprovante (o sistema avisa "[cliente enviou imagem/documento]"): "Ok, gratidão [Nome]. Vou lhe explicar como prosseguiremos." ||| [[QUESTIONARIO]] (o sistema cola sozinho o texto do questionário, o link e o pedido do nome completo e endereço, e depois passa a conversa para o Paulo; NÃO escreva mais nada além desses dois balões)
-9) Disse que vai pensar / ver depois / sem dinheiro agora: resposta curta e respeitosa ("Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏"), sem insistir. Se ela disse que já fechou com outro terapeuta: "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro ou outro trabalho complementar com o que já vai fazer. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏".
+9) Disse que vai pensar / ver depois / mês que vem / sem condições agora / "depois eu falo" (adiou): NÃO deixe sem resposta e NÃO insista. Despeça-se curto e cordial, no jeito do Paulo, e acrescente no final o marcador [[ADIAR: N]], onde N é o número de dias até a data que a pessoa citou ("começo do mês que vem" = dias até o dia 1º do próximo mês; "semana que vem" = 7; "depois do dia 20" = dias até o dia 20); se ela não deu data, use [[ADIAR: 7]]. O sistema desliga os lembretes automáticos e agenda UM retorno nessa data. Exemplos: "Ok [Nome], combinado! Fico em seu aguardo para darmos continuidade. Qualquer dúvida estou à disposição 🙏" / "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏". Se ela disse que já fechou com outro terapeuta: "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro ou outro trabalho complementar com o que já vai fazer. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏" (sem [[ADIAR]]).
 
 LIMITES
 - MADRUGADA: só se a pessoa estranhar ou questionar o horário da resposta (de madrugada, entre 0h e 5h), explique com naturalidade: "Trabalhamos e realizamos alguns trabalhos durante a madrugada, pois é um momento oportuno para a realização desse tipo de trabalho." Se ela não questionar, não comente o horário.
@@ -1137,7 +1137,7 @@ const NAT_REAIS = `JEITO REAL DO PAULO NAS DÚVIDAS (exemplos de conversas reais
 - Quem vai pagar é outra pessoa (irmã, filho): "Ok, combinado. Vou enviar aqui em nossa conversa os dados para o pagamento. Segue abaixo 👇" (sem pedir mais nada)
 - Pergunta se pode continuar a conversa por aqui, sem ligação: "Podemos continuar por aqui sem problemas."
 - Agradecimento da pessoa ("obrigada pela oportunidade", "obrigado pelas informações"): "Eu que agradeço a oportunidade [Nome]!" ou "Nós que agradecemos a oportunidade." Curto, sem repetir o texto de venda.
-- "Vou pensar", "vou ver e te falo", "mês que vem", "no momento não tenho como", sem pergunta nenhuma: na maioria das vezes o Paulo NÃO responde ([[SEM_RESPOSTA]]). Se a pessoa marcou uma data ("começo do mês que vem"): "Ok [Nome], combinado! Fico em seu aguardo para darmos continuidade." Sem insistir e sem repetir valores.
+- "Vou pensar", "vou ver e te falo", "mês que vem", "no momento não tenho como": despedida curta e cordial ("Ok [Nome], combinado! Fico em seu aguardo para darmos continuidade.") com [[ADIAR: N]]; sem insistir e sem repetir valores. (O Paulo antigo muitas vezes deixava sem resposta; isso foi um erro e deve ser corrigido.)
 - Pediu "o pix" ou "os dados": "Ok [Nome], combinado. Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" e depois "Ok, grato [Nome]." quando ela avisa que fez.
 - Luto, perda de alguém: acolha com poucas palavras ("Entendo perfeitamente, [Nome].", "Sinto muito pela sua perda.") e conduza ao informativo; sem prometer alívio nem resultado.
 - Tom: frases curtas, "Ok [Nome]", "Entendo perfeitamente", "Respondendo a sua dúvida", "Segue abaixo 👇", "Grato", "gratidão"; resposta direta ao que a pessoa perguntou, sem enrolar e sem lista.
@@ -1215,6 +1215,9 @@ async function natEnviar(to, session, bruto, opcoes) {
   { const fx = [...bruto.matchAll(/\[\[FATO:([^\]]*)\]\]/g)].map(m => m[1].trim().slice(0, 220)).filter(Boolean);
     if (fx.length) { session.nat = session.nat || {}; const lista = session.nat.fatos || []; for (const f of fx) if (!lista.includes(f)) lista.push(f); session.nat.fatos = lista.slice(-25); console.log('🧠 Fato guardado (' + to + '): ' + fx.join(' | ')); }
     bruto = bruto.replace(/\[\[FATO:[^\]]*\]\]/g, '').trim(); if (!bruto) return; }
+  let adiarDias = 0;
+  { const ad = bruto.match(/\[\[ADIAR:?\s*(\d*)[^\]]*\]\]/); if (ad) { adiarDias = Math.min(60, Math.max(2, parseInt(ad[1], 10) || 7)); bruto = bruto.replace(/\[\[ADIAR[^\]]*\]\]/g, '').trim(); } }
+  if (!bruto && adiarDias) { await adiarRetorno(to, session, adiarDias); return; }
   if (/\[\[SEM_RESPOSTA\]\]/.test(bruto)) { console.log('🤫 Modo natural: sem resposta necessária para ' + to); return; }
   const pausar = /\[\[PAUSAR\]\]/.test(bruto);
   const partes = bruto.replace(/\[\[PAUSAR\]\]/g, '').split('|||').map(p => p.trim()).filter(Boolean).slice(0, 8);
@@ -1260,6 +1263,7 @@ async function natEnviar(to, session, bruto, opcoes) {
       nat.saidas = (nat.saidas || []).concat({ t: b.t.slice(0, 140), ts: Date.now() }).slice(-12);
     }
   }
+  if (adiarDias) await adiarRetorno(to, session, adiarDias);
   if (encerra) { await botDesligar(to, session, 'questionário e últimas informações enviados: Paulo assume'); return; }
   if (pausar || pausar2) await pausarEAvisar(to, session, 'modo natural: passou para o atendimento humano');
 }
@@ -1270,6 +1274,15 @@ async function botDesligar(phone, session, motivo) {
   if (pool) { try { await pool.query('UPDATE conversations SET bot_off = true, followup_off = true WHERE phone = $1', [phone]); } catch (e) { console.error('❌ bot_off:', e.message); } }
   await upsertConversation(phone, session.clientName, session.stage);
   await crmAlertar('saiu_do_fluxo', phone, 'Questionário e pedido de nome/endereço enviados. O bot foi desligado: Paulo assume daqui.', session.clientName);
+}
+// Pessoa adiou ("vou pensar", "mês que vem"): desliga os lembretes automáticos e agenda UM retorno
+async function adiarRetorno(phone, session, dias) {
+  if (!pool) return;
+  try {
+    await pool.query("UPDATE conversations SET followup_off = true, retomar_em = now() + ($2 || ' days')::interval, retomada_enviada = false WHERE phone = $1", [phone, String(dias)]);
+    await crmEvento(phone, 'adiou', 'Pessoa adiou. Retorno agendado para daqui a ' + dias + ' dia(s); lembretes automáticos desligados.');
+    console.log('🗓️ Retorno agendado (' + dias + ' dias) para ' + phone);
+  } catch (e) { console.error('❌ adiar retorno:', e.message); }
 }
 async function botDesligado(phone) {
   if (!pool) return false;
@@ -2594,7 +2607,7 @@ async function initCrm() {
   const alt = [
     "funil TEXT DEFAULT 'novo'", "viu_valores BOOLEAN DEFAULT false", "last_in_at TIMESTAMPTZ", "last_out_at TIMESTAMPTZ",
     "followups_sent INT DEFAULT 0", "followup_off BOOLEAN DEFAULT false", "last_followup_at TIMESTAMPTZ",
-    "comprovante_at TIMESTAMPTZ", "questionario_at TIMESTAMPTZ", "notas TEXT", "opcao TEXT", "pos_enviados INT DEFAULT 0", "pos_off BOOLEAN DEFAULT false", "bot_off BOOLEAN DEFAULT false"
+    "comprovante_at TIMESTAMPTZ", "questionario_at TIMESTAMPTZ", "notas TEXT", "opcao TEXT", "pos_enviados INT DEFAULT 0", "pos_off BOOLEAN DEFAULT false", "bot_off BOOLEAN DEFAULT false", "retomar_em TIMESTAMPTZ", "retomada_enviada BOOLEAN DEFAULT false"
   ];
   for (const c of alt) await pool.query('ALTER TABLE conversations ADD COLUMN IF NOT EXISTS ' + c);
   await pool.query(`CREATE TABLE IF NOT EXISTS eventos (
@@ -2728,7 +2741,7 @@ async function crmEntrada(phone, mediaInfo, session, textoMsg) {
   try {
     const { rows } = await pool.query('SELECT funil FROM conversations WHERE phone = $1', [phone]);
     const atual = rows[0]?.funil || 'novo';
-    await pool.query('UPDATE conversations SET last_in_at = now(), followups_sent = 0 WHERE phone = $1', [phone]);
+    await pool.query('UPDATE conversations SET last_in_at = now(), followups_sent = 0, retomar_em = NULL WHERE phone = $1', [phone]);
     const qtd = await pool.query("SELECT count(*)::int AS n FROM messages WHERE phone = $1 AND direction = 'in'", [phone]);
     if (qtd.rows[0] && qtd.rows[0].n === 1) await crmAlertar('novo_contato', phone, 'Primeira mensagem recebida no WhatsApp do instituto.', session.clientName);
     if (atual === 'sem_resposta' || atual === 'perdido') {
@@ -2813,6 +2826,25 @@ async function rodarFollowups() {
         await crmEvento(r.phone, 'followup', 'Follow-up ' + (passo + 1) + ' de 3 enviado');
         if (passo === 2) await pool.query("UPDATE conversations SET funil = 'sem_resposta' WHERE phone = $1", [r.phone]);
       } catch (e) { console.error('❌ Follow-up ' + r.phone + ':', e.response?.data || e.message); }
+      await sleep(3000);
+    }
+    // retornos agendados de quem adiou (uma única mensagem, na data combinada)
+    const rt = await pool.query("SELECT phone, client_name, last_in_at FROM conversations WHERE retomar_em IS NOT NULL AND retomar_em <= now() AND NOT COALESCE(retomada_enviada,false) AND NOT COALESCE(bot_off,false) AND funil IN ('novo','explicacao','valores')");
+    for (const r of rt.rows) {
+      if (YC.enabled && !(await YC.podeEnviar(r.phone))) continue;
+      const sess = sessions.get(r.phone);
+      if (sess && sess.pausado) continue;
+      const nome = (r.client_name || '').split(' ')[0];
+      const texto = 'Olá, ' + saudacao() + (nome ? ' ' + nome : '') + '! Gostaria de dar continuidade em seu trabalho de Apometria? Qualquer dúvida estou à disposição.';
+      try {
+        const dentro = r.last_in_at && (Date.now() - new Date(r.last_in_at).getTime()) / 3600000 < 23.7;
+        const tpl = (await cfgGet('retomada_template', '')) || process.env.RETOMADA_TEMPLATE || '';
+        if (dentro) { await sendMessage(r.phone, texto); if (sess) sess.history.push({ role: 'assistant', content: texto }); }
+        else if (tpl) { await enviarTemplate(r.phone, tpl, [nome || 'tudo bem']); await saveMessage(r.phone, 'out', '[Template ' + tpl + '] ' + texto); await crmSaida(r.phone); if (sess) sess.history.push({ role: 'assistant', content: texto }); }
+        else { await crmAlertar('saiu_do_fluxo', r.phone, 'Hora de retomar o contato (a pessoa tinha adiado). Fora da janela de 24h e sem template aprovado: envie do celular: "' + texto + '"', r.client_name); }
+        await pool.query('UPDATE conversations SET retomada_enviada = true, retomar_em = NULL WHERE phone = $1', [r.phone]);
+        await crmEvento(r.phone, 'retomada', tpl || dentro ? 'Retorno agendado enviado' : 'Retorno agendado: lembrete enviado ao Paulo (sem template)');
+      } catch (e) { console.error('❌ Retorno agendado ' + r.phone + ':', e.response?.data || e.message); }
       await sleep(3000);
     }
   } catch (e) { console.error('❌ Follow-ups:', e.message); }
