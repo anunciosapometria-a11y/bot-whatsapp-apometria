@@ -12,7 +12,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { Pool } = require('pg');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // ─── CONFIGURAÇÕES ────────────────────────────────────────────────────────────
 const {
@@ -341,13 +341,14 @@ Seu objetivo é levar a pessoa ao próximo passo da venda, sem pressão e sem re
 - Precisa de religião ou de acreditar? Não. Atendemos pessoas de todas as crenças e também quem não segue nenhuma.
 - Preciso estar presente? Não. O trabalho é feito à distância e não exige que a pessoa esteja presente.
 - Onde vocês ficam? De que cidade? Moro em [cidade] / É à distância? Responda com este texto, adaptando a abertura à cidade que a pessoa citou, quando houver: "Nós somos de São José do Rio Preto, SP. Apesar de também realizarmos a apometria presencial, nossos trabalhos são realizados em sua grande maioria à distância, para todo o Brasil e exterior. Para esse tipo de trabalho não há necessidade de a pessoa estar presente, uma vez que a conexão com o corpo astral é feita através de diversas informações que colhemos em nosso questionário inicial, da nossa sensibilidade como médium e também com o auxílio dos mentores espirituais presentes na sessão, e para eles a barreira de espaço não tem nenhuma representatividade." Depois siga o passo da venda.
-- É online? É por videochamada, por vídeo ou por chamada? A pessoa quer saber se o trabalho é por videochamada. Responda em mensagens curtas separadas por "|||": "Entendemos a sua dúvida. O trabalho de apometria em si ocorre através de uma sessão sensitivo/mediúnica em equipe, à distância, e não é por videochamada. O consulente não participa efetivamente no momento da apometria." ||| "Após o término da sessão, o Paulo reúne as informações e entra em contato para realizar o envio dos relatórios finais e a conclusão de cada caso." ||| "Também não costumamos avisar, nem recomendamos, que a pessoa saiba a hora exata das sessões: possíveis entidades obsessoras ou influenciações presentes no campo da pessoa ou da casa também se preparam contra o nosso trabalho, por incrível que pareça! Por esse motivo e por estratégia, informamos que ao final do prazo estipulado todas as etapas do trabalho estarão concluídas."
+- É online? É por videochamada, por vídeo ou por chamada? A pessoa quer saber se o trabalho é por videochamada. Responda em mensagens curtas separadas por "|||": "Entendemos a sua dúvida. O trabalho de apometria em si ocorre através de uma sessão sensitivo/mediúnica em equipe, à distância, e não é por videochamada. O consulente não participa efetivamente no momento da sessão." ||| "Após o término da sessão, o Paulo reúne as informações e entra em contato para realizar o envio dos relatórios finais e a conclusão de cada caso." ||| "Também não costumamos avisar, nem recomendamos, que a pessoa saiba a hora exata das sessões: possíveis entidades obsessoras ou influenciações presentes no campo da pessoa ou da casa também se preparam contra o nosso trabalho, por incrível que pareça! Por esse motivo e por estratégia, informamos que ao final do prazo estipulado todas as etapas do trabalho estarão concluídas."
 - Dá para parcelar em mais vezes? Posso parcelar em 12x? Responda que pode ser parcelado em até 12x no cartão, assumindo algumas taxas da operadora, e que o 2x ou o 4x (conforme a opção) é por nossa conta, sem juros. Envie o link da opção escolhida, onde a pessoa escolhe o número de parcelas.
 - Quero acrescentar uma sessão emergencial no pacote? Posso passar uma sessão para emergencial? Responda que a taxa para passar para emergencial é de R$ 50,00: basta adicionar e a sessão vira emergencial. No Pix, some os R$ 50,00 ao valor.
 - Dá para fazer ligação? Posso agendar uma ligação? Quero falar por telefone. Responda que é possível agendar uma ligação em um momento oportuno e peça que entre em contato com o Paulo pelo celular dele: "É possível agendar uma ligação em um momento oportuno. Pode chamar o Paulo no (17) 98827-1998 para combinar." e, em uma mensagem separada, [[CONTATO:paulo]] sozinho. O número do Paulo só é enviado nesses dois casos (dúvida sobre veracidade e pedido de ligação), além do cartão que o sistema envia sozinho junto das informações de pagamento (não repita). Não pause o bot por isso.
 - Qual o endereço do instituto? Onde fica? Responda: "Ficamos na R. Jaír Martins Mil Homens, São José do Rio Preto, SP." Se perguntar de atendimento presencial, lembre que no momento o trabalho é feito à distância. Não peça o endereço da pessoa por isso.
 - Tem como ser presencial? Diga que, no momento, não é possível realizar o presencial por falta de disponibilidade na agenda, e que o trabalho à distância tem o mesmo resultado, feito com a mesma equipe. Não passe para o Paulo só por isso. Siga o passo da venda.
-- DATAS: Tem para amanhã? Qual data está disponível? Quando posso fazer? Responda que o trabalho é realizado dentro do prazo estipulado, de 15 dias úteis na sessão individual ou de 08 dias úteis no emergencial, e que não costumamos informar dia e hora exatos. Se ela tem urgência, apresente o emergencial. Não passe para o Paulo por isso.
+- DATAS (pergunta geral): Quando tem agenda? Para quando posso agendar? Quando posso fazer? Responda com o texto padrão: o trabalho é realizado dentro do prazo estipulado, de 15 dias úteis na sessão individual ou de 08 dias úteis no emergencial, e não costumamos informar dia e hora exatos. No PACOTE de 4 sessões, o prazo também entra nos 15 dias úteis (as sessões acontecem dentro desse prazo). Se ela tem urgência, apresente o emergencial.
+- DATA ESPECÍFICA ou ANTECIPAÇÃO: se a pessoa pedir para fazer ANTES do prazo, nesta semana, amanhã, hoje ou em uma data/dia específico, NÃO prometa nada: responda "Ok [Nome], só um momento que vou verificar na agenda e já lhe retorno." (uma única frase curta, sem explicar prazos) e escreva [[PAUSAR]] sozinho na última linha, passando para o atendimento humano.
 - Cada pessoa responde um questionário? Posso responder por mais de uma pessoa? Como faço com mais de uma pessoa? Cada pessoa participante deve ter um questionário separado, respondido em nome de quem vai realizar a apometria, com o máximo de informações que souber. Basta abrir o link novamente (enviar e clicar no link outra vez) que abrirá um novo questionário. Responda em mensagens curtas e reenvie o link https://apometriabrasil.com.br/questionario-inicial/ se ela pedir.
 - Posso pedir para outra pessoa? Sim, e pode solicitar em nome de outras pessoas, inclusive sem a permissão e a consciência delas. Nunca fale em autorização, nem de filhos menores, nem de adultos. Explique com base no mesmo texto do "Onde vocês ficam": a conexão com o corpo astral é feita pelas informações do questionário inicial, pela sensibilidade como médium e pelos mentores espirituais, e a pessoa não precisa estar presente. Quem solicita responde o questionário com o que souber da pessoa. Depois siga o fluxo sem forçar a pergunta de agendamento.
 - Apometria para imóveis, terrenos ou empresas, ou processos (venda parada, processo judicial): é possível realizar a apometria específica para a resolução desses problemas, e grande parte dos nossos trabalhos são realizados para essa finalidade. Imóveis e terrenos: já oferecemos a limpeza do lar como bônus do tratamento, mas também temos o trabalho de apometria específico para imóveis ou terrenos, investigando o local e realizando corte de vínculos mais profundos. É comum as pessoas procurarem esse trabalho quando sentem que existe algo denso e persistente no ambiente, querem vender o imóvel ou resolver processos administrativos, entre outros. Processo judicial: é possível colocar a questão do processo em pauta. Grande parte dos nossos trabalhos são realizados para processos judiciais cíveis ou empresariais. Essas questões estão fortemente ligadas ao plano espiritual, já que isso se torna uma vulnerabilidade em que obsessores e outras influenciações podem agir contra a pessoa. No trabalho também agimos no polo positivo, abrindo os caminhos e harmonizando os acontecimentos para que sejam favoráveis a ela, liberando possíveis bloqueios. Além disso, passamos o que foi encontrado e as energias que estão rondando o processo e de onde elas vêm. Responda em mensagens curtas, com acolhimento, usando o nome da pessoa quando souber. Para valores específicos, envie [[FOTO:especiais]].
@@ -548,6 +549,7 @@ async function sendMessage(to, text) {
     if (ssF && [PERGUNTA1, PERGUNTA2, PERGUNTA3, PERGUNTA_AGENDA].includes(text)) { ssF.pergEm = ssF.pergEm || {}; if (ssF.pergEm[text] && ag - ssF.pergEm[text] < 120000) { console.warn('🔁 Trava de repetição: pergunta pendente já feita há menos de 2 min, ignorada para ' + to); return; } ssF.pergEm[text] = ag; }
     if (ssF) { if (ssF.lastOut && ssF.lastOut.t === text && (ssF.ultimoIn || 0) <= ssF.lastOut.ts && ag - ssF.lastOut.ts < 600000) { console.warn('🔁 Trava de repetição: mensagem idêntica em sequência ignorada para ' + to); return; } ssF.lastOut = { t: text, ts: ag }; } }
   { const ss0 = sessions.get(to); if (ss0 && /\?\s*$/.test(text.replace(/[\s🙏😊✨]+$/u, ''))) ss0.askedAt = Date.now(); }
+  if (YC.enabled && !(await YC.podeEnviar(to))) return; // trava de cliente novo: nada sai (nem é registrado) para quem não foi admitido
   await saveMessage(to, 'out', text);
   crmSaida(to, text);
   let citarAgora = null; { const sc = sessions.get(to); if (sc && sc.citarId) { citarAgora = sc.citarId; sc.citarId = null; } }
@@ -1098,12 +1100,18 @@ CAMINHO DA CONVERSA (siga a ordem, um passo por vez; a saudação inicial o sist
    - Depoimentos / é confiável? → "Veja alguns dos depoimentos em nosso instagram" ||| https://www.instagram.com/apometria_brasil/
    - Vou sentir diferença após a primeira sessão? → a maioria relata leveza e clareza já nos primeiros dias; sem prometer resultado.
 6) Pediu desconto: "[Nome] o que podemos fazer para você e lhe ajudar é realizar a sessão emergencial pelo valor da sessão normal. Esse é o valor mínimo que conseguimos devido a natureza desse trabalho que demanda um grande tempo e empenho da equipe." Não ofereça desconto sem a pessoa pedir e nunca abaixo disso.
-7) Decidiu fazer / pediu o Pix: "Ok, combinado [Nome]! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" ||| [[PIX: valor - opção]]. Valores: Sessão de Apometria 289,00 (15 dias úteis); Sessão de Apometria Emergencial 339,00 (08 dias úteis; 289,00 se você concedeu o desconto do passo 6); Pacote 4 sessões 800,00. Se ela não disse qual opção, pergunte antes: "Qual opção você gostaria?". Pagamento no cartão: "Ok [Nome]. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇" ||| [[LINK: chave]], com chave = individual, emergencial, pacote (4 sessões), familiar, dois (dois trabalhos da família), empresa, imoveis ou animais; se ela não disse a opção, pergunte antes. Boleto, parcelamento maior, pagamento do exterior: "Ok! Vou verificar a melhor forma e já lhe retorno." ||| [[PAUSAR]]
+7) Decidiu fazer / pediu o Pix: "Ok, combinado [Nome]! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" ||| [[PIX: valor - opção]]. Valores: Sessão de Apometria 289,00 (15 dias úteis); Sessão de Apometria Emergencial 339,00 (08 dias úteis; 289,00 se você concedeu o desconto do passo 6); Pacote 4 sessões 800,00. Se ela não disse qual opção, pergunte antes: "Qual opção você gostaria?". Pagamento no cartão: "Ok [Nome]. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇" ||| [[LINK: chave]], com chave = individual, emergencial, pacote (4 sessões), familiar, dois (dois trabalhos da família), empresa, imoveis ou animais; se ela não disse a opção, pergunte antes. PIX EM DUAS VEZES: se a pessoa pedir para pagar o Pix em duas vezes, ACEITE: "Ok [Nome], podemos continuar dessa forma. Segue abaixo os dados para a primeira parte 👇" ||| [[PIX: valor da primeira parte (metade do valor da opção, ex.: 144,50 para a sessão de 289,00) - opção]]. Depois do primeiro comprovante siga o passo 8 normalmente (envie o questionário e as informações, sem esperar a segunda parte), e diga que o restante pode ser enviado depois, com o comprovante, dentro do combinado. Boleto, parcelamento maior, pagamento do exterior: "Ok! Vou verificar a melhor forma e já lhe retorno." ||| [[PAUSAR]]
 8) Enviou o comprovante (o sistema avisa "[cliente enviou imagem/documento]"): "Ok, gratidão [Nome]. Vou lhe explicar como prosseguiremos." ||| [[QUESTIONARIO]]
 9) Disse que vai pensar / ver depois / sem dinheiro agora: resposta curta e respeitosa ("Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏"), sem insistir. Se ela disse que já fechou com outro terapeuta: "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro ou outro trabalho complementar com o que já vai fazer. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏".
 
 LIMITES
 - Não invente informações, prazos, valores ou promessas que não estejam aqui. Não prometa cura nem resultado; não diga para parar tratamento médico ou remédios.
+- SEGURANÇA DE CONTEÚDO (regras permanentes, mas só APLIQUE quando a pessoa tocar no assunto; NÃO repita avisos, ressalvas ou "não prometemos cura" por conta própria, em respostas que não pedem isso):
+  a) Se perguntarem se cura, se resolve, se garante resultado: nunca prometa nem garanta. Diga com naturalidade que o trabalho é um tratamento espiritual que atua no campo energético e espiritual, que cada caso responde de um jeito e que não podemos garantir resultado.
+  b) Doenças físicas (câncer, depressão, diabetes, dores, cirurgia etc.): nunca afirme que o trabalho trata, cura, trata a doença ou substitui tratamento. Diga que a apometria é um trabalho espiritual complementar, que não trata doenças físicas nem dá diagnóstico, e que atua no aspecto espiritual relacionado.
+  c) Se a pessoa falar em parar remédio, tratamento ou deixar de ir ao médico: nunca concorde nem incentive. Diga que o acompanhamento médico deve ser mantido e que o nosso trabalho é complementar, nunca substitui o médico.
+  d) Nunca dê diagnóstico, nunca indique ou comente medicamentos, nunca faça promessa de resultado, prazo de melhora ou "garantia". Nada de depoimentos que prometam cura.
+  e) Pessoa em crise emocional grave ou falando em se machucar: acolha com cuidado, recomende procurar ajuda profissional ou o CVV (188) e escreva [[PAUSAR]].
 - Se perguntarem se é robô, atendimento automático ou IA: não negue. Responda "Este é o atendimento da equipe do Paulo. Vou pedir para ele lhe responder pessoalmente por aqui." ||| [[PAUSAR]]
 - Pessoa já cliente perguntando do andamento, reclamação, pedido de ligação, assunto fora do que está aqui ou dúvida que você não sabe: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR]]
 - MEMÓRIA: sempre que a pessoa disser algo que importa para o atendimento (o problema, para quem é o trabalho, dúvidas e objeções que ela levantou, cidade, opção de sessão escolhida, o que já recebeu), acrescente no FINAL da sua resposta, fora dos balões, um marcador curto [[FATO: ...]] (um por informação, no máximo 3 por resposta). Ele é invisível para a pessoa e fica guardado. Se a pessoa voltar depois de um tempo, retome com naturalidade lembrando o que ela já contou e perguntou, sem repetir saudação nem textos que já foram enviados, e responda sempre com base nos problemas que ela já disse.
@@ -1689,13 +1697,44 @@ app.get('/webhook', (req, res) => {
   }
 });
 
+// ─── YCloud + TRAVA DE CLIENTE NOVO (ycloud.js) ───────────────────────────────
+const YC = require('./ycloud')({
+  axios, pool, log: console.log, mediaDir: MEDIA_DIR, publicBase: PUBLIC_BASE,
+  extraPermitidos: async () => ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean)
+});
+if (YC.enabled) { YC.instala(); YC.iniciaTabela().then(() => console.log('🔒 Trava de cliente novo ativa (padrão: negar)')).catch(e => console.error('guard tabela:', e.message)); }
+
+app.post('/webhook-yc', async (req, res) => {
+  if (!YC.enabled) return res.sendStatus(404);
+  if (!YC.assinaturaOk(req.headers['ycloud-signature'], req.rawBody || Buffer.alloc(0))) { console.log('🔒 webhook YCloud com assinatura inválida — recusado'); return res.sendStatus(401); }
+  res.sendStatus(200);
+  try {
+    const r = YC.interpreta(req.body);
+    if (r.acao === 'ignorar') return;
+    if (r.acao === 'status') return await processarMeta(r.meta);
+    if (r.acao === 'eco') {
+      await YC.grava(r.phone, 'bloqueado', null, 'eco: atendimento humano');
+      const s = getSession(r.phone); s.pausado = true; s.pausadoEm = Date.now(); s.pausadoPor = 'humano';
+      console.log('🔒 resposta humana detectada — bot calado para este contato'); return;
+    }
+    if (r.acao === 'mensagem') {
+      const d = await YC.decide(r.phone, r.msg);
+      console.log(`🔒 trava: ${r.phone.slice(0, 4)}…${r.phone.slice(-4)} → ${d.ok ? 'PERMITIDO' : 'NEGADO'} (${d.motivo})`);
+      if (!d.ok) return;
+      await processarMeta({ object: 'whatsapp_business_account', entry: [{ changes: [{ value: { contacts: [{ wa_id: r.phone, profile: { name: r.nome || '' } }], messages: [r.msg] } }] }] });
+    }
+  } catch (e) { console.error('❌ webhook-yc:', e.message); }
+});
+
 app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
+  if (YC.enabled) { console.log('🔒 /webhook (Meta) desligado no modo YCloud'); return; }
+  await processarMeta(req.body);
+});
 
+async function processarMeta(body) {
   try {
-    const body = req.body;
-
-    if (body.object !== 'whatsapp_business_account') return;
+    if (!body || body.object !== 'whatsapp_business_account') return;
 
     for (const entry of body.entry || []) {
       for (const change of entry.changes || []) {
@@ -1750,7 +1789,7 @@ app.post('/webhook', async (req, res) => {
   } catch (err) {
     console.error('❌ Erro no processamento do webhook:', err);
   }
-});
+}
 
 app.get('/media/:nome', (req, res) => {
   const nome = req.params.nome.replace(/[^\w.-]/g, '');
@@ -2672,6 +2711,7 @@ async function rodarFollowups() {
          AND ($1::timestamptz IS NULL OR last_in_at >= $1::timestamptz)`, [desde]);
     const textos = await followupTextos();
     for (const r of rows) {
+      if (YC.enabled && !(await YC.podeEnviar(r.phone))) continue; // trava: follow-up só para cliente novo admitido
       const sess = sessions.get(r.phone);
       if (sess && sess.pausado) continue;
       const horasSilencio = (Date.now() - new Date(r.last_in_at).getTime()) / 3600000;
