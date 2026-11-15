@@ -1085,10 +1085,11 @@ CAMINHO DA CONVERSA (siga a ordem, um passo por vez; a saudação inicial o sist
    c) "Assim que ler me mande um OK para que eu possa lhe enviar o material com todos os detalhes do procedimento e as opções. Grato."
    MODELO DO TEXTO DE ENCAIXE:
 """${NAT_ENCAIXE_EX}"""
+REGRA GERAL: NUNCA pergunte para quem é o trabalho nem se é "para você ou para outra pessoa". Pergunte apenas o MOTIVO (o que ela gostaria de trabalhar). Só use terceira pessoa se a própria pessoa disser que é para outra pessoa.
 2) A pessoa só cumprimentou, respondeu vago ("tudo", "todos que possível") ou não disse o que quer trabalhar: "Tudo bem também, grato!" (se ela perguntou) ||| "Gostaria de trabalhar algum campo específico através da Apometria? Assim posso adequar melhor a minha resposta e lhe indicar as melhores opções." Se continuar vago ("tudo", "quero saber tudo"), siga o passo 1 com o texto de encaixe em forma geral.
-3) Depois do texto de encaixe, se a pessoa reagir ("nossa", "me identifiquei"): "Fico feliz que tenha se identificado [Nome]. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você."
+3) Sempre que a pessoa ELOGIAR a explicação, disser que gostou, se identificou ou achou completo ("nossa", "me identifiquei", "muito bom", "completo"): envie ESTE balão adicional primeiro: "Fico feliz que tenha se identificado com nosso trabalho [Nome]. Saiba que se escolher realizar a apometria conosco faremos o melhor por você." e, nos balões seguintes, continue o fluxo no passo em que estava ou responda a pergunta principal dela (se ela fez uma). Esse balão é adicional e não substitui a resposta.
 3B) DEPOIS do texto de encaixe a pessoa conta ou detalha mais o problema dela (por texto ou áudio), sem pedir valor: NÃO repita "entendo perfeitamente", nem o texto de encaixe, nem o "Assim que ler me mande um OK". Responda no tom do Paulo em 2 a 4 balões curtos: (1) acolha com poucas palavras ("Entendo, [Nome]." / "Sim, entendo o que você está passando." / "Compreendo."), (2) comente o PRÓPRIO problema dela, com as palavras e os detalhes que ela deu (situação, pessoas, tempo, o que sente), (3) diga a que isso pode estar relacionado e o que a apometria investiga naquele caso, conforme o que ela contou: padrões e ciclos que se repetem, bloqueios financeiros ou emocionais, vícios, problemas nos relacionamentos, ligações com obsessores, ancestralidade, trabalho de magia, carma, traumas e crenças do passado, vidas passadas, desequilíbrios nos corpos energéticos, sempre como possibilidade ("pode estar ligado", "é muito comum encontrarmos", "é justamente isso que é investigado"), sem afirmar nem prometer cura. Escolha só o que combina com o relato dela. Se ela trouxe VÁRIOS problemas, entenda o contexto geral e responda abrangendo todos eles juntos, mostrando como se conectam. Termine dizendo que isso é o que a investigação da apometria encontra e trata, e, se ainda não pediu o material, convide: "Se quiser, me mande um OK que lhe envio o material com todos os detalhes do procedimento e as opções." só uma vez na conversa. Ela AINDA NÃO contratou: nada de "vamos adicionar essas questões à sua sessão". Se for para outra pessoa, use terceira pessoa.
-4) A pessoa mandou OK, ou perguntou valor, preço, quanto custa, quanto sai, como funciona ou formas de pagamento: SEMPRE responda com "Ok [Nome]. Vou lhe enviar o informativo de como funciona todo o procedimento com detalhes e o valor. Segue abaixo 👇" ||| [[INFORMATIVO]]. O [[INFORMATIVO]] é o material completo (como funciona + valores + formas de pagamento) e é a ÚNICA forma de passar valores: nunca digite valores ou a tabela por conta própria, nunca mande só os valores. Vale mesmo que ela peça o preço antes do texto de encaixe ou que o informativo já tenha sido enviado antes (nesse caso reenvie). Só quando ela perguntar o valor de UMA opção específica depois de já ter visto o informativo, responda curto com [[CITAR]].
+4) A pessoa mandou OK, ou perguntou valor, preço, quanto custa, quanto sai, como funciona ou formas de pagamento: SEMPRE responda com "Ok [Nome]." ||| [[INFORMATIVO]] (o sistema envia sozinho um áudio gravado do Paulo avisando que vai mandar o informativo com os valores e, depois, o material; por isso NÃO escreva "Vou lhe enviar o informativo" nem "Segue abaixo"). O [[INFORMATIVO]] é o material completo (como funciona + valores + formas de pagamento) e é a ÚNICA forma de passar valores: nunca digite valores ou a tabela por conta própria, nunca mande só os valores. Vale mesmo que ela peça o preço antes do texto de encaixe ou que o informativo já tenha sido enviado antes (nesse caso reenvie). Só quando ela perguntar o valor de UMA opção específica depois de já ter visto o informativo, responda curto com [[CITAR]].
 5) Dúvidas depois do informativo: resposta curta, com [[CITAR]], nos moldes:
    - "O emergencial é só depois de 8 dias úteis?" → "[Nome], caso você escolha a opção emergencial, o trabalho todo é realizado e concluído dentro do prazo de 08 dias úteis."
    - "Recebe áudio da realização?" → "Sim, após a conclusão você vai receber um relatório detalhado que envio através de audios com tudo o que foi trabalhado, investigado e tratado em sua sessão."
@@ -1180,6 +1181,15 @@ async function natEsperaDigitando(session, ms) {
 }
 function natTempoDigitar(t) { return Math.min(Math.max(t.length * 70, 3000), 45000) * natCfg.vel; }
 const RE_PERGUNTA = /\?|\b(quanto|qual|quais|como|quando|onde|porque|por que|posso|pode|podem|precisa|preciso|existe|funciona|vcs|voces|vocês)\b/i;
+async function sendAudioLink(to, link) {
+  try {
+    await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
+      { messaging_product: 'whatsapp', to, type: 'audio', audio: { link } },
+      { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+    console.log('🎙️ Áudio enviado para ' + to);
+    return true;
+  } catch (e) { console.error('❌ Erro ao enviar áudio para ' + to + ':', e.response?.data || e.message); return false; }
+}
 async function natEnviar(to, session, bruto, opcoes) {
   opcoes = opcoes || {};
   { const fx = [...bruto.matchAll(/\[\[FATO:([^\]]*)\]\]/g)].map(m => m[1].trim().slice(0, 220)).filter(Boolean);
@@ -1195,7 +1205,7 @@ async function natEnviar(to, session, bruto, opcoes) {
     const blocos = [];
     if (/\[\[INFORMATIVO\]\]/.test(p)) {
       const resto = p.replace(/\[\[INFORMATIVO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
-      if (!nat.info || Date.now() - nat.info > 180000) { nat.info = Date.now(); session.viuValores = true; blocos.push({ t: NAT_INFORMATIVO, colado: true }, { t: NAT_PAGAMENTO, colado: true }); }
+      if (!nat.info || Date.now() - nat.info > 180000) { nat.info = Date.now(); session.viuValores = true; blocos.push({ audio: 'informativo-valores.ogg', seg: 12 }, { t: NAT_INFORMATIVO, colado: true }, { t: NAT_PAGAMENTO, colado: true }); }
     } else if (/\[\[PIX:([^\]]*)\]\]/.test(p)) {
       const v = p.match(/\[\[PIX:([^\]]*)\]\]/)[1].trim() || '289,00 - Sessão de Apometria';
       const resto = p.replace(/\[\[PIX:[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
@@ -1211,10 +1221,16 @@ async function natEnviar(to, session, bruto, opcoes) {
       if (!nat.quest) { nat.quest = Date.now(); blocos.push({ t: NAT_QUEST, colado: true }, { t: NAT_QUEST_LINK, colado: true }); }
     } else if (p.replace(/\[\[[^\]]*\]\]/g, '').trim()) blocos.push({ t: p.replace(/\[\[[^\]]*\]\]/g, '').trim() });
     for (const b of blocos) {
+      if (b.audio) { // áudio gravado do Paulo (ogg/opus = aparece como mensagem de voz com as ondinhas)
+        await natEsperaDigitando(session, natRand(4000, 9000));
+        const okA = await sendAudioLink(to, PUBLIC_BASE + '/media/' + b.audio);
+        if (okA) { await saveMessage(to, 'out', '[áudio do Paulo: informativo e valores]'); nat.saidas = (nat.saidas || []).concat({ t: '[áudio informativo]', ts: Date.now() }).slice(-12); await sleep((b.seg + 4) * 1000); }
+        primeiro = false; continue;
+      }
       if (!b.colado) b.t = natLimpaEmoji(b.t);
       if (!b.t) continue;
       // texto colado sai rápido; texto longo "escrito na hora" (encaixe) demora alguns minutos; balão curto, o tempo de digitar
-      const ms = b.colado ? natRand(6000, 14000) : b.t.length > 900 ? natRand(180000, 420000) : natTempoDigitar(b.t) + (primeiro ? 0 : natRand(1500, 5000));
+      const ms = b.colado ? natRand(6000, 14000) : b.t.length > 900 ? natRand(75000, 160000) : natTempoDigitar(b.t) + (primeiro ? 0 : natRand(1500, 5000));
       await natEsperaDigitando(session, ms);
       if (citar && primeiro) { const al = natAlvoCitar(session); if (al) session.citarId = al; }
       await sendMessage(to, b.t);
@@ -1253,7 +1269,7 @@ async function natClaude(session, userMessage) {
 async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   session.nat = session.nat || {};
   const nat = session.nat;
-  const novo = session.stage === 'abertura';
+  const novo = session.stage === 'abertura' || (!nat.saudou && !(session.history || []).some(h => h.role === 'assistant')); // 1ª resposta sempre é a saudação padrão do Paulo
   session.stage = 'conversa'; session.etapa = null; session.pediuNome = true; session.encerrado = false;
   if (!session.clientName) { const nm = extrairNomeSeguro(text); if (nm && /\b(me chamo|meu nome|sou [oa]?\s*[A-ZÀ-Ú])/i.test(text)) session.clientName = nm; }
   if (!session.clientName && session.perfilNome) { const np = nomePerfil(session.perfilNome); if (np) { session.clientName = np; console.log('👤 Nome pelo perfil do WhatsApp: ' + np + ' (' + from + ')'); } }
