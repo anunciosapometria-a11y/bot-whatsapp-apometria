@@ -59,7 +59,7 @@ module.exports = function criar(opt) {
       params: { phone: digits(phone), exclui: wamid || '', ate: quando || '' },
       headers: { 'X-Guard-Token': GUARD_TOKEN }, timeout: 6000, validateStatus: () => true });
     if (r.status !== 200 || typeof r.data.conhecido !== 'boolean') throw new Error('arquivo respondeu ' + r.status);
-    return r.data.conhecido;
+    return { conhecido: r.data.conhecido, salvo: r.data.salvo === true };
   }
 
   // decisão de ENTRADA. Retorna {ok, motivo}. Qualquer dúvida/erro => ok:false.
@@ -74,11 +74,12 @@ module.exports = function criar(opt) {
       if (st === 'novo') return { ok: true, motivo: 'novo admitido' };
       // desconhecido do bot: precisa (1) não ter histórico no arquivo e (2) ter origem comprovada
       const quando = msg.timestamp ? new Date(Number(msg.timestamp) * 1000).toISOString() : '';
-      const antigo = await conhecidoNoArquivo(phone, msg.id, quando);
-      if (antigo) { await grava(phone, 'bloqueado', null, 'tinha histórico no arquivo'); return { ok: false, motivo: 'cliente antigo (arquivo)' }; }
+      const ar = await conhecidoNoArquivo(phone, msg.id, quando);
+      if (ar.conhecido) { await grava(phone, 'bloqueado', null, 'tinha histórico no arquivo'); return { ok: false, motivo: 'cliente antigo (arquivo)' }; }
+      if (ar.salvo) { await grava(phone, 'bloqueado', null, 'contato salvo na agenda'); return { ok: false, motivo: 'contato salvo na agenda do Paulo' }; }
       const texto = (msg.text && msg.text.body) || '';
-      const origem = msg.referral ? 'anuncio' : (RE_SITE.test(texto) ? 'site' : '');
-      if (!origem) return { ok: false, motivo: 'sem origem (site/anúncio) — ignorado' };
+      // sem histórico e fora da agenda = contato novo; vindo do site/anúncio ou direto no número
+      const origem = msg.referral ? 'anuncio' : (RE_SITE.test(texto) ? 'site' : 'direto');
       await grava(phone, 'novo', origem, 'admitido');
       return { ok: true, motivo: 'novo via ' + origem };
     } catch (e) {
@@ -223,5 +224,6 @@ module.exports = function criar(opt) {
     };
   }
 
-  return { enabled, instala, iniciaTabela, decide, podeEnviar, interpreta, marcaEco, assinaturaOk, grava, chave, _estado: { novos, enviados, histLocal } };
+  const isTester = ph => testers().has(chave(ph));
+  return { isTester, enabled, instala, iniciaTabela, decide, podeEnviar, interpreta, marcaEco, assinaturaOk, grava, chave, _estado: { novos, enviados, histLocal } };
 };
