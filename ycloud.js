@@ -91,6 +91,7 @@ module.exports = function criar(opt) {
   async function podeEnviar(to) {
     const k = chave(to);
     if (testers().has(k)) return true;
+    if (opt.ehAdmin && opt.ehAdmin(to)) return true; // quem administra o bot recebe as confirmações dos comandos
     if (novos.get(k) === 'novo' && !MODO_TESTE) return true;
     try { if ((await extraPermitidos()).map(chave).includes(k)) return true; } catch (e) {}
     return false;
@@ -172,6 +173,7 @@ module.exports = function criar(opt) {
       return { data: {} };
     }
     const to = digits(body.to);
+    if (opt.parado && opt.parado() && !(opt.manual && opt.manual()) && !(opt.ehAdmin && opt.ehAdmin(to))) { log(`⏸️ Bot parado (#parar): envio para ${to.slice(0, 4)}…${to.slice(-4)} bloqueado`); const e = new Error('bot parado'); e.response = { data: { bloqueado: true } }; throw e; }
     if (!(await podeEnviar(to))) { log(`🔒 TRAVA: envio para ${to.slice(0, 4)}…${to.slice(-4)} BLOQUEADO (não é cliente novo admitido)`); const e = new Error('bloqueado pela trava de cliente novo'); e.response = { data: { bloqueado: true } }; throw e; }
     const y = { from: '+' + NUM, to: '+' + to, type: body.type };
     if (body.context && body.context.message_id) y.context = { message_id: body.context.message_id };

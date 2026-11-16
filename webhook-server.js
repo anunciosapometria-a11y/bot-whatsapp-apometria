@@ -12,6 +12,13 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { Pool } = require('pg');
 
 const app = express();
+const { AsyncLocalStorage } = require('async_hooks');
+const manualALS = new AsyncLocalStorage(); // envios feitos pela equipe no painel/app (não são do bot)
+// Comandos de quem administra: "#parar" desliga o bot em TODAS as conversas; "#iniciar" religa (conversas que já estavam pausadas continuam pausadas)
+const ADMIN_FONES = String(process.env.ADMIN_COMANDOS || '5517996171026,5517997391901').split(/[\s,;]+/).map(x => x.replace(/\D/g, '')).filter(Boolean);
+const ehAdmin = ph => { const d = String(ph || '').replace(/\D/g, ''); return d.length >= 8 && ADMIN_FONES.some(a => a.slice(-8) === d.slice(-8)); };
+let botParado = false;
+app.use('/painel/api', (req, res, next) => manualALS.run({ manual: true }, next));
 app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // ─── CONFIGURAÇÕES ────────────────────────────────────────────────────────────
@@ -949,7 +956,7 @@ async function pausarEAvisar(phone, session, motivo) {
   session.pausadoPor = 'bot';
   console.log(`⏸️  Conversa ${phone} pausada pelo bot (${motivo}). Paulo deve assumir.`);
   await upsertConversation(phone, session.clientName, session.stage);
-  await crmAlertar('saiu_do_fluxo', phone, 'Motivo: ' + motivo, session.clientName);
+  await crmAlertar('saiu_do_fluxo', phone, 'MOTIVO: ' + motivo, session.clientName);
 }
 
 async function sendClaudeResponse(to, rawText, session) {
@@ -1060,6 +1067,8 @@ const NAT_PAGAMENTO = "*Sobre o Pagamento*\n\n\n Valor à vista:\n✅ *R$289,00*
 const NAT_PIX = v => "Chave pix celular: 17988271998\n\n*Informações adicionais*\nNome: Paulo Cesar Rodrigues.\nBanco: Nubank\n\nValor " + v + "\n\nAssim que fizer me mande o comprovante para que eu possa dar baixa em minha contabilidade, realizar o envio do questionário inicial e demais instruções. Grato 🙏.";
 const NAT_QUEST = "Agora vou lhe enviar o nosso questionário para darmos início ao relatório inicial.\n\nSão perguntas sobre você, os objetivos e outras informações necessárias para a realização do trabalho.\n\nLembrando: Caso precise adicionar ou explicar alguma situação através de áudios, basta fazer o envio aqui em nossa conversa e eu irei adicionar manualmente em sua ficha.\n\nAs informações por escrito são importantes para elaborarmos o trabalho da melhor maneira.\n\nFique a vontade para responder no seu tempo e sem pressa.";
 const NAT_ULTIMAS = "Depois de enviar o questionário, escreva aqui na conversa o seu nome completo junto com o endereço da sua residência (para a apometria do lar), para a nossa equipe fazer a conferência do questionário.\n\nSe o trabalho for para mais de uma pessoa (pacote), informe também o nome completo de cada uma. Grato.";
+const NAT_BANCO = "Banco Caixa Econômica Federal.\nNome: Paulo Cesar Rodrigues.\nAgência: 1610\nCódigo da Operação: 013\nCPF: 054.168.938-00\nConta número: 26877-2.\n\nAssim que fizer me mande o comprovante para que eu possa dar baixa em minha contabilidade, realizar o envio do questionário inicial e demais instruções. Grato.";
+const NAT_BOLETOS = { '289': ['289,00', 'https://www.asaas.com/000/c/85x7k4nhnctii7f5'], '300': ['300,00', 'https://www.asaas.com/000/c/vid87san3uda197a'] };
 const NAT_QUEST_LINK = 'https://apometriabrasil.com.br/questionario-inicial/';
 const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e [ASSUNTO: questões específicas ligadas ao que a pessoa relatou, com as palavras dela]. A apometria age também principalmente no quesito de investigar, identificar e corrigir diversas situações espirituais/energéticas que estão interligadas a totalidade do seu ser e que tem o poder de influênciar negativamente em diversos aspectos de sua vida que estão desencadeando esses problemas, liberando bloqueios e situações negativas ligadas a [ASSUNTO] que estão fazendo parte da sua vida.";
 
@@ -1071,7 +1080,7 @@ function natPrompt(session) {
 FORMATO DA SAÍDA
 - Cada balão do WhatsApp é separado por "|||". Balões de conversa são curtos (1 a 3 frases).
 - Comece um balão com [[CITAR]] quando ele responde a uma dúvida ou pergunta da pessoa (o balão sai como resposta à mensagem dela, citando a pergunta). Quando a pessoa faz uma dúvida no meio do caminho: primeiro balão com [[CITAR]] respondendo a dúvida, e logo em seguida os balões do passo em que a conversa estava (ex.: o encaixe, o informativo), sem esperar nova mensagem.
-- Blocos prontos (o sistema cola o texto oficial; nunca reescreva): [[INFORMATIVO]] (como funciona + valores), [[PIX: 289,00 - Sessão de Apometria]] (dados para pagamento; escreva depois dos dois pontos o valor e a opção escolhida), [[QUESTIONARIO]] (texto e link do questionário), [[PAUSAR]] (passa a conversa para o atendimento humano).
+- Blocos prontos (o sistema cola o texto oficial; nunca reescreva): [[INFORMATIVO]] (como funciona + valores), [[BANCO]] (dados bancários para transferência/depósito), [[BOLETO: 289]] (link do boleto), [[PIX: 289,00 - Sessão de Apometria]] (dados para pagamento; escreva depois dos dois pontos o valor e a opção escolhida), [[QUESTIONARIO]] (texto e link do questionário), [[PAUSAR: motivo]] (passa a conversa para o atendimento humano; escreva SEMPRE depois dos dois pontos o motivo curto e completo, ex.: "pediu o endereço exato", "pediu ligação", "já é cliente"; a equipe é avisada com esse motivo).
 - Nunca comece balões seguidos com "Ok": se a pessoa acabou de mandar "ok" ou se um balão seu já começou com "Ok", o balão seguinte NÃO começa com "Ok" (mesmo nos textos padrão: escreva "Entendo perfeitamente essa situação...", "Combinado", "Gratidão"). O sistema também corta o "Ok" repetido.
 - Nunca use travessão, listas com marcadores, negrito, nem linguagem de robô ou de vendedor. Sem "Claro!", "Com certeza!", "Fico à disposição para o que precisar".
 - Emojis: NÃO use emoji nas mensagens, com estas únicas exceções: 👇 em "Segue abaixo 👇"; 🙏 somente na despedida quando a pessoa não vai seguir agora ("Estou à disposição caso queira realizar no futuro... Grato 🙏") e em "Vamos adicionar estas questões para serem trabalhadas na sua sessão 🤝🙏" SOMENTE para quem já contratou e pagou e manda informações extras para a sessão. O Pix e o link de cartão já trazem o seu "Grato 🙏" prontos. Em qualquer outra mensagem, sem emoji.
@@ -1079,12 +1088,12 @@ FORMATO DA SAÍDA
 
 JEITO DE ESCREVER DO PAULO
 - Usa "lhe", "Grato", "gratidão", começa respostas com "Ok," ou "Sim,". Chama pelo primeiro nome ou apelido que a pessoa usa. Se não souber o nome, não usa nome e não pergunta.
-- Cumprimento em balão separado: "Oi Claudia, ${periodo}. Tudo bem?" / "Olá, ${periodo} Fabi. Tudo bem?" (só uma vez por dia de conversa).
+- Cumprimento em balão separado, sempre no primeiro contato e antes de explicar qualquer coisa: "Oi Claudia, ${periodo}. Tudo bem?" / "Olá, ${periodo} Fabi. Tudo bem?" (só uma vez por conversa).
 - Fala em primeira pessoa ("faço", "envio", "minha equipe"); a equipe tem 4 médiuns sensitivos contando com ele, que é o coordenador e dirigente.
 
 CAMINHO DA CONVERSA (siga a ordem, um passo por vez; a saudação inicial o sistema já enviou)
 1) A pessoa contou pela PRIMEIRA vez, de forma ESPECÍFICA, o que quer trabalhar (o texto de encaixe ainda não foi enviado): responda em QUATRO balões:
-   a) cumprimento (se ainda não cumprimentou hoje) e "Ok, entendo perfeitamente essa situação. Vou lhe explicar tudo o que podemos realizar através da Apometria e as possibilidades nesse caso." (em balão próprio, nunca junto do texto de encaixe)
+   a) cumprimento em balão próprio e PRIMEIRO, SEMPRE ("Oi [Nome], ${periodo}. Tudo bem?"; sem nome: "Oi, ${periodo}. Tudo bem?") e depois, em outro balão, "Ok, entendo perfeitamente essa situação. Vou lhe explicar tudo o que podemos realizar através da Apometria e as possibilidades nesse caso." (em balão próprio, nunca junto do texto de encaixe)
    b) o TEXTO DE ENCAIXE, um único parágrafo, adaptado ao problema que a pessoa relatou. O modelo abaixo é só a ESTRUTURA e o tom; os trechos entre [colchetes] são os pontos que você substitui. REGRA PRINCIPAL: o assunto do texto é SEMPRE o problema que a pessoa mencionou, com as palavras dela. Nunca desvie o foco: doença grave ou saúde, o texto gira em torno de saúde e cura (medicina convencional atua no plano físico, cada problema físico tem um aspecto espiritual correspondente, sem prometer cura); traumas, fale de traumas; relacionamento, de relacionamento; financeiro, de financeiro; vício, de vício. É PROIBIDO citar assuntos que a pessoa não mencionou (prosperidade e abundância, finanças, ansiedade, relacionamentos, corpo físico, ciclo repetitivo etc.). O texto é só esse parágrafo, TERMINA em "...que estão fazendo parte da sua vida." e NÃO continua com "Nesse caso é feito um trabalho direcionado...", mentores, obsessores, ancestralidade, magia, carma, resgate, reprogramação ou chacras: isso vai na imagem do balão c. Se a pessoa falou de magia/feitiço, cite no parágrafo "trabalho de feitiço lançado contra você como comentamos anteriormente". Se o trabalho for para outra pessoa, escreva em terceira pessoa ("na vida dele"). Sem nome conhecido, comece "Olha a apometria se encaixa...".
    c) [[IMAGEM]] sozinho no balão (se o problema for de BLOQUEIOS, TRAVAS, vida que não anda, não prospera, problemas financeiros, dinheiro, trabalho ou negócio que não vai para frente, ciclos que se repetem, use [[IMAGEM: vida]]; se for SAÚDE, doença, dor ou desconforto físico, use [[IMAGEM: saude]]; qualquer outro, [[IMAGEM]]; genérico, [[IMAGEM: geral]]. O sistema envia sozinho depois da imagem os áudios gravados do Paulo; não os mencione) (o sistema escreve "Vou te enviar uma imagem para você entender melhor como tratamos essas questões." e envia a imagem "Como funciona nosso trabalho"; NÃO escreva essa frase)
    d) "Assim que ler me mande um OK para que eu possa lhe enviar o material com todos os detalhes do procedimento e as opções. Grato."
@@ -1095,17 +1104,18 @@ REGRA GERAL: NUNCA pergunte para quem é o trabalho nem se é "para você ou par
 2B) A pessoa NÃO especifica o problema ou responde de forma GENÉRICA ("tudo", "geral", "muita coisa", "quero saber tudo", "vários", "não sei", "todos que possível"), seja de início ou ao responder o passo 2: NÃO pergunte de novo nem insista. Faça o MESMO caminho do passo 1 em quatro balões (a, b, c, d), com estas diferenças: no balão b use o texto de encaixe de sempre, começando "Olha a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida...", dizendo que o trabalho passa por TODOS os campos da vida (físico, mental, emocional e espiritual) e que o que for encontrado na investigação é tratado; sem prometer cura; termina em "...que estão fazendo parte da sua vida."; e no balão c use [[IMAGEM: geral]] (o sistema escreve "...como tratamos as questões encontradas.").
 3) Sempre que a pessoa ELOGIAR a explicação, disser que gostou, se identificou ou achou completo ("nossa", "me identifiquei", "muito bom", "completo"): envie ESTE balão adicional primeiro: "Fico feliz que tenha se identificado com nosso trabalho [Nome]. Saiba que se escolher realizar a apometria conosco faremos o melhor por você." e, nos balões seguintes, continue o fluxo no passo em que estava ou responda a pergunta principal dela (se ela fez uma). Esse balão é adicional e não substitui a resposta.
 3B) DEPOIS do texto de encaixe a pessoa conta ou detalha mais o problema dela (por texto ou áudio), sem pedir valor: NÃO repita "entendo perfeitamente", nem o texto de encaixe, nem o "Assim que ler me mande um OK". Responda no tom do Paulo em 2 a 4 balões curtos: (1) acolha com poucas palavras ("Entendo, [Nome]." / "Sim, entendo o que você está passando." / "Compreendo."), (2) comente o PRÓPRIO problema dela, com as palavras e os detalhes que ela deu (situação, pessoas, tempo, o que sente), (3) diga a que isso pode estar relacionado e o que a apometria investiga naquele caso, conforme o que ela contou: padrões e ciclos que se repetem, bloqueios financeiros ou emocionais, vícios, problemas nos relacionamentos, ligações com obsessores, ancestralidade, trabalho de magia, carma, traumas e crenças do passado, vidas passadas, desequilíbrios nos corpos energéticos, sempre como possibilidade ("pode estar ligado", "é muito comum encontrarmos", "é justamente isso que é investigado"), sem afirmar nem prometer cura. Escolha só o que combina com o relato dela. Se ela trouxe VÁRIOS problemas, entenda o contexto geral e responda abrangendo todos eles juntos, mostrando como se conectam. Termine dizendo que isso é o que a investigação da apometria encontra e trata, e, se ainda não pediu o material, convide: "Se quiser, me mande um OK que lhe envio o material com todos os detalhes do procedimento e as opções." só uma vez na conversa. Ela AINDA NÃO contratou: nada de "vamos adicionar essas questões à sua sessão". Se for para outra pessoa, use terceira pessoa.
-4) A pessoa mandou OK, ou perguntou valor, preço, quanto custa, quanto sai, como funciona ou formas de pagamento: SEMPRE responda com "Ok [Nome]." ||| [[INFORMATIVO]] (o sistema envia sozinho um áudio gravado do Paulo avisando que vai mandar o informativo com os valores e, depois, o material; por isso NÃO escreva "Vou lhe enviar o informativo" nem "Segue abaixo"). O [[INFORMATIVO]] é o material completo (como funciona + valores + formas de pagamento) e é a ÚNICA forma de passar valores: nunca digite valores ou a tabela por conta própria, nunca mande só os valores. Vale mesmo que ela peça o preço antes do texto de encaixe ou que o informativo já tenha sido enviado antes (nesse caso reenvie). Só quando ela perguntar o valor de UMA opção específica depois de já ter visto o informativo, responda curto com [[CITAR]].
+4) "OK" SOZINHO NUNCA é aceitar a sessão nem pedir pagamento: se o informativo JÁ foi enviado e ela só mandou "ok", "certo", "beleza" ou parecido, responda apenas [[SEM_RESPOSTA]] (nunca envie Pix, link ou opções de pagamento sem ela pedir, escolher uma sessão ou dizer que quer fechar). NUNCA pergunte se ela já leu/visualizou o informativo, se já viu os detalhes ou se já fez o Pix; perguntas assim só existem no follow-up automático.
+   Se o informativo AINDA NÃO foi enviado: a pessoa mandou OK, ou perguntou valor, preço, quanto custa, quanto sai, como funciona ou formas de pagamento: SEMPRE responda com "Ok [Nome]." ||| [[INFORMATIVO]] (o sistema envia sozinho um áudio gravado do Paulo avisando que vai mandar o informativo com os valores e, depois, o material; por isso NÃO escreva "Vou lhe enviar o informativo" nem "Segue abaixo"). O [[INFORMATIVO]] é o material completo (como funciona + valores + formas de pagamento) e é a ÚNICA forma de passar valores: nunca digite valores ou a tabela por conta própria, nunca mande só os valores. Vale mesmo que ela peça o preço antes do texto de encaixe ou que o informativo já tenha sido enviado antes (nesse caso reenvie). Só quando ela perguntar o valor de UMA opção específica depois de já ter visto o informativo, responda curto com [[CITAR]].
 5) Dúvidas depois do informativo: resposta curta, com [[CITAR]], nos moldes:
    - "O emergencial é só depois de 8 dias úteis?" → "[Nome], caso você escolha a opção emergencial, o trabalho todo é realizado e concluído dentro do prazo de 08 dias úteis."
    - "Recebe áudio da realização?" → "Sim, após a conclusão você vai receber um relatório detalhado que envio através de audios com tudo o que foi trabalhado, investigado e tratado em sua sessão."
    - "É só você ou tem várias pessoas?" → "Somos uma equipe de 4 médiuns sensitivos contando comigo, sendo eu também o coordenador e dirigente da sessão."
    - "Preciso pagar antes de receber o questionário?" → "Sim, isso mesmo, após a sua confirmação do pagamento, daremos início as etapas do trabalho e o questionário faz parte da primeira etapa."
-   - Pediu o ENDEREÇO EXATO (rua, número, como chegar, localização para ir até lá, "me passa o endereço completo"): NÃO responda o endereço. Diga só "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR]] (passa para o Paulo).
+   - Pediu o ENDEREÇO EXATO (rua, número, como chegar, localização para ir até lá, "me passa o endereço completo"): NÃO responda o endereço. Diga só "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: pediu o endereço exato]] (passa para o Paulo).
    - Perguntou só ONDE FICA, em que cidade ou de onde são (sem pedir o endereço exato): responda a mensagem de São José do Rio Preto abaixo.
    - "É feito através de médium? / à distância? / de onde são?" → "Somos de São José do Rio Preto-SP, apesar de também realizarmos a apometria presencial, nossos trabalhos são realizados em sua grande maioria a distância e para todo o Brasil e exterior. Para esse tipo de trabalho não tem a necessidade do consulente estar presente, uma vez que a conexão com o corpo astral é feita através de diversas informações que colhemos em nosso questionário inicial, minha sensibilidade como médium e também através do auxilio dos mentores espirituais presentes na sessão e para estes a barreira de espaço não tem nenhuma representatividade."
    - "Posso saber o dia e a hora?" → não recomendamos que a pessoa saiba o dia e a hora, pois possíveis entidades obsessoras também se preparam contra o trabalho; ao final do prazo o relatório e todas as etapas estarão concluídas.
-   - Dúvida sobre pagamento: Pix, transferência, depósito, 2x sem juros no cartão (pacote até 4x); no cartão ela recebe o link da opção.
+   - Dúvida sobre pagamento: Pix, transferência, depósito, boleto, 2x sem juros no cartão (pacote até 4x); no cartão ela recebe o link da opção.
    - Depoimentos / é confiável? → "Veja alguns dos depoimentos em nosso instagram" ||| https://www.instagram.com/apometria_brasil/
    - Vou sentir diferença após a primeira sessão? → a maioria relata leveza e clareza já nos primeiros dias; sem prometer resultado.
 6) Pediu desconto: "[Nome] o que podemos fazer para você e lhe ajudar é realizar a sessão emergencial pelo valor da sessão normal. Esse é o valor mínimo que conseguimos devido a natureza desse trabalho que demanda um grande tempo e empenho da equipe." Não ofereça desconto sem a pessoa pedir e nunca abaixo disso.
@@ -1116,13 +1126,29 @@ REGRA GERAL: NUNCA pergunte para quem é o trabalho nem se é "para você ou par
    - Pediu Pix/cartão E disse a opção: use a forma do Pix ([[PIX: valor - opção]], Sessão 289,00 / Emergencial 339,00 / Pacote 4 sessões 800,00) ou do cartão ([[LINK: chave]]), conforme o que ela pediu; outras chaves de cartão: familiar, dois (dois trabalhos da família), empresa, imoveis, animais.
    - NUNCA pergunte se a pessoa já fez o pagamento/o Pix, nem cobre: depois de enviar o Pix ou o link, só aguarde o comprovante. Não reenvie o Pix se ele já foi enviado, a menos que ela peça de novo.
    - Se ela não disse qual sessão, NUNCA pergunte: assuma a individual de 289,00. Só mude para outra sessão se ELA mesma corrigir ("era a emergencial", "na verdade o pacote"); aí envie só a opção corrigida (Pix e/ou link conforme o que já estava sendo enviado).
-   PIX EM DUAS VEZES: se a pessoa pedir para pagar o Pix em duas vezes, ACEITE: "Ok [Nome], podemos continuar dessa forma. Segue abaixo os dados para a primeira parte 👇" ||| [[PIX: valor da primeira parte (metade do valor da opção, ex.: 144,50 para a sessão de 289,00) - opção]]. Depois do primeiro comprovante o sistema envia o questionário e as informações sem esperar a segunda parte (você não precisa escrever nada sobre isso; o sistema avisa que o restante pode ser enviado depois). Boleto, parcelamento maior, pagamento do exterior: "Ok! Vou verificar a melhor forma e já lhe retorno." ||| [[PAUSAR]]
+   PIX EM DUAS VEZES: se a pessoa pedir para pagar o Pix em duas vezes, ACEITE: "Ok [Nome], podemos continuar dessa forma. Segue abaixo os dados para a primeira parte 👇" ||| [[PIX: valor da primeira parte (metade do valor da opção, ex.: 144,50 para a sessão de 289,00) - opção]]. Depois do primeiro comprovante o sistema envia o questionário e as informações sem esperar a segunda parte (você não precisa escrever nada sobre isso; o sistema avisa que o restante pode ser enviado depois). Parcelamento maior que o do cartão ou pagamento do exterior: "Ok! Vou verificar a melhor forma e já lhe retorno." ||| [[PAUSAR: pediu parcelamento maior ou pagamento do exterior]]
 8) Enviou o comprovante (o sistema avisa "[cliente enviou imagem/documento]"): "Ok, gratidão [Nome]. Vou lhe explicar como prosseguiremos." ||| [[QUESTIONARIO]] (o sistema cola sozinho o texto do questionário, o link e o pedido do nome completo e endereço, e depois passa a conversa para o Paulo; NÃO escreva mais nada além desses dois balões)
 9) Disse que vai pensar / ver depois / mês que vem / sem condições agora / "depois eu falo" (adiou): NÃO deixe sem resposta e NÃO insista. Despeça-se curto e cordial, no jeito do Paulo, e acrescente no final o marcador [[ADIAR: N]], onde N é o número de dias até a data que a pessoa citou ("começo do mês que vem" = dias até o dia 1º do próximo mês; "semana que vem" = 7; "depois do dia 20" = dias até o dia 20); se ela não deu data, use [[ADIAR: 7]]. O sistema desliga os lembretes automáticos e agenda UM retorno nessa data. Exemplos: "Ok [Nome], combinado! Fico em seu aguardo para darmos continuidade. Qualquer dúvida estou à disposição 🙏" / "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏". Se ela disse que já fechou com outro terapeuta: "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro ou outro trabalho complementar com o que já vai fazer. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏" (sem [[ADIAR]]).
 
+MENSAGENS FORA DO ROTEIRO (vale mais que qualquer outra regra de fluxo; nunca responda por associação de palavras-chave, entenda o que a pessoa quis dizer)
+- AFIRMAÇÕES SOLTAS ("pode ser", "pode mandar", "sim", "certo", "beleza", "tá bom", "entendi", "show", "legal", "interessante", "hum", "confirmado", "combinado", "aguardo") NÃO são pedido de pagamento nem fechamento: nunca envie [[PIX]], [[LINK]] nem [[PIX_E_LINK]] por causa delas. Se respondem a algo que você perguntou, siga o assunto dessa pergunta; se o informativo ainda não foi enviado e ela respondeu ao "me mande um OK", envie o informativo; senão responda só [[SEM_RESPOSTA]].
+- Pix, link ou dados bancários SÓ quando a pessoa pedir isso ("me passa o pix", "manda o link", "como pago?" quando já viu os valores), disser com clareza que quer fechar/contratar/fazer a sessão ("quero fechar", "vou fazer a sessão", "pode marcar", "fechado", "quero o emergencial") ou escolher uma opção. Na dúvida, NÃO envie pagamento.
+- A PESSOA DIZ QUE JÁ PAGOU ("já fiz o pagamento", "paguei", "feito", "transferi", "já enviei"), sem mandar comprovante: se o Pix ou link JÁ FOI enviado por você nesta conversa, responda como o sistema faz (gratidão e segue o fluxo; NUNCA exija comprovante). Se o Pix/link NÃO foi enviado nesta conversa, ela pode já ser cliente: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: disse que já pagou, mas nenhum Pix/link/boleto foi enviado nesta conversa]]. Quando o Pix/link/boleto JÁ foi enviado, o SISTEMA cuida sozinho (agradece, confia, envia o questionário e avisa a equipe), você não precisa escrever nada. Só envie [[QUESTIONARIO]] por conta própria quando chegar a imagem/documento do comprovante.
+- Pergunta se o pagamento caiu, foi recebido ou se está confirmado ("vocês receberam?", "caiu?", "já foi confirmado?"): você não vê o banco: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: perguntou se o pagamento foi recebido]].
+- CUMPRIMENTOS ("oi", "olá", "bom dia", "boa tarde", "boa noite", "tudo bem?") e AGRADECIMENTOS ("obrigada", "obrigado pelas informações") SEMPRE recebem resposta curta no jeito do Paulo (cumprimento: "Tudo bem também, grato!" quando ela perguntou, seguindo o passo 2 se ainda não contou o motivo; agradecimento: "Eu que agradeço a oportunidade [Nome]!"), nunca [[SEM_RESPOSTA]]. Só risada, figurinha e "ok" soltos ficam sem resposta.
+- DÚVIDAS QUE ESTE ROTEIRO JÁ RESPONDE (prazo, valores, formas de pagamento, como funciona, relatório, equipe, à distância, duração, desconto, garantia, depoimentos) você RESPONDE normalmente conforme o roteiro; só pause o que realmente não está nele. Prazo: sessão normal 15 dias úteis e emergencial até 08 dias úteis, a partir da confirmação do pagamento; o relatório final chega por áudios.
+- PERGUNTA OU PEDIDO QUE NÃO ESTÁ NESTE ROTEIRO (horário ou data da sessão, endereço, CNPJ, nota fiscal, boleto, reembolso, cancelamento de sessão já paga, reclamação, pedido de ligação ou de vídeo, assunto de outra pessoa, detalhe que você não sabe): NÃO invente, NÃO adivinhe e NÃO explique que não tem a informação. Responda só "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: (descreva em poucas palavras o que ela perguntou ou pediu)]].
+- ASSUNTO SEM NENHUMA RELAÇÃO com o atendimento (clima, esporte, piada, política, "teste", digitação sem sentido, número errado, figurinha, risada): responda só [[SEM_RESPOSTA]] (número errado: "Ok, sem problemas." e nada mais). Nunca converse sobre isso e nunca puxe o assunto de vendas à força.
+- PEDIDO DE AMARRAÇÃO, DE FAZER A PESSOA VOLTAR, DE PREJUDICAR ALGUÉM, DE FORÇAR A VONTADE DE OUTRA PESSOA: "Não realizamos trabalhos para influenciar a vontade de outra pessoa nem para prejudicar alguém. A apometria atua no seu campo energético e espiritual." Nada além disso, sem oferecer o informativo.
+- PEDIDO DE LIGAÇÃO ("pode me ligar?", "posso te ligar?", "quero falar por telefone/chamada"): "Ok [Nome], vou verificar um momento oportuno entre as sessões e lhe aviso o horário por aqui." ||| [[PAUSAR: pediu ligação (combinar horário entre as sessões)]]. O bot sai da conversa e a equipe assume.
+- BOLETO: se pedir boleto (para a sessão normal ou sem dizer a opção): "Ok [Nome], segue o boleto abaixo 👇" ||| [[BOLETO: 289]]. Para outra opção (emergencial, pacote) ou outro valor: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: pediu boleto para a opção X]]. O boleto de 300 ([[BOLETO: 300]]) só quando a equipe orientar ou a pessoa falar esse valor.
+- DADOS BANCÁRIOS / conta / transferência / depósito / TED / DOC (sem falar Pix): "Ok [Nome], segue abaixo os dados bancários 👇" ||| [[BANCO]]. Nunca digite agência, conta ou CPF você mesmo, só o marcador.
+- Duração da sessão (pergunta "quanto tempo dura"): "A sessão leva em média duas horas e quinze minutos ou mais, realizada à distância pela equipe de médiuns." Nada além disso.
+- Nunca convide de novo para "me mande um OK" se o informativo já foi enviado.
+
 LIMITES
 - MADRUGADA: só se a pessoa estranhar ou questionar o horário da resposta (de madrugada, entre 0h e 5h), explique com naturalidade: "Trabalhamos e realizamos alguns trabalhos durante a madrugada, pois é um momento oportuno para a realização desse tipo de trabalho." Se ela não questionar, não comente o horário.
-- JÁ É CLIENTE: se a pessoa disser que já é cliente/consulente, que já contratou, que já pagou, ou que já fez apometria CONOSCO (com o Paulo / com o instituto / "com vocês"): responda só "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR]]. Se disser que fez apometria em OUTRO lugar ou com outro terapeuta, NÃO pause: siga o fluxo normal. Se ela só disser "já fiz apometria" sem dizer onde, pergunte uma vez, curto: "Foi aqui conosco?" e aja conforme a resposta.
+- JÁ É CLIENTE: se a pessoa disser que já é cliente/consulente, que já contratou, que já pagou, ou que já fez apometria CONOSCO (com o Paulo / com o instituto / "com vocês"): responda só "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: disse que já é cliente/já contratou (descreva o que ela pediu)]]. Se disser que fez apometria em OUTRO lugar ou com outro terapeuta, NÃO pause: siga o fluxo normal. Se ela só disser "já fiz apometria" sem dizer onde, pergunte uma vez, curto: "Foi aqui conosco?" e aja conforme a resposta.
 - CONTATO DIRETO: algumas pessoas não vêm pela mensagem do site; trate-as do mesmo jeito, pelo fluxo normal, e não presuma que já conhecem o trabalho nem que já receberam algo. Só considere que alguém já recebeu informações se isso aparecer na conversa abaixo.
 - Não invente informações, prazos, valores ou promessas que não estejam aqui. Não prometa cura nem resultado; não diga para parar tratamento médico ou remédios.
 - SEGURANÇA DE CONTEÚDO (regras permanentes, mas só APLIQUE quando a pessoa tocar no assunto; NÃO repita avisos, ressalvas ou "não prometemos cura" por conta própria, em respostas que não pedem isso):
@@ -1130,9 +1156,9 @@ LIMITES
   b) Doenças físicas (câncer, depressão, diabetes, dores, cirurgia etc.): nunca afirme que o trabalho trata, cura, trata a doença ou substitui tratamento. Diga que a apometria é um trabalho espiritual complementar, que não trata doenças físicas nem dá diagnóstico, e que atua no aspecto espiritual relacionado.
   c) Se a pessoa falar em parar remédio, tratamento ou deixar de ir ao médico: nunca concorde nem incentive. Diga que o acompanhamento médico deve ser mantido e que o nosso trabalho é complementar, nunca substitui o médico.
   d) Nunca dê diagnóstico, nunca indique ou comente medicamentos, nunca faça promessa de resultado, prazo de melhora ou "garantia". Nada de depoimentos que prometam cura.
-  e) Pessoa em crise emocional grave ou falando em se machucar: acolha com cuidado, recomende procurar ajuda profissional ou o CVV (188) e escreva [[PAUSAR]].
-- Se perguntarem se é robô, atendimento automático ou IA: não negue. Responda "Este é o atendimento da equipe do Paulo. Vou pedir para ele lhe responder pessoalmente por aqui." ||| [[PAUSAR]]
-- Pessoa já cliente perguntando do andamento, reclamação, pedido de ligação, assunto fora do que está aqui ou dúvida que você não sabe: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR]]
+  e) Pessoa em crise emocional grave ou falando em se machucar: acolha com cuidado, recomende procurar ajuda profissional ou o CVV (188) e escreva [[PAUSAR: URGENTE, pessoa em crise emocional ou falando em se machucar]].
+- Se perguntarem se é robô, atendimento automático ou IA: não negue. Responda "Este é o atendimento da equipe do Paulo. Vou pedir para ele lhe responder pessoalmente por aqui." ||| [[PAUSAR: perguntou se é robô/atendimento automático]]
+- Pessoa já cliente perguntando do andamento, reclamação, pedido de ligação, assunto fora do que está aqui ou dúvida que você não sabe: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: (descreva o assunto)]]
 - MEMÓRIA: sempre que a pessoa disser algo que importa para o atendimento (o problema, para quem é o trabalho, dúvidas e objeções que ela levantou, cidade, opção de sessão escolhida, o que já recebeu), acrescente no FINAL da sua resposta, fora dos balões, um marcador curto [[FATO: ...]] (um por informação, no máximo 3 por resposta). Ele é invisível para a pessoa e fica guardado. Se a pessoa voltar depois de um tempo, retome com naturalidade lembrando o que ela já contou e perguntou, sem repetir saudação nem textos que já foram enviados, e responda sempre com base nos problemas que ela já disse.
 - ÁUDIOS: quando a mensagem vier marcada como áudio transcrito, trate como a fala da pessoa. Se ela pergunta detalhes do procedimento (como funciona, prazo, valor, se precisa estar presente etc.), responda a dúvida direto, com base neste roteiro, e se pediu valor ou "como funciona" envie o informativo. Se ela está contando o problema mais a fundo, responda sobre o problema dela: encaixe o que ela contou nos motivos que são encontrados e investigados através da apometria (obsessores, ancestralidade, trabalho de magia, carmas, traumas, crenças e vidas passadas, conforme o caso), em 1 ou 2 balões no jeito do Paulo, SEM repetir o texto de encaixe longo, que ela já recebeu, e termine dizendo que isso é justamente o que a investigação da apometria encontra e trata. A pessoa AINDA NÃO contratou: nunca diga "vamos adicionar essas questões à sua sessão" nem fale como se a sessão já estivesse marcada. Só quem já pagou recebe "Vamos adicionar estas questões para serem trabalhadas na sua sessão". Nunca responda algo aleatório a um áudio que não faça sentido: nesse caso responda somente [[SEM_RESPOSTA]].
 - Nunca repita "Assim que ler me mande um OK..." nem o texto de encaixe se eles já foram enviados nesta conversa.
@@ -1233,8 +1259,21 @@ function natSepara(txt) {
 }
 const NAT_AVISO_INFO = /vou (lhe )?(enviar|mandar)[^.!?\n]{0,60}(informativo|material|valores|detalhes)|segue abaixo|segue o informativo/i;
 const NAT_VALOR = { individual: '289,00 - Sessão de Apometria', emergencial: '339,00 - Sessão de Apometria Emergencial', pacote: '800,00 - Pacote 4 sessões de Apometria' };
+// A pessoa AFIRMA que já pagou ("já fiz o pagamento", "paguei", "feito"): o bot confia e segue o fluxo
+function natDisseQuePagou(t) {
+  const x = semAcento(String(t || '')).replace(/[^a-z0-9?\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!x || /\?/.test(String(t)) || x.split(' ').length > 14) return false;
+  return /\b(paguei|ja paguei|pago ja|efetuei (o )?pagamento|realizei (o )?pagamento|fiz (o |a )?(pix|pagamento|transferencia|deposito|ted)|ja fiz (o |a )?(pix|pagamento|transferencia|deposito|ted)|pagamento (feito|realizado|efetuado|concluido)|(pix|transferencia|deposito|boleto) (feito|realizado|enviado|pago|efetuado)|transferi|depositei|ja foi pago)\b/.test(x) || /^(feito|pago|pronto|ja fiz|ja foi|fiz)$/.test(x);
+}
+// "ok", "sim", "pode ser", "certo"...: afirmação solta, nunca é pedido de pagamento
+function natAfirmacaoSolta(t) {
+  const x = semAcento(String(t || '')).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!x || x.split(' ').length > 4) return false;
+  return /^(ok|okay|okk+|oks|sim|certo|certinho|beleza|blz|ta bom|tudo bem|tudo certo|pode ser|pode|pode mandar|pode sim|entendi|entendido|show|legal|interessante|hum+|uhum|aham|confirmado|combinado|perfeito|otimo|aguardo|obrigad[oa]|valeu|isso|isso mesmo|ta|ta certo|bom|boa|massa|top)( (aguardo|obrigad[oa]|ok|sim|certo|beleza))?$/.test(x);
+}
 async function natEnviar(to, session, bruto, opcoes) {
   opcoes = opcoes || {};
+  if (botParado) { console.log('⏸️ Bot parado: resposta descartada (' + to + ')'); return; }
   { const fx = [...bruto.matchAll(/\[\[FATO:([^\]]*)\]\]/g)].map(m => m[1].trim().slice(0, 220)).filter(Boolean);
     if (fx.length) { session.nat = session.nat || {}; const lista = session.nat.fatos || []; for (const f of fx) if (!lista.includes(f)) lista.push(f); session.nat.fatos = lista.slice(-25); console.log('🧠 Fato guardado (' + to + '): ' + fx.join(' | ')); }
     bruto = bruto.replace(/\[\[FATO:[^\]]*\]\]/g, '').trim(); if (!bruto) return; }
@@ -1242,11 +1281,22 @@ async function natEnviar(to, session, bruto, opcoes) {
   { const ad = bruto.match(/\[\[ADIAR:?\s*(\d*)[^\]]*\]\]/); if (ad) { adiarDias = Math.min(60, Math.max(2, parseInt(ad[1], 10) || 7)); bruto = bruto.replace(/\[\[ADIAR[^\]]*\]\]/g, '').trim(); } }
   if (!bruto && adiarDias) { await adiarRetorno(to, session, adiarDias); return; }
   if (/\[\[SEM_RESPOSTA\]\]/.test(bruto)) { console.log('🤫 Modo natural: sem resposta necessária para ' + to); return; }
-  const pausar = /\[\[PAUSAR\]\]/.test(bruto);
-  let partes = natSepara(bruto.replace(/\[\[PAUSAR\]\]/g, '')).slice(0, 10);
+  const mPausa = bruto.match(/\[\[PAUSAR:?\s*([^\]]*)\]\]/); const pausar = !!mPausa; const motivoPausa = (mPausa && mPausa[1] || '').trim();
+  let partes = natSepara(bruto.replace(/\[\[PAUSAR[^\]]*\]\]/g, '')).slice(0, 10);
   const nat = session.nat;
+  partes = partes.filter(x => /\[\[(BANCO|PIX)/.test(x) || !/26877|054\.?168\.?938|ag[eê]ncia:?\s*1610/i.test(x)); if (!partes.length) return;
   // Pix: só o bloco oficial (o que pede o comprovante); some qualquer Pix digitado pela IA e blocos repetidos
   if (partes.some(x => /\[\[PIX(_E_LINK)?:?/.test(x))) partes = partes.filter(x => /\[\[[^\]]+\]\]/.test(x) || !/17988271998|chave pix/i.test(x));
+  // "Ok" sozinho NUNCA é aceitar a sessão: tira qualquer Pix/link de pagamento que a IA tenha mandado em resposta a um simples "ok"
+  if (!opcoes.comprovante && partes.some(x => /\[\[QUESTIONARIO\]\]/.test(x))) { console.log('🛑 Questionário só depois do comprovante (imagem/documento): bloco removido (' + to + ')'); partes = partes.map(x => x.replace(/\[\[QUESTIONARIO\]\]/g, '').trim()).filter(Boolean); if (!partes.length) return; }
+  if (opcoes.pessoaOk && partes.some(x => /\[\[(PIX_E_LINK|PIX|LINK)\b/.test(x))) { console.log('🛑 "Ok" sozinho não é pedido de pagamento: nada enviado (' + to + ')'); return; }
+  // perguntas de acompanhamento ("já visualizou o informativo?", "já fez o Pix?") só existem no follow-up automático, nunca na conversa
+  partes = partes.filter(x => { const t = x.replace(/\[\[[^\]]*\]\]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); return !(/\?/.test(t) && /\b(ja|conseguiu)\b/.test(t) && /\b(visualiz|ver|ler|viu|leu|fez|realiz|efetu|enviou|conseguiu|olhou|recebeu)/.test(t) && /\b(informativo|material|pix|pagamento|comprovante|opcoes|detalhes|valores)/.test(t)); });
+  if (!partes.length) return;
+  // cumprimento SEMPRE em balão separado e primeiro, no horário certo, quando a IA abre a explicação sem cumprimentar
+  { const ehSaud = x => /^(oi+|ol[aá]|bom dia|boa tarde|boa noite)\b/i.test(x.replace(/\[\[[^\]]*\]\]/g, '').trim());
+    if (partes.some(ehSaud)) nat.cumpExp = true;
+    else if (!nat.cumpExp && (nat.saidas || []).length <= 1 && partes.length) { nat.cumpExp = true; const nm = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : ''; partes.unshift('Oi' + nm + ', ' + saudacao() + '. Tudo bem?'); } }
   let pixEnv = false;
   // o áudio gravado do informativo já diz que o material vai ser enviado: some o aviso em texto ("vou lhe enviar o informativo... segue abaixo")
   if (partes.some(x => /\[\[INFORMATIVO\]\]/.test(x)) && (!nat.info || Date.now() - nat.info > 180000)) {
@@ -1254,7 +1304,7 @@ async function natEnviar(to, session, bruto, opcoes) {
     partes = partes.map(x => /\[\[INFORMATIVO\]\]/.test(x) && NAT_AVISO_INFO.test(x.replace(/\[\[[^\]]*\]\]/g, '')) ? '[[INFORMATIVO]]' : x);
   }
   let primeiro = true; let pausar2 = false; let encerra = false;
-  let okAntes = opcoes.pessoaOk || false; { const ul = (nat.saidas || []).slice(-1)[0]; if (ul && Date.now() - ul.ts < 300000 && /^ok\b/i.test(ul.t)) okAntes = true; }
+  let okAntes = opcoes.pessoaDisseOk || false; { const ul = (nat.saidas || []).slice(-1)[0]; if (ul && Date.now() - ul.ts < 300000 && /^ok\b/i.test(ul.t)) okAntes = true; }
   if (/primeira parte/i.test(bruto)) nat.duas = true;
   for (let p of partes) {
     const citar = /^\[\[CITAR\]\]/.test(p) || (opcoes.citarPrimeiro && primeiro); p = p.replace(/\[\[CITAR\]\]/g, '').trim();
@@ -1286,6 +1336,13 @@ async function natEnviar(to, session, bruto, opcoes) {
       if (tema) blocos.push({ audio: tema.f, seg: tema.seg, label: tema.label });
       if (tema) nat.difPend = true; // já foi áudio do tema no início: os diferenciais ficam para a parte dos valores
       else { nat.difEnv = true; blocos.push({ audio: 'aud-diferenciais-fecho.ogg', seg: 15, label: 'diferenciais: equipe e sessão longa' }); }
+    } else if (/\[\[BANCO\]\]/.test(p)) {
+      const resto = p.replace(/\[\[BANCO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
+      if (!nat.banco || Date.now() - nat.banco > 600000) { nat.banco = Date.now(); blocos.push({ t: NAT_BANCO, colado: true }); }
+    } else if (/\[\[BOLETO:?([^\]]*)\]\]/.test(p)) {
+      const ch = (p.match(/\[\[BOLETO:?([^\]]*)\]\]/)[1].match(/\d{3}/) || ['289'])[0]; const bol = NAT_BOLETOS[ch] || NAT_BOLETOS['289'];
+      const resto = p.replace(/\[\[BOLETO[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
+      if (!nat.boleto || Date.now() - nat.boleto > 600000) { nat.boleto = Date.now(); blocos.push({ t: 'Boleto no valor de R$ ' + bol[0] + ':', colado: true }, { t: bol[1], colado: true }, { t: NAT_POS_LINK, colado: true }); }
     } else if (/\[\[QUESTIONARIO\]\]/.test(p)) {
       const resto = p.replace(/\[\[QUESTIONARIO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
       if (!nat.quest) { nat.quest = Date.now(); blocos.push({ t: NAT_QUEST, colado: true }, { t: NAT_QUEST_LINK, colado: true }, { t: NAT_ULTIMAS, colado: true }); encerra = true; }
@@ -1324,7 +1381,7 @@ async function natEnviar(to, session, bruto, opcoes) {
   }
   if (adiarDias) await adiarRetorno(to, session, adiarDias);
   if (encerra) { await botDesligar(to, session, 'questionário e últimas informações enviados: Paulo assume'); return; }
-  if (pausar || pausar2) await pausarEAvisar(to, session, 'modo natural: passou para o atendimento humano');
+  if (pausar || pausar2) await pausarEAvisar(to, session, motivoPausa || (pausar2 ? 'pediu link de cartão de uma opção sem link cadastrado' : 'a IA não soube responder e passou para o atendimento humano'));
 }
 // Depois do questionário e do pedido das últimas informações o bot sai de cena para sempre nesta conversa (só o painel religa)
 async function botDesligar(phone, session, motivo) {
@@ -1407,12 +1464,17 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   if (session.audioTranscrito && !mediaInfo) { entrada = '[A pessoa enviou um ÁUDIO, transcrito automaticamente abaixo; pode haver pequenos erros de transcrição]\n' + entrada; }
   session.audioTranscritoUsado = !!session.audioTranscrito; session.audioTranscrito = false;
   if (nat.encaixe && !mediaInfo) entrada += '\n\n[AVISO DO SISTEMA, não faz parte da mensagem da pessoa: o TEXTO DE ENCAIXE e o "Assim que ler me mande um OK" JÁ FORAM ENVIADOS a esta pessoa. NÃO mande o passo 1 de novo, nem "entendo perfeitamente essa situação", nem o texto de encaixe. Se ela está contando ou detalhando o problema, siga o passo 3B (comentar o problema dela e encaixar na investigação da apometria). Se mandou OK ou perguntou valor/dúvida, siga os passos 4 e 5.]';
-  if (!nat.quest && (nat.pix || nat.link)) entrada += '\n\n[AVISO DO SISTEMA: o Pix/link de pagamento JÁ FOI ENVIADO a esta pessoa. NÃO reenvie [[PIX]] nem [[LINK]] a menos que ela peça de novo ou corrija a opção, e NUNCA pergunte se ela já realizou o pagamento nem cobre o pagamento. Se ela só voltou a escrever, responda o que ela perguntou e aguarde o comprovante.]';
+  if (!nat.quest && (nat.pix || nat.link || nat.banco || nat.boleto)) entrada += '\n\n[AVISO DO SISTEMA: o Pix/link de pagamento JÁ FOI ENVIADO a esta pessoa. NÃO reenvie [[PIX]] nem [[LINK]] a menos que ela peça de novo ou corrija a opção, e NUNCA pergunte se ela já realizou o pagamento nem cobre o pagamento. Se ela só voltou a escrever, responda o que ela perguntou e aguarde o comprovante.]';
   entrada += avisoVolta;
   let resp;
-  if (mediaInfo && mediaInfo.tipo !== 'audio' && (nat.pix || nat.link) && !nat.quest) {
-    // comprovante recebido: o fluxo final é fixo (agradece, questionário, últimas informações e passa para o Paulo), sem depender da IA
+  const pagouTexto = !mediaInfo && natDisseQuePagou(text);
+  if (((mediaInfo && mediaInfo.tipo !== 'audio') || pagouTexto) && (nat.pix || nat.link || nat.banco || nat.boleto) && !nat.quest) {
+    // comprovante recebido (ou a pessoa disse que pagou: confiamos, sem exigir comprovante): o fluxo final é fixo (agradece, questionário, últimas informações e passa para o Paulo), sem depender da IA
     const nm = session.clientName ? ' ' + session.clientName : '';
+    if (pagouTexto) {
+      if (pool) { try { await pool.query("UPDATE conversations SET funil = 'comprovante', comprovante_at = now(), followup_off = true WHERE phone = $1", [from]); } catch (e) {} }
+      crmAlertar('comprovante', from, 'A pessoa DISSE que já pagou (sem enviar comprovante): "' + String(text).slice(0, 120) + '". O bot confiou e seguiu o fluxo (questionário enviado). Conferir o pagamento na conta/Asaas.', session.clientName).catch(() => {});
+    }
     resp = 'Ok, gratidão' + nm + '. Vou lhe explicar como prosseguiremos.' + (nat.duas ? ' ||| O restante do valor pode ser enviado depois, com o comprovante, dentro do combinado. Grato.' : '') + ' ||| [[QUESTIONARIO]]';
     session.history.push({ role: 'user', content: entrada }, { role: 'assistant', content: resp });
   } else {
@@ -1420,7 +1482,7 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   }
   if (!resp) { await pausarEAvisar(from, session, 'modo natural: falha da IA'); return true; }
   const fezPergunta = (session.audioTranscritoUsado || RE_PERGUNTA.test(text)) && !mediaInfo; session.audioTranscritoUsado = false;
-  await natEnviar(from, session, resp, { citarPrimeiro: fezPergunta, pessoaOk: !mediaInfo && /^\s*(ok|okay|okk+|oks|ok,? obrigad[oa])\b/i.test(text) && text.trim().split(/\s+/).length <= 3 });
+  await natEnviar(from, session, resp, { citarPrimeiro: fezPergunta, pessoaOk: !mediaInfo && natAfirmacaoSolta(text), pessoaDisseOk: !mediaInfo && /^\s*(ok|okay|okk+|oks|ok,? obrigad[oa])\b/i.test(text) && text.trim().split(/\s+/).length <= 3, comprovante: !!(mediaInfo && mediaInfo.tipo !== 'audio') || pagouTexto });
   await upsertConversation(from, session.clientName, session.stage);
   crmAtualizarFunil(from, session).catch(() => {});
   return true;
@@ -1478,6 +1540,7 @@ async function resetarTeste(from) {
   } catch (e) { console.error('❌ reset teste:', e.message); }
 }
 function handleMessage(from, messageText, mediaInfo = null) {
+  if (!mediaInfo && ehAdmin(from) && /^\s*#(parar|iniciar|teste|status)\s*$/i.test(messageText)) return comandoAdmin(from, messageText);
   if (!mediaInfo && /^\s*#reset\s*$/i.test(messageText) && typeof YC !== 'undefined' && YC.enabled && YC.isTester(from)) return resetarTeste(from);
   if (mediaInfo) { liberarLote(from); return enfileirar(from, messageText, mediaInfo, Date.now()); }
   let l = lotes.get(from);
@@ -1501,6 +1564,11 @@ function jaProcessada(id) {
   return false;
 }
 async function handleMessageInner(from, messageText, mediaInfo = null, recebidoEm = Date.now()) {
+  if (botParado) { // #parar: só registra a mensagem para a equipe ver; nada é respondido
+    console.log('⏸️ Bot parado: mensagem de ' + from + ' registrada, sem resposta.');
+    try { await saveMessage(from, 'in', mediaInfo ? '[mídia recebida com o bot parado]' : String(messageText || '').trim()); notificarPush(); } catch (e) {}
+    return;
+  }
   const session = getSession(from);
   await restaurarSessao(from, session);
   let text = messageText.trim();
@@ -1849,10 +1917,32 @@ app.get('/webhook', (req, res) => {
 // ─── YCloud + TRAVA DE CLIENTE NOVO (ycloud.js) ───────────────────────────────
 const YC = require('./ycloud')({
   axios, pool, log: console.log, mediaDir: MEDIA_DIR, publicBase: PUBLIC_BASE,
+  parado: () => botParado, manual: () => !!((manualALS.getStore() || {}).manual), ehAdmin,
   extraPermitidos: async () => ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean)
 });
 if (YC.enabled) { YC.instala(); YC.iniciaTabela().then(() => console.log('🔒 Trava de cliente novo ativa (padrão: negar)')).catch(e => console.error('guard tabela:', e.message)); }
 
+async function carregarParada() { try { if ((await cfgGet('bot_parado', '0')) === '1') { botParado = true; console.log('⏸️ Bot iniciou PARADO (#parar ativo)'); } } catch (e) {} }
+setTimeout(carregarParada, 4000);
+async function comandoAdmin(phone, txt) {
+  const cmd = (txt.match(/#(parar|iniciar|teste|status)/i) || [])[1].toLowerCase();
+  const resp = m => manualALS.run({ manual: true }, () => sendMessage(phone, m));
+  let pausadas = 0; if (pool) { try { const r = await pool.query('SELECT count(*)::int AS n FROM conversations WHERE bot_off = true'); pausadas = r.rows[0].n; } catch (e) {} }
+  if (cmd === 'teste') {
+    console.log('🔔 #teste de ' + phone.slice(0, 4) + '…' + phone.slice(-4));
+    await resp('🔔 Teste de aviso disparado para os números da equipe.');
+    const nums = ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean);
+    alertaRecente.clear();
+    await crmAlertar('saiu_do_fluxo', phone, 'MOTIVO: TESTE de aviso pedido por ' + fmtFone(phone) + ' (' + nums.length + ' número(s) de aviso configurado(s)). Se chegou aqui, os avisos estão funcionando.', 'Teste');
+    return;
+  }
+  if (cmd === 'status') { await resp((botParado ? '⏸️ Bot DESLIGADO (#parar ativo).' : '▶️ Bot LIGADO.') + ' Conversas com o bot desligado individualmente: ' + pausadas + '.'); return; }
+  const parar = cmd === 'parar';
+  botParado = parar; try { await cfgSet('bot_parado', parar ? '1' : '0'); } catch (e) { console.error('❌ bot_parado:', e.message); }
+  console.log((parar ? '⏸️ #parar' : '▶️ #iniciar') + ' recebido de ' + phone.slice(0, 4) + '…' + phone.slice(-4));
+  await resp(parar ? '⏸️ Bot DESLIGADO em todas as conversas (nada será respondido nem enviado). Para religar, envie #iniciar.'
+    : '▶️ Bot LIGADO de novo. Volta a atender quem ele já estava atendendo; as conversas que já estavam pausadas' + (pausadas ? ' (' + pausadas + ')' : '') + ' continuam pausadas.');
+}
 app.post('/webhook-yc', async (req, res) => {
   if (!YC.enabled) return res.sendStatus(404);
   if (!YC.assinaturaOk(req.headers['ycloud-signature'], req.rawBody || Buffer.alloc(0))) { console.log('🔒 webhook YCloud com assinatura inválida — recusado'); return res.sendStatus(401); }
@@ -1867,6 +1957,8 @@ app.post('/webhook-yc', async (req, res) => {
       console.log('🔒 resposta humana detectada — bot calado para este contato'); return;
     }
     if (r.acao === 'mensagem') {
+      { const tc = r.msg && r.msg.type === 'text' && r.msg.text && r.msg.text.body;
+        if (tc && ehAdmin(r.phone) && /^\s*#(parar|iniciar|teste|status)\s*$/i.test(tc)) { if (jaProcessada(r.msg.id)) return; return await comandoAdmin(r.phone, tc); } }
       const d = await YC.decide(r.phone, r.msg);
       console.log(`🔒 trava: ${r.phone.slice(0, 4)}…${r.phone.slice(-4)} → ${d.ok ? 'PERMITIDO' : 'NEGADO'} (${d.motivo})`);
       if (!d.ok) return;
@@ -1904,7 +1996,7 @@ async function processarMeta(body) {
           { const sI = getSession(from); sI.ultimoId = message.id; sI.digitou = message.type === 'text';
             const ct = (value.contacts || []).find(c => c && c.wa_id === from) || (value.contacts || [])[0];
             if (ct && ct.profile && ct.profile.name) sI.perfilNome = ct.profile.name;
-            if (!sI.pausado && (!sI.natPresEm || Date.now() - sI.natPresEm > 45000)) { sI.natPresEm = Date.now(); const midP = message.id; natAtivo(from).then(ativo => { if (ativo) setTimeout(() => { const sP = sessions.get(from); if (sP && !sP.pausado) natDigitando({ ultimoId: midP }, true); }, natRand(1500, 5000)); }).catch(() => {}); }
+            if (!botParado && !sI.pausado && (!sI.natPresEm || Date.now() - sI.natPresEm > 45000)) { sI.natPresEm = Date.now(); const midP = message.id; natAtivo(from).then(ativo => { if (ativo) setTimeout(() => { const sP = sessions.get(from); if (sP && !sP.pausado) natDigitando({ ultimoId: midP }, true); }, natRand(1500, 5000)); }).catch(() => {}); }
             if (message.type === 'text') { sI.entradas = (sI.entradas || []).concat({ id: message.id, t: message.text.body, ts: Date.now() }).slice(-12); } }
           if (message.type === 'text') {
             handleMessage(from, message.text.body).catch(err => {
@@ -2747,7 +2839,7 @@ async function encaminharComprovante(phone, nome, midia) {
   const up = await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/media`, { method: 'POST', headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` }, body: fd });
   const upj = await up.json();
   if (!upj.id) throw new Error('upload: ' + JSON.stringify(upj));
-  const legenda = '💰 Comprovante recebido\n' + (nome || 'Sem nome') + ' (+' + phone + ')\nPainel: ' + PUBLIC_BASE + '/painel/crm';
+  const legenda = '💰 Comprovante recebido\nNome: ' + (nome || 'não informado') + '\nNúmero: ' + fmtFone(phone) + '\nHora: ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   for (const n of numeros) {
     try {
       await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
@@ -2760,35 +2852,51 @@ async function encaminharComprovante(phone, nome, midia) {
 }
 
 const ALERTA_PADRAO = {
-  novo_contato: '🆕 Novo contato\\n{pessoa}\\n{detalhe}\\nPainel: ' + PUBLIC_BASE + '/painel/crm',
-  saiu_do_fluxo: '⚠️ Conversa precisa do Paulo\\n{pessoa}\\n{detalhe}\\nPainel: ' + PUBLIC_BASE + '/painel/crm',
-  pagamento_solicitado: '💳 Pix ou cartão solicitado\\n{pessoa}\\n{detalhe}\\nPainel: ' + PUBLIC_BASE + '/painel/crm',
-  comprovante: '💰 Comprovante recebido, conferir o pagamento\\n{pessoa}\\n{detalhe}\\nPainel: ' + PUBLIC_BASE + '/painel/crm',
-  questionario: '📝 Questionário respondido\\n{pessoa}\\n{detalhe}\\nPainel: ' + PUBLIC_BASE + '/painel/crm'
+  novo_contato: '🆕 Novo contato\n{detalhe}\n{resumo}',
+  saiu_do_fluxo: '⚠️ Conversa passada para o atendimento humano (bot desligado nesta conversa)\n{detalhe}\n{resumo}',
+  pagamento_solicitado: '💳 Pix, boleto ou cartão solicitado\n{detalhe}\n{resumo}',
+  comprovante: '💰 Pagamento: conferir\n{detalhe}\n{resumo}',
+  questionario: '📝 Questionário respondido\n{detalhe}\n{resumo}'
 };
+function fmtFone(ph) { const d = String(ph || '').replace(/\D/g, ''); const m = d.match(/^55(\d{2})(9?\d{4})(\d{4})$/); return m ? '+55 ' + m[1] + ' ' + m[2] + '-' + m[3] : '+' + d; }
+// Resumo completo para a equipe (sem link do painel): nome, número, última mensagem, situação do atendimento e hora
+function resumoAlerta(phone, nome) {
+  const se = sessions.get(phone) || {}; const nat = se.nat || {};
+  const ult = (se.entradas || []).slice(-1)[0];
+  const sit = [];
+  if (nat.encaixe) sit.push('recebeu a explicação'); if (nat.info) sit.push('viu o informativo e os valores'); if (nat.pix) sit.push('recebeu o Pix'); if (nat.link) sit.push('recebeu o link do cartão'); if (nat.boleto) sit.push('recebeu o boleto'); if (nat.banco) sit.push('recebeu os dados bancários'); if (nat.quest) sit.push('recebeu o questionário');
+  const fatos = (nat.fatos || []).slice(-3);
+  const hora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return ['Nome: ' + (nome || se.clientName || 'não informado'), 'Número: ' + fmtFone(phone),
+    ult && ult.t ? 'Última mensagem dela(e): "' + String(ult.t).replace(/\s+/g, ' ').slice(0, 220) + '"' : '',
+    sit.length ? 'Situação: ' + sit.join(', ') : 'Situação: conversa no início',
+    fatos.length ? 'O que sei dela(e): ' + fatos.join('; ') : '',
+    'Hora: ' + hora].filter(Boolean).join('\n');
+}
 const alertaRecente = new Map();
 // Aviso para o(s) número(s) da equipe (config "alerta_numeros", separados por vírgula)
 async function crmAlertar(tipo, phone, detalhe, nome) {
   await crmEvento(phone, tipo, detalhe);
-  const chave = tipo + ':' + phone;
+  const chave = tipo + ':' + phone + (tipo === 'saiu_do_fluxo' ? ':' + String(detalhe || '').slice(0, 60) : '');
   const janela = (tipo === 'pagamento_solicitado' ? 60 : 10) * 60 * 1000;
   if (alertaRecente.get(chave) && Date.now() - alertaRecente.get(chave) < janela) return;
   alertaRecente.set(chave, Date.now());
-  if (tipo === 'pagamento_solicitado' || tipo === 'saiu_do_fluxo') { const g = 'grupo:' + phone; if (alertaRecente.get(g) && Date.now() - alertaRecente.get(g) < 120000) return; alertaRecente.set(g, Date.now()); }
+  if (tipo === 'pagamento_solicitado') { const g = 'grupo:' + phone; if (alertaRecente.get(g) && Date.now() - alertaRecente.get(g) < 120000) return; alertaRecente.set(g, Date.now()); }
   let numeros = ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean);
   { const vistos = new Set(); numeros = numeros.filter(n => { const k = n.slice(-8); if (vistos.has(k)) return false; vistos.add(k); return true; }); } // mesmo celular em dois formatos = um aviso só
   if (tipo === 'pagamento_solicitado') return; // Pix/cartão enviado não gera aviso no celular: só o do comprovante
   if (!numeros.length) return;
-  const rotulos = { audio_sem_transcricao: '🎤 Áudio não transcrito', novo_contato: '🆕 Novo contato', saiu_do_fluxo: '⚠️ Conversa precisa do Paulo', pagamento_solicitado: '💳 Pix ou cartão solicitado', comprovante: '💰 Comprovante recebido (conferir pagamento)', questionario: '📝 Questionário respondido' };
-  const quem = (nome || 'Sem nome') + ' (+' + phone + ')';
-  const texto = (rotulos[tipo] || tipo) + '\n' + quem + (detalhe ? '\n' + detalhe : '') + '\nPainel: ' + PUBLIC_BASE + '/painel/crm';
+  const rotulos = { audio_sem_transcricao: '🎤 Áudio não transcrito', novo_contato: '🆕 Novo contato', saiu_do_fluxo: '⚠️ Conversa passada para o atendimento humano', pagamento_solicitado: '💳 Pix, boleto ou cartão solicitado', comprovante: '💰 Pagamento: conferir', questionario: '📝 Questionário respondido' };
+  const quem = (nome || 'Sem nome') + ' (' + fmtFone(phone) + ')';
+  const resumo = resumoAlerta(phone, nome);
+  const texto = (rotulos[tipo] || tipo) + (detalhe ? '\n' + detalhe : '') + '\n' + resumo;
   // Campo do CRM: texto da mensagem com {pessoa} e {detalhe} (\\n = nova linha). Sem espaços = nome de modelo aprovado da Meta.
   const modelo = ((await cfgGet('alerta_template_' + tipo, '')) || '').trim() || ALERTA_PADRAO[tipo] || '';
   const ehTexto = /[\s{]/.test(modelo);
-  const corpo = (modelo || texto).replace(/\\n/g, '\n').split('{pessoa}').join(quem).split('{detalhe}').join(detalhe || '-');
+  const corpo = (modelo || texto).replace(/\\n/g, '\n').split('{pessoa}').join(quem).split('{detalhe}').join(detalhe || '-').split('{resumo}').join(resumo).replace(/\n?Painel:[^\n]*/g, '').trim() + ((modelo && ehTexto && !modelo.includes('{resumo}')) ? '\n' + resumo : '');
   for (const n of numeros) {
     try {
-      if (modelo && !ehTexto) await enviarTemplate(n, modelo, [quem, detalhe || '-']);
+      if (modelo && !ehTexto) await enviarTemplate(n, modelo, [quem, ((detalhe || '-') + ' | ' + resumo).replace(/\s*\n\s*/g, ' | ')]);
       else await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
         { messaging_product: 'whatsapp', to: n, type: 'text', text: { body: corpo } },
         { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
@@ -2849,7 +2957,7 @@ async function followupTextos() {
 }
 let followupRodando = false;
 async function rodarFollowups() {
-  if (!pool || followupRodando) return;
+  if (!pool || followupRodando || botParado) return;
   followupRodando = true;
   try {
     if ((await cfgGet('followup_ativo', '0')) !== '1') return;
@@ -2957,7 +3065,7 @@ function textoPos(i, params) { return POS_TEXTOS[i].replace(/\{\{(\d)\}\}/g, (m,
 let posRodando = false;
 const posTentativa = new Map();
 async function rodarPosPagamento() {
-  if (!pool || posRodando) return;
+  if (!pool || posRodando || botParado) return;
   posRodando = true;
   try {
     if ((await cfgGet('pos_ativo', '1')) !== '1') return;
