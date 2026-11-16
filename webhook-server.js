@@ -561,7 +561,7 @@ async function sendMessage(to, text) {
         messaging_product: 'whatsapp',
         to,
         type: 'text',
-        text: { body: text, preview_url: /instagram\.com|google\.com/.test(text) },
+        text: { body: text, preview_url: /instagram\.com|google\.com|mpago\.li|mercadopago\.com/.test(text) },
         ...(citarAgora ? { context: { message_id: citarAgora } } : {})
       },
       {
@@ -1103,7 +1103,13 @@ REGRA GERAL: NUNCA pergunte para quem é o trabalho nem se é "para você ou par
    - Depoimentos / é confiável? → "Veja alguns dos depoimentos em nosso instagram" ||| https://www.instagram.com/apometria_brasil/
    - Vou sentir diferença após a primeira sessão? → a maioria relata leveza e clareza já nos primeiros dias; sem prometer resultado.
 6) Pediu desconto: "[Nome] o que podemos fazer para você e lhe ajudar é realizar a sessão emergencial pelo valor da sessão normal. Esse é o valor mínimo que conseguimos devido a natureza desse trabalho que demanda um grande tempo e empenho da equipe." Não ofereça desconto sem a pessoa pedir e nunca abaixo disso.
-7) Decidiu fazer / pediu o Pix: "Ok, combinado [Nome]! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" ||| [[PIX: valor - opção]]. Valores: Sessão de Apometria 289,00 (15 dias úteis); Sessão de Apometria Emergencial 339,00 (08 dias úteis; 289,00 se você concedeu o desconto do passo 6); Pacote 4 sessões 800,00. Se ela não disse qual opção, pergunte antes: "Qual opção você gostaria?". Pagamento no cartão: "Ok [Nome]. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇" ||| [[LINK: chave]], com chave = individual, emergencial, pacote (4 sessões), familiar, dois (dois trabalhos da família), empresa, imoveis ou animais; se ela não disse a opção, pergunte antes. PIX EM DUAS VEZES: se a pessoa pedir para pagar o Pix em duas vezes, ACEITE: "Ok [Nome], podemos continuar dessa forma. Segue abaixo os dados para a primeira parte 👇" ||| [[PIX: valor da primeira parte (metade do valor da opção, ex.: 144,50 para a sessão de 289,00) - opção]]. Depois do primeiro comprovante o sistema envia o questionário e as informações sem esperar a segunda parte (você não precisa escrever nada sobre isso; o sistema avisa que o restante pode ser enviado depois). Boleto, parcelamento maior, pagamento do exterior: "Ok! Vou verificar a melhor forma e já lhe retorno." ||| [[PAUSAR]]
+7) PAGAMENTO (nunca pergunte "Pix ou cartão?" nem "qual opção?", para não gerar atrito; a opção padrão é a Sessão de Apometria individual, 289,00, chave individual):
+   - Pediu SÓ o Pix ("me passa o pix", "quero pagar no pix", "pode ser pix") sem falar de opção: "Ok, combinado [Nome]! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇" ||| [[PIX: 289,00 - Sessão de Apometria]]
+   - Pediu SÓ o cartão ou o link ("link", "manda o link", "pago no cartão") sem falar de opção: "Ok [Nome]. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇" ||| [[LINK: individual]]
+   - Escolheu a opção/sessão ("quero a sessão", "vou fazer a normal", "quero o emergencial", "vou fechar o pacote", "pode marcar") SEM dizer Pix ou cartão: mande Pix e link do cartão juntos, nesta forma: "Ok, combinado [Nome]! Vou lhe enviar as opções para o pagamento. Segue abaixo 👇" ||| [[PIX_E_LINK: chave]] com chave = individual (289,00), emergencial (339,00; 289,00 só se concedeu o desconto do passo 6) ou pacote (800,00). O sistema cola sozinho os dados do Pix, o "Caso prefira pagar no cartão" e o link.
+   - Pediu Pix/cartão E disse a opção: use a forma do Pix ([[PIX: valor - opção]], Sessão 289,00 / Emergencial 339,00 / Pacote 4 sessões 800,00) ou do cartão ([[LINK: chave]]), conforme o que ela pediu; outras chaves de cartão: familiar, dois (dois trabalhos da família), empresa, imoveis, animais.
+   - Se ela não disse qual sessão, NUNCA pergunte: assuma a individual de 289,00. Só mude para outra sessão se ELA mesma corrigir ("era a emergencial", "na verdade o pacote"); aí envie só a opção corrigida (Pix e/ou link conforme o que já estava sendo enviado).
+   PIX EM DUAS VEZES: se a pessoa pedir para pagar o Pix em duas vezes, ACEITE: "Ok [Nome], podemos continuar dessa forma. Segue abaixo os dados para a primeira parte 👇" ||| [[PIX: valor da primeira parte (metade do valor da opção, ex.: 144,50 para a sessão de 289,00) - opção]]. Depois do primeiro comprovante o sistema envia o questionário e as informações sem esperar a segunda parte (você não precisa escrever nada sobre isso; o sistema avisa que o restante pode ser enviado depois). Boleto, parcelamento maior, pagamento do exterior: "Ok! Vou verificar a melhor forma e já lhe retorno." ||| [[PAUSAR]]
 8) Enviou o comprovante (o sistema avisa "[cliente enviou imagem/documento]"): "Ok, gratidão [Nome]. Vou lhe explicar como prosseguiremos." ||| [[QUESTIONARIO]] (o sistema cola sozinho o texto do questionário, o link e o pedido do nome completo e endereço, e depois passa a conversa para o Paulo; NÃO escreva mais nada além desses dois balões)
 9) Disse que vai pensar / ver depois / mês que vem / sem condições agora / "depois eu falo" (adiou): NÃO deixe sem resposta e NÃO insista. Despeça-se curto e cordial, no jeito do Paulo, e acrescente no final o marcador [[ADIAR: N]], onde N é o número de dias até a data que a pessoa citou ("começo do mês que vem" = dias até o dia 1º do próximo mês; "semana que vem" = 7; "depois do dia 20" = dias até o dia 20); se ela não deu data, use [[ADIAR: 7]]. O sistema desliga os lembretes automáticos e agenda UM retorno nessa data. Exemplos: "Ok [Nome], combinado! Fico em seu aguardo para darmos continuidade. Qualquer dúvida estou à disposição 🙏" / "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏". Se ela disse que já fechou com outro terapeuta: "Entendo! Sem problemas. Estou à disposição caso queira realizar no futuro ou outro trabalho complementar com o que já vai fazer. Saiba que se escolher realizar a apometria conosco será muito bem amparada e faremos o melhor por você 🙏" (sem [[ADIAR]]).
 
@@ -1204,12 +1210,22 @@ const RE_PERGUNTA = /\?|\b(quanto|qual|quais|como|quando|onde|porque|por que|pos
 async function sendAudioLink(to, link) {
   try {
     await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
-      { messaging_product: 'whatsapp', to, type: 'audio', audio: { link } },
+      { messaging_product: 'whatsapp', to, type: 'audio', audio: { link, voice: true } },
       { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
     console.log('🎙️ Áudio enviado para ' + to);
     return true;
   } catch (e) { console.error('❌ Erro ao enviar áudio para ' + to + ':', e.response?.data || e.message); return false; }
 }
+// Frases que o modelo às vezes cola no mesmo balão: cada uma sai como balão próprio, com o tempo entre eles
+function natSepara(txt) {
+  return String(txt)
+    .replace(/(\S)\s+(Ok,? entendo perfeitamente)/gi, '$1|||$2')
+    .replace(/(possibilidades nesse caso\.)\s+(?=\S)/gi, '$1|||')
+    .replace(/(\S)\s+(Assim que ler me mande um OK)/gi, '$1|||$2')
+    .split('|||').map(p => p.trim()).filter(Boolean);
+}
+const NAT_AVISO_INFO = /vou (lhe )?(enviar|mandar)[^.!?\n]{0,60}(informativo|material|valores|detalhes)|segue abaixo|segue o informativo/i;
+const NAT_VALOR = { individual: '289,00 - Sessão de Apometria', emergencial: '339,00 - Sessão de Apometria Emergencial', pacote: '800,00 - Pacote 4 sessões de Apometria' };
 async function natEnviar(to, session, bruto, opcoes) {
   opcoes = opcoes || {};
   { const fx = [...bruto.matchAll(/\[\[FATO:([^\]]*)\]\]/g)].map(m => m[1].trim().slice(0, 220)).filter(Boolean);
@@ -1220,8 +1236,13 @@ async function natEnviar(to, session, bruto, opcoes) {
   if (!bruto && adiarDias) { await adiarRetorno(to, session, adiarDias); return; }
   if (/\[\[SEM_RESPOSTA\]\]/.test(bruto)) { console.log('🤫 Modo natural: sem resposta necessária para ' + to); return; }
   const pausar = /\[\[PAUSAR\]\]/.test(bruto);
-  const partes = bruto.replace(/\[\[PAUSAR\]\]/g, '').split('|||').map(p => p.trim()).filter(Boolean).slice(0, 8);
+  let partes = natSepara(bruto.replace(/\[\[PAUSAR\]\]/g, '')).slice(0, 10);
   const nat = session.nat;
+  // o áudio gravado do informativo já diz que o material vai ser enviado: some o aviso em texto ("vou lhe enviar o informativo... segue abaixo")
+  if (partes.some(x => /\[\[INFORMATIVO\]\]/.test(x)) && (!nat.info || Date.now() - nat.info > 180000)) {
+    partes = partes.filter(x => /\[\[INFORMATIVO\]\]/.test(x) || !NAT_AVISO_INFO.test(x.replace(/\[\[[^\]]*\]\]/g, '')));
+    partes = partes.map(x => /\[\[INFORMATIVO\]\]/.test(x) && NAT_AVISO_INFO.test(x.replace(/\[\[[^\]]*\]\]/g, '')) ? '[[INFORMATIVO]]' : x);
+  }
   let primeiro = true; let pausar2 = false; let encerra = false;
   if (/primeira parte/i.test(bruto)) nat.duas = true;
   for (let p of partes) {
@@ -1230,6 +1251,12 @@ async function natEnviar(to, session, bruto, opcoes) {
     if (/\[\[INFORMATIVO\]\]/.test(p)) {
       const resto = p.replace(/\[\[INFORMATIVO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
       if (!nat.info || Date.now() - nat.info > 180000) { nat.info = Date.now(); session.viuValores = true; blocos.push({ audio: 'informativo-valores.ogg', seg: 12 }, { t: NAT_INFORMATIVO, colado: true }, { t: NAT_PAGAMENTO, colado: true }); }
+    } else if (/\[\[PIX_E_LINK:?([^\]]*)\]\]/.test(p)) {
+      const ch0 = semAcento(p.match(/\[\[PIX_E_LINK:?([^\]]*)\]\]/)[1]).trim().toLowerCase();
+      const ch = Object.keys(NAT_VALOR).find(k => ch0.includes(k)) || 'individual';
+      const resto = p.replace(/\[\[PIX_E_LINK[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
+      nat.pix = Date.now(); nat.link = Date.now();
+      blocos.push({ t: NAT_PIX(NAT_VALOR[ch]), colado: true }, { t: 'Caso prefira pagar no cartão, segue abaixo o link 👇' }, { t: NAT_LINKS[ch][1], colado: true });
     } else if (/\[\[PIX:([^\]]*)\]\]/.test(p)) {
       const v = p.match(/\[\[PIX:([^\]]*)\]\]/)[1].trim() || '289,00 - Sessão de Apometria';
       const resto = p.replace(/\[\[PIX:[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
@@ -2070,7 +2097,7 @@ app.post('/painel/api/app/audio/:phone', express.raw({ type: () => true, limit: 
     const uj = await up.json();
     if (!uj.id) throw new Error('upload: ' + JSON.stringify(uj));
     try { const inf = await axios.get('https://graph.facebook.com/v21.0/' + uj.id, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN } }); console.log('🎤 media na Meta: ' + JSON.stringify(inf.data)); } catch (e) {}
-    await axios.post('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/messages', { messaging_product: 'whatsapp', to: phone, type: 'audio', audio: { id: uj.id } }, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN, 'Content-Type': 'application/json' } });
+    await axios.post('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/messages', { messaging_product: 'whatsapp', to: phone, type: 'audio', audio: { id: uj.id, voice: true } }, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN, 'Content-Type': 'application/json' } });
     const session = getSession(phone);
     session.pausado = true; session.pausadoEm = Date.now(); session.pausadoPor = 'humano';
     session.history.push({ role: 'assistant', content: '[áudio enviado pela equipe]' });
