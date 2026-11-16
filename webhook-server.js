@@ -1097,8 +1097,8 @@ CAMINHO DA CONVERSA (siga a ordem, um passo por vez; a saudação inicial o sist
 1) A pessoa contou pela PRIMEIRA vez, de forma ESPECÍFICA, o que quer trabalhar (o texto de encaixe ainda não foi enviado): responda em QUATRO balões:
    a) cumprimento em balão próprio e PRIMEIRO, SEMPRE ("Oi [Nome], ${periodo}. Tudo bem?"; sem nome: "Oi, ${periodo}. Tudo bem?") e depois, em outro balão, "Ok, entendo perfeitamente essa situação. Vou lhe explicar tudo o que podemos realizar através da Apometria e as possibilidades nesse caso." (em balão próprio, nunca junto do texto de encaixe)
    b) o TEXTO DE ENCAIXE: CURTO, no máximo DUAS frases (cerca de 300 caracteres), só identificando o problema que a pessoa relatou. Nada de explicar o procedimento. O modelo abaixo é só a ESTRUTURA e o tom; os trechos entre [colchetes] são os pontos que você substitui. REGRA PRINCIPAL: o assunto do texto é SEMPRE o problema que a pessoa mencionou, com as palavras dela. Nunca desvie o foco: doença grave ou saúde, o texto gira em torno de saúde e cura (medicina convencional atua no plano físico, cada problema físico tem um aspecto espiritual correspondente, sem prometer cura); traumas, fale de traumas; relacionamento, de relacionamento; financeiro, de financeiro; vício, de vício. É PROIBIDO citar assuntos que a pessoa não mencionou (prosperidade e abundância, finanças, ansiedade, relacionamentos, corpo físico, ciclo repetitivo etc.). O texto é só esse parágrafo, TERMINA em "...que estão fazendo parte da sua vida." e NÃO continua com "Nesse caso é feito um trabalho direcionado...", mentores, obsessores, ancestralidade, magia, carma, resgate, reprogramação ou chacras: isso vai na imagem do balão c. Só cite magia, feitiço, inveja, obsessores, mentores, carma, ancestralidade ou vínculos se a PRÓPRIA pessoa falou disso (aí cite em uma frase curta, com as palavras dela). Se o problema dela não tem a ver com isso, NÃO mencione. Fale só do problema dela e termine. Se o trabalho for para outra pessoa, escreva em terceira pessoa ("na vida dele"). Sem nome conhecido, comece "Olha a apometria se encaixa...".
-   c) [[IMAGEM]] sozinho no balão (se o problema for de BLOQUEIOS, TRAVAS, vida que não anda, não prospera, problemas financeiros, dinheiro, trabalho ou negócio que não vai para frente, ciclos que se repetem, use [[IMAGEM: vida]]; se for SAÚDE, doença, dor ou desconforto físico, use [[IMAGEM: saude]]; qualquer outro, [[IMAGEM]]; genérico, [[IMAGEM: geral]]. O sistema envia sozinho depois da imagem os áudios gravados do Paulo; não os mencione) (o sistema escreve "Vou te enviar uma imagem para você entender melhor como tratamos essas questões." e envia a imagem "Como funciona nosso trabalho"; NÃO escreva essa frase)
-   d) NÃO envie mais nada depois da imagem (nada de "Assim que ler me mande um OK"): espere a pessoa responder, perguntar como funciona ou perguntar o valor.
+   c) [[IMAGEM]] sozinho no balão (se o problema for de BLOQUEIOS, TRAVAS, vida que não anda, não prospera, problemas financeiros, dinheiro, trabalho ou negócio que não vai para frente, ciclos que se repetem, use [[IMAGEM: vida]]; se for SAÚDE, doença, dor ou desconforto físico, use [[IMAGEM: saude]]; qualquer outro, [[IMAGEM]]; genérico, [[IMAGEM: geral]]. O sistema envia sozinho depois da imagem os áudios gravados do Paulo; não os mencione) (o sistema escreve "Vou te enviar um PDF mostrando onde o nosso trabalho atua. A apometria atua justamente nesses pontos que você precisa tratar e investigar." e envia o PDF "Como funciona nosso trabalho"; NÃO escreva essa frase)
+   d) NÃO envie mais nada depois do PDF (nada de "Assim que ler me mande um OK"): espere a pessoa responder, perguntar como funciona ou perguntar o valor.
    MODELO DO TEXTO DE ENCAIXE:
 """${NAT_ENCAIXE_EX}"""
 REGRA GERAL: NUNCA pergunte para quem é o trabalho nem se é "para você ou para outra pessoa". Pergunte apenas o MOTIVO (o que ela gostaria de trabalhar). Só use terceira pessoa se a própria pessoa disser que é para outra pessoa.
@@ -1174,6 +1174,7 @@ let NAT_EXTRA = '';
 const NAT_REAIS = `JEITO REAL DO PAULO NAS DÚVIDAS (exemplos de conversas reais, só para pegar o tom e o vocabulário; adapte ao caso, nunca copie palavra por palavra, e as regras acima valem mais que estes exemplos):
 - Pessoa só diz que procura apometria, sem contar o motivo: "Ok [Nome]! Você já conhece o trabalho de Apometria? Para que eu possa adequar melhor a minha resposta."
 - Pergunta se funciona à distância ou se é igual ao presencial: "Ok [Nome]! Respondendo a sua dúvida, não existe nenhuma diferença na forma de realizar a apometria presencial ou a distância. Para esse tipo de trabalho não é preciso você estar presente." e em seguida o informativo.
+- Pergunta quantas sessões precisa, se uma sessão basta, se precisa fazer mais de uma: NUNCA diga "depende de cada caso". Responda em mensagens curtas: "Tudo o que você descreveu pode ser abordado já em uma sessão, [Nome], porque o trabalho de apometria é muito amplo e abrangente. Na maioria dos casos o primeiro atendimento já trata o principal. É um trabalho pontual." ||| "Se outra sessão for indicada, eu informo no relatório, e a continuidade fica sempre a seu critério." Só fale de trabalhos periódicos mensais ou do pacote se a pessoa perguntar por continuidade, sem pressionar.
 - Pergunta se pode dividir as sessões entre pessoas (filho, marido): "Sim [Nome], pode ser realizado dessa maneira, dividindo as sessões entre você e seu filho."
 - Pergunta do curso: "Sim [Nome]. O curso é somente presencial na cidade de São José do Rio Preto, mas no momento não tenho turmas abertas para este ano." ||| "Assim que houver disponibilidade posso lhe avisar caso tenha interesse." (se ela se interessar, avisar e passar para o Paulo)
 - Quem vai pagar é outra pessoa (irmã, filho): "Ok, combinado. Vou enviar aqui em nossa conversa os dados para o pagamento. Segue abaixo 👇" (sem pedir mais nada)
@@ -1352,10 +1353,11 @@ async function natEnviar(to, session, bruto, opcoes) {
     } else if (/\[\[IMAGEM:?([^\]]*)\]\]/.test(p)) {
       const argImg = p.match(/\[\[IMAGEM:?([^\]]*)\]\]/)[1];
       const geral = /geral/i.test(argImg);
-      const tema = /vida|trava|bloque|financ|prosper/i.test(argImg) ? { f: 'aud-vida-travada.ogg', seg: 20, label: 'bloqueios, travas e vida que não anda' } : /sa[uú]de/i.test(argImg) ? { f: 'aud-saude.ogg', seg: 20, label: 'saúde nos quatro níveis' } : null;
-      blocos.push({ t: 'Vou te enviar uma imagem para você entender melhor como tratamos ' + (geral ? 'as questões encontradas.' : 'essas questões.') }, { img: 'como-funciona.jpg' });
+      const tema = /vida|trava|bloque|financ|prosper|abund|dinheir|estagn|lugar|ciclo|repet/i.test(argImg) ? { f: 'aud-vida-travada.ogg', seg: 20, label: 'bloqueios, travas e vida que não anda' } : /sa[uú]de/i.test(argImg) ? { f: 'aud-saude.ogg', seg: 20, label: 'saúde nos quatro níveis' } : null;
+      blocos.push({ t: 'Vou te enviar um PDF mostrando onde o nosso trabalho atua. A apometria atua justamente nesses pontos que ' + (geral ? 'você precisa tratar e investigar.' : 'você precisa tratar e investigar nessa questão.') }, { doc: 'como-funciona.pdf', nome: 'Como-Funciona-Apometria-Brasil.pdf' });
       if (tema) blocos.push({ audio: tema.f, seg: tema.seg, label: tema.label });
-      if (tema) nat.difPend = true; // já foi áudio do tema no início: os diferenciais ficam para a parte dos valores
+      if (tema && tema.f === 'aud-vida-travada.ogg') nat.difEnv = true; // o áudio de bloqueios/travas já fala dos diferenciais: não mandar o áudio de diferenciais depois
+      else if (tema) nat.difPend = true; // já foi áudio do tema no início: os diferenciais ficam para a parte dos valores
       else { nat.difEnv = true; blocos.push({ audio: 'aud-diferenciais-fecho.ogg', seg: 15, label: 'diferenciais: equipe e sessão longa' }); }
     } else if (/\[\[BANCO\]\]/.test(p)) {
       const resto = p.replace(/\[\[BANCO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
@@ -1369,6 +1371,12 @@ async function natEnviar(to, session, bruto, opcoes) {
       if (!nat.quest) { nat.quest = Date.now(); blocos.push({ t: NAT_QUEST, colado: true }, { t: NAT_QUEST_LINK, colado: true }, { t: NAT_ULTIMAS, colado: true }); encerra = true; }
     } else if (p.replace(/\[\[[^\]]*\]\]/g, '').trim()) blocos.push({ t: p.replace(/\[\[[^\]]*\]\]/g, '').trim() });
     for (const b of blocos) {
+      if (b.doc) { // PDF "Como funciona nosso trabalho"
+        await natEsperaDigitando(session, natRand(3000, 7000));
+        await sendDocument(to, PUBLIC_BASE + '/media/' + b.doc, b.nome || b.doc);
+        nat.encaixe = Date.now(); nat.saidas = (nat.saidas || []).concat({ t: '[pdf como funciona]', ts: Date.now() }).slice(-12);
+        primeiro = false; continue;
+      }
       if (b.img) { // imagem "Como funciona nosso trabalho"
         await natEsperaDigitando(session, natRand(3000, 7000));
         await sendImage(to, PUBLIC_BASE + '/media/' + b.img);
