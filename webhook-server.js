@@ -1069,7 +1069,7 @@ const NAT_PIX = v => "Chave pix celular: 17988271998\n\n*Informações adicionai
 const NAT_QUEST = "Agora vou lhe enviar o nosso questionário para darmos início ao relatório inicial.\n\nSão perguntas sobre você, os objetivos e outras informações necessárias para a realização do trabalho.\n\nLembrando: Caso precise adicionar ou explicar alguma situação através de áudios, basta fazer o envio aqui em nossa conversa e eu irei adicionar manualmente em sua ficha.\n\nAs informações por escrito são importantes para elaborarmos o trabalho da melhor maneira.\n\nFique a vontade para responder no seu tempo e sem pressa.";
 const NAT_ULTIMAS = "Depois de enviar o questionário, escreva aqui na conversa o seu nome completo junto com o endereço da sua residência (para a apometria do lar), para a nossa equipe fazer a conferência do questionário.\n\nSe o trabalho for para mais de uma pessoa (pacote), informe também o nome completo de cada uma. Grato.";
 const NAT_BANCO = "Banco Caixa Econômica Federal.\nNome: Paulo Cesar Rodrigues.\nAgência: 1610\nCódigo da Operação: 013\nCPF: 054.168.938-00\nConta número: 26877-2.\n\nAssim que fizer me mande o comprovante para que eu possa dar baixa em minha contabilidade, realizar o envio do questionário inicial e demais instruções. Grato.";
-const NAT_BOLETOS = { '289': ['289,00', 'https://www.asaas.com/000/c/85x7k4nhnctii7f5'], '300': ['300,00', 'https://www.asaas.com/000/c/vid87san3uda197a'] };
+const NAT_BOLETOS = { '289': ['289,00', 'https://www.asaas.com/000/c/85x7k4nhnctii7f5'], '339': ['339,00', 'https://www.asaas.com/000/c/vid87san3uda197a'] };
 const NAT_QUEST_LINK = 'https://apometriabrasil.com.br/questionario-inicial/';
 const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e [ASSUNTO: questões específicas ligadas ao que a pessoa relatou, com as palavras dela]. A apometria age também principalmente no quesito de investigar, identificar e corrigir diversas situações espirituais/energéticas que estão interligadas a totalidade do seu ser e que tem o poder de influênciar negativamente em diversos aspectos de sua vida que estão desencadeando esses problemas, liberando bloqueios e situações negativas ligadas a [ASSUNTO] que estão fazendo parte da sua vida.";
 
@@ -1142,7 +1142,7 @@ MENSAGENS FORA DO ROTEIRO (vale mais que qualquer outra regra de fluxo; nunca re
 - ASSUNTO SEM NENHUMA RELAÇÃO com o atendimento (clima, esporte, piada, política, "teste", digitação sem sentido, número errado, figurinha, risada): responda só [[SEM_RESPOSTA]] (número errado: "Ok, sem problemas." e nada mais). Nunca converse sobre isso e nunca puxe o assunto de vendas à força.
 - PEDIDO DE AMARRAÇÃO, DE FAZER A PESSOA VOLTAR, DE PREJUDICAR ALGUÉM, DE FORÇAR A VONTADE DE OUTRA PESSOA: "Não realizamos trabalhos para influenciar a vontade de outra pessoa nem para prejudicar alguém. A apometria atua no seu campo energético e espiritual." Nada além disso, sem oferecer o informativo.
 - PEDIDO DE LIGAÇÃO ("pode me ligar?", "posso te ligar?", "quero falar por telefone/chamada"): "Ok [Nome], vou verificar um momento oportuno entre as sessões e lhe aviso o horário por aqui." ||| [[PAUSAR: pediu ligação (combinar horário entre as sessões)]]. O bot sai da conversa e a equipe assume.
-- BOLETO: se pedir boleto (para a sessão normal ou sem dizer a opção): "Ok [Nome], segue o boleto abaixo 👇" ||| [[BOLETO: 289]]. Para outra opção (emergencial, pacote) ou outro valor: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: pediu boleto para a opção X]]. O boleto de 300 ([[BOLETO: 300]]) só quando a equipe orientar ou a pessoa falar esse valor.
+- BOLETO: se pedir boleto (para a sessão normal ou sem dizer a opção): "Ok [Nome], segue o boleto abaixo 👇" ||| [[BOLETO: 289]]. Para outra opção (emergencial, pacote) ou outro valor: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: pediu boleto para a opção X]]. O boleto de 339 ([[BOLETO: 339]]) só quando a equipe orientar ou a pessoa falar esse valor.
 - DADOS BANCÁRIOS / conta / transferência / depósito / TED / DOC (sem falar Pix): "Ok [Nome], segue abaixo os dados bancários 👇" ||| [[BANCO]]. Nunca digite agência, conta ou CPF você mesmo, só o marcador.
 - Duração da sessão (pergunta "quanto tempo dura"): "A sessão leva em média duas horas e quinze minutos ou mais, realizada à distância pela equipe de médiuns." Nada além disso.
 - Nunca convide de novo para "me mande um OK" se o informativo já foi enviado.
@@ -1274,7 +1274,7 @@ function natAfirmacaoSolta(t) {
 }
 async function natEnviar(to, session, bruto, opcoes) {
   opcoes = opcoes || {};
-  if (botParado) { console.log('⏸️ Bot parado: resposta descartada (' + to + ')'); return; }
+  if (botParado && !(YC.enabled && YC.ehFixoTeste(to))) { console.log('⏸️ Bot parado: resposta descartada (' + to + ')'); return; }
   { const fx = [...bruto.matchAll(/\[\[FATO:([^\]]*)\]\]/g)].map(m => m[1].trim().slice(0, 220)).filter(Boolean);
     if (fx.length) { session.nat = session.nat || {}; const lista = session.nat.fatos || []; for (const f of fx) if (!lista.includes(f)) lista.push(f); session.nat.fatos = lista.slice(-25); console.log('🧠 Fato guardado (' + to + '): ' + fx.join(' | ')); }
     bruto = bruto.replace(/\[\[FATO:[^\]]*\]\]/g, '').trim(); if (!bruto) return; }
@@ -1565,7 +1565,7 @@ function jaProcessada(id) {
   return false;
 }
 async function handleMessageInner(from, messageText, mediaInfo = null, recebidoEm = Date.now()) {
-  if (botParado) { // #parar: só registra a mensagem para a equipe ver; nada é respondido
+  if (botParado && !(YC.enabled && YC.ehFixoTeste(from))) { // #parar: só registra a mensagem para a equipe ver; nada é respondido
     console.log('⏸️ Bot parado: mensagem de ' + from + ' registrada, sem resposta.');
     try { await saveMessage(from, 'in', mediaInfo ? '[mídia recebida com o bot parado]' : String(messageText || '').trim()); notificarPush(); } catch (e) {}
     return;

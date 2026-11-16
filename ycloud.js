@@ -27,7 +27,8 @@ module.exports = function criar(opt) {
   const ARQUIVO_URL = (E.GUARD_ARQUIVO_URL || '').replace(/\/$/, '');
   const GUARD_TOKEN = E.GUARD_TOKEN || '';
   const RE_SITE = new RegExp(E.SITE_REGEX || 'vim atrav[eé]s do site', 'i');
-  const testers = () => new Set(lista(E.GUARD_TESTERS).map(chave)); // só estes + admitidos são atendidos em modo teste
+  const fixosTeste = () => new Set(lista(E.TESTE_FONES || '5517997436206').map(chave)); // número de teste do dono: sempre ativo, mesmo com #parar
+  const testers = () => new Set([...lista(E.GUARD_TESTERS).map(chave), ...fixosTeste()]); // só estes + admitidos são atendidos em modo teste
   const MODO_TESTE = String(E.GUARD_MODO_TESTE || '') === '1'; // 1 = só atende a lista de testes (ninguém mais é admitido)
   const extraPermitidos = opt.extraPermitidos || (async () => []); // números da equipe (alertas)
   const mediaDir = opt.mediaDir;
@@ -175,7 +176,7 @@ module.exports = function criar(opt) {
       return { data: {} };
     }
     const to = digits(body.to);
-    if (opt.parado && opt.parado() && !(opt.manual && opt.manual()) && !(opt.ehAdmin && opt.ehAdmin(to))) { log(`⏸️ Bot parado (#parar): envio para ${to.slice(0, 4)}…${to.slice(-4)} bloqueado`); const e = new Error('bot parado'); e.response = { data: { bloqueado: true } }; throw e; }
+    if (opt.parado && opt.parado() && !(opt.manual && opt.manual()) && !(opt.ehAdmin && opt.ehAdmin(to)) && !fixosTeste().has(chave(to))) { log(`⏸️ Bot parado (#parar): envio para ${to.slice(0, 4)}…${to.slice(-4)} bloqueado`); const e = new Error('bot parado'); e.response = { data: { bloqueado: true } }; throw e; }
     if (!(await podeEnviar(to))) { log(`🔒 TRAVA: envio para ${to.slice(0, 4)}…${to.slice(-4)} BLOQUEADO (não é cliente novo admitido)`); const e = new Error('bloqueado pela trava de cliente novo'); e.response = { data: { bloqueado: true } }; throw e; }
     const deAviso = !!(NUM_AV && opt.aviso && opt.aviso()); // avisos para a equipe saem pelo número do Instituto
     const y = { from: '+' + (deAviso ? NUM_AV : NUM), to: '+' + to, type: body.type };
@@ -230,5 +231,6 @@ module.exports = function criar(opt) {
   }
 
   const isTester = ph => testers().has(chave(ph));
-  return { isTester, enabled, instala, iniciaTabela, decide, podeEnviar, interpreta, marcaEco, assinaturaOk, grava, chave, _estado: { novos, enviados, histLocal } };
+  const ehFixoTeste = ph => fixosTeste().has(chave(ph));
+  return { isTester, ehFixoTeste, enabled, instala, iniciaTabela, decide, podeEnviar, interpreta, marcaEco, assinaturaOk, grava, chave, _estado: { novos, enviados, histLocal } };
 };
