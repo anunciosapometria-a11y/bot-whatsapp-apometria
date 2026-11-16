@@ -97,7 +97,7 @@ function salvarSnapshot(phone) {
   try {
     const snap = {};
     for (const [k, v] of Object.entries(s)) {
-      if (['lastActivity', 'pausado', 'pausadoEm', 'pausadoPor', 'askedAt', 'valoresEmAndamento', 'ultimoAudio', '_restaurado'].includes(k)) continue;
+      if (['lastActivity', 'pausado', 'pausadoEm', 'pausadoPor', 'askedAt', 'valoresEmAndamento', 'ultimoAudio', '_restaurado', 'midiaPend', 'comprovanteAlertado'].includes(k)) continue;
       if (typeof v === 'function') continue;
       snap[k] = v;
     }
@@ -1243,7 +1243,12 @@ async function natEsperaDigitando(session, ms) {
 }
 function natTempoDigitar(t) { return Math.min(Math.max(t.length * 70, 3000), 45000) * natCfg.vel; }
 const RE_PERGUNTA = /\?|\b(quanto|qual|quais|como|quando|onde|porque|por que|posso|pode|podem|precisa|preciso|existe|funciona|vcs|voces|vocês)\b/i;
+// Madrugada em Brasília (00h00 às 05h59): o bot não envia áudios, só mensagens escritas
+function natMadrugada() {
+  try { const h = parseInt(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10) % 24; return h >= 0 && h < 6; } catch (e) { return false; }
+}
 async function sendAudioLink(to, link) {
+  if (natMadrugada()) return false;
   try {
     await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
       { messaging_product: 'whatsapp', to, type: 'audio', audio: { link, voice: true } },
@@ -1359,6 +1364,7 @@ async function natEnviar(to, session, bruto, opcoes) {
         primeiro = false; continue;
       }
       if (b.audio) { // áudio gravado do Paulo (ogg/opus = aparece como mensagem de voz com as ondinhas)
+        if (natMadrugada()) { console.log('🌙 Madrugada (00h-06h): áudio não enviado, só texto.'); continue; }
         await natEsperaDigitando(session, natRand(4000, 9000));
         const okA = await sendAudioLink(to, PUBLIC_BASE + '/media/' + b.audio);
         if (okA) { await saveMessage(to, 'out', '[áudio do Paulo: ' + (b.label || 'informativo e valores') + ']'); nat.saidas = (nat.saidas || []).concat({ t: '[áudio ' + (b.label || 'informativo') + ']', ts: Date.now() }).slice(-12); await sleep((b.seg + 4) * 1000); }
@@ -1583,13 +1589,15 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   if (mediaInfo) {
     const midia = await baixarMidiaWhatsapp(mediaInfo.id);
     await saveMessage(from, 'in', text, midia?.base64 || null, midia?.mime || mediaInfo.mimeType || null);
-    if (midia && mediaInfo.tipo !== 'audio') encaminharComprovante(from, session.clientName, midia).catch(e => console.error('❌ Encaminhar comprovante:', e.message));
+    session.midiaPend = (midia && mediaInfo.tipo !== 'audio') ? midia : null; session.comprovanteAlertado = false;
   } else {
     await saveMessage(from, 'in', text);
   }
   notificarPush();
   await upsertConversation(from, session.clientName, session.stage);
   await crmEntrada(from, mediaInfo, session, text);
+  if (session.midiaPend && !session.comprovanteAlertado) { const mp = session.midiaPend; encaminharComprovante(from, session.clientName, mp).catch(e => console.error('❌ Encaminhar comprovante:', e.message)); } // imagem extra (já tinha comprovante): só a foto com resumo
+  session.midiaPend = null;
 
   if (!session.pausado && await botDesligado(from)) { session.pausado = true; session.pausadoEm = Date.now(); session.pausadoPor = 'humano'; }
   if (session.pausado && session.pausadoPor === 'bot' && session.pausadoEm && (Date.now() - session.pausadoEm) > PAUSE_TTL_MS) {
@@ -2835,8 +2843,9 @@ async function enviarTemplate(to, nome, params) {
 
 // Comprovante/imagem recebido: guarda no banco (messages) e reenvia a cópia para os números de aviso da equipe
 async function encaminharComprovante(phone, nome, midia) { return avisoALS.run({ aviso: true }, () => encaminharComprovanteInner(phone, nome, midia)); }
-async function encaminharComprovanteInner(phone, nome, midia) {
-  const numeros = ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean);
+async function encaminharComprovanteInner(phone, nome, midia, legendaPronta) {
+  let numeros = ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean);
+  { const vistos = new Set(); numeros = numeros.filter(n => { const k = n.slice(-8); if (vistos.has(k)) return false; vistos.add(k); return true; }); }
   if (!numeros.length || !midia || !midia.base64) return;
   const mime = midia.mime || 'image/jpeg';
   const ehImg = /^image\//.test(mime);
@@ -2848,7 +2857,7 @@ async function encaminharComprovanteInner(phone, nome, midia) {
   const up = await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/media`, { method: 'POST', headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` }, body: fd });
   const upj = await up.json();
   if (!upj.id) throw new Error('upload: ' + JSON.stringify(upj));
-  const legenda = '💰 Comprovante recebido\nNome: ' + (nome || 'não informado') + '\nNúmero: ' + fmtFone(phone) + '\nHora: ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const legenda = String(legendaPronta || ('💰 Comprovante recebido\n' + resumoAlerta(phone, nome))).slice(0, 1000);
   for (const n of numeros) {
     try {
       await axios.post(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
@@ -2884,8 +2893,8 @@ function resumoAlerta(phone, nome) {
 }
 const alertaRecente = new Map();
 // Aviso para o(s) número(s) da equipe (config "alerta_numeros", separados por vírgula)
-async function crmAlertar(tipo, phone, detalhe, nome) { return avisoALS.run({ aviso: true }, () => crmAlertarInner(tipo, phone, detalhe, nome)); }
-async function crmAlertarInner(tipo, phone, detalhe, nome) {
+async function crmAlertar(tipo, phone, detalhe, nome, midia) { return avisoALS.run({ aviso: true }, () => crmAlertarInner(tipo, phone, detalhe, nome, midia)); }
+async function crmAlertarInner(tipo, phone, detalhe, nome, midia) {
   await crmEvento(phone, tipo, detalhe);
   const chave = tipo + ':' + phone + (tipo === 'saiu_do_fluxo' ? ':' + String(detalhe || '').slice(0, 60) : '');
   const janela = (tipo === 'pagamento_solicitado' ? 60 : 10) * 60 * 1000;
@@ -2904,6 +2913,9 @@ async function crmAlertarInner(tipo, phone, detalhe, nome) {
   const modelo = ((await cfgGet('alerta_template_' + tipo, '')) || '').trim() || ALERTA_PADRAO[tipo] || '';
   const ehTexto = /[\s{]/.test(modelo);
   const corpo = (modelo || texto).replace(/\\n/g, '\n').split('{pessoa}').join(quem).split('{detalhe}').join(detalhe || '-').split('{resumo}').join(resumo).replace(/\n?Painel:[^\n]*/g, '').trim() + ((modelo && ehTexto && !modelo.includes('{resumo}')) ? '\n' + resumo : '');
+  if (tipo === 'comprovante' && midia && midia.base64) { // foto do comprovante + aviso completo na MESMA mensagem (legenda)
+    try { await encaminharComprovanteInner(phone, nome, midia, corpo); return; } catch (e) { console.error('❌ Comprovante com foto, enviando só o texto:', e.message); }
+  }
   for (const n of numeros) {
     try {
       if (modelo && !ehTexto) await enviarTemplate(n, modelo, [quem, ((detalhe || '-') + ' | ' + resumo).replace(/\s*\n\s*/g, ' | ')]);
@@ -2937,7 +2949,7 @@ async function crmEntrada(phone, mediaInfo, session, textoMsg) {
       if (!op) { const q = await pool.query("SELECT 1 FROM messages WHERE phone = $1 AND direction = 'out' AND content LIKE '%mpago.li/2rMEjbs%' LIMIT 1", [phone]); if (q.rows.length) op = 'Emergencial'; }
       await pool.query("UPDATE conversations SET funil = 'comprovante', comprovante_at = now(), followup_off = true, opcao = $2 WHERE phone = $1", [phone, op || null]);
       session.etapa = null; session.encerrado = false;
-      await crmAlertar('comprovante', phone, 'Comprovante/imagem recebido. Conferir o pagamento.', session.clientName);
+      await crmAlertar('comprovante', phone, 'Comprovante/imagem recebido. Conferir o pagamento.', session.clientName, session.midiaPend || null); session.comprovanteAlertado = true;
     }
   } catch (e) { console.error('❌ CRM entrada:', e.message); }
 }
