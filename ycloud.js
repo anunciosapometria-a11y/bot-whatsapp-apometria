@@ -21,6 +21,7 @@ module.exports = function criar(opt) {
   const pool = opt.pool || null;
   const API = E.YCLOUD_API_BASE || 'https://api.ycloud.com/v2';
   const KEY = E.YCLOUD_API_KEY || '';
+  const NUM_AV = digits(E.YCLOUD_NUMBER_AVISOS || ''); // número do Instituto como NOTIFICADOR: avisos para a equipe saem por ele e os comandos (#parar, #iniciar...) chegam nele
   const NUM = digits(E.YCLOUD_NUMBER || ''); // número do Instituto (remetente) — eventos de outros números são ignorados
   const SEGREDO = E.YCLOUD_WEBHOOK_SECRET || '';
   const ARQUIVO_URL = (E.GUARD_ARQUIVO_URL || '').replace(/\/$/, '');
@@ -125,6 +126,7 @@ module.exports = function criar(opt) {
     const t = evt && evt.type;
     if (t === 'whatsapp.inbound_message.received') {
       const m = evt.whatsappInboundMessage || {};
+      if (NUM_AV && digits(m.to) === NUM_AV) { const nomeA = m.customerProfile && m.customerProfile.name; return { acao: 'avisos', phone: digits(m.from), msg: metaDeInbound(m, nomeA).entry[0].changes[0].value.messages[0] }; }
       if (NUM && digits(m.to) !== NUM) return { acao: 'ignorar', motivo: 'outro número (' + digits(m.to).slice(-4) + ')' };
       const nome = evt.whatsappInboundMessage && evt.whatsappInboundMessage.customerProfile && evt.whatsappInboundMessage.customerProfile.name;
       return { acao: 'mensagem', phone: digits(m.from), msg: metaDeInbound(m, nome || (m.customerProfile && m.customerProfile.name)).entry[0].changes[0].value.messages[0], nome };
@@ -175,7 +177,8 @@ module.exports = function criar(opt) {
     const to = digits(body.to);
     if (opt.parado && opt.parado() && !(opt.manual && opt.manual()) && !(opt.ehAdmin && opt.ehAdmin(to))) { log(`⏸️ Bot parado (#parar): envio para ${to.slice(0, 4)}…${to.slice(-4)} bloqueado`); const e = new Error('bot parado'); e.response = { data: { bloqueado: true } }; throw e; }
     if (!(await podeEnviar(to))) { log(`🔒 TRAVA: envio para ${to.slice(0, 4)}…${to.slice(-4)} BLOQUEADO (não é cliente novo admitido)`); const e = new Error('bloqueado pela trava de cliente novo'); e.response = { data: { bloqueado: true } }; throw e; }
-    const y = { from: '+' + NUM, to: '+' + to, type: body.type };
+    const deAviso = !!(NUM_AV && opt.aviso && opt.aviso()); // avisos para a equipe saem pelo número do Instituto
+    const y = { from: '+' + (deAviso ? NUM_AV : NUM), to: '+' + to, type: body.type };
     if (body.context && body.context.message_id) y.context = { message_id: body.context.message_id };
     switch (body.type) {
       case 'text': y.text = body.text; break;

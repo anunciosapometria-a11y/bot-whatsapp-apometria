@@ -13,6 +13,7 @@ const { Pool } = require('pg');
 
 const app = express();
 const { AsyncLocalStorage } = require('async_hooks');
+const avisoALS = new AsyncLocalStorage(); // dentro dele os envios saem pelo número notificador (Instituto)
 const manualALS = new AsyncLocalStorage(); // envios feitos pela equipe no painel/app (não são do bot)
 // Comandos de quem administra: "#parar" desliga o bot em TODAS as conversas; "#iniciar" religa (conversas que já estavam pausadas continuam pausadas)
 const ADMIN_FONES = String(process.env.ADMIN_COMANDOS || '5517996171026,5517997391901').split(/[\s,;]+/).map(x => x.replace(/\D/g, '')).filter(Boolean);
@@ -1917,7 +1918,7 @@ app.get('/webhook', (req, res) => {
 // ─── YCloud + TRAVA DE CLIENTE NOVO (ycloud.js) ───────────────────────────────
 const YC = require('./ycloud')({
   axios, pool, log: console.log, mediaDir: MEDIA_DIR, publicBase: PUBLIC_BASE,
-  parado: () => botParado, manual: () => !!((manualALS.getStore() || {}).manual), ehAdmin,
+  parado: () => botParado, aviso: () => !!((avisoALS.getStore() || {}).aviso), manual: () => !!((manualALS.getStore() || {}).manual), ehAdmin,
   extraPermitidos: async () => ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean)
 });
 if (YC.enabled) { YC.instala(); YC.iniciaTabela().then(() => console.log('🔒 Trava de cliente novo ativa (padrão: negar)')).catch(e => console.error('guard tabela:', e.message)); }
@@ -1955,6 +1956,11 @@ app.post('/webhook-yc', async (req, res) => {
       await YC.grava(r.phone, 'bloqueado', null, 'eco: atendimento humano');
       const s = getSession(r.phone); s.pausado = true; s.pausadoEm = Date.now(); s.pausadoPor = 'humano';
       console.log('🔒 resposta humana detectada — bot calado para este contato'); return;
+    }
+    if (r.acao === 'avisos') { // mensagem recebida no número notificador (Instituto): só comandos de quem administra
+      const tcA = r.msg && r.msg.type === 'text' && r.msg.text && r.msg.text.body;
+      if (tcA && ehAdmin(r.phone) && /^\s*#(parar|iniciar|teste|status)\s*$/i.test(tcA)) { if (jaProcessada(r.msg.id)) return; return await avisoALS.run({ aviso: true }, () => comandoAdmin(r.phone, tcA)); }
+      console.log('ℹ️ Número notificador: mensagem de ' + r.phone.slice(0, 4) + '…' + r.phone.slice(-4) + ' ignorada (só comandos de quem administra).'); return;
     }
     if (r.acao === 'mensagem') {
       { const tc = r.msg && r.msg.type === 'text' && r.msg.text && r.msg.text.body;
@@ -2826,7 +2832,8 @@ async function enviarTemplate(to, nome, params) {
 }
 
 // Comprovante/imagem recebido: guarda no banco (messages) e reenvia a cópia para os números de aviso da equipe
-async function encaminharComprovante(phone, nome, midia) {
+async function encaminharComprovante(phone, nome, midia) { return avisoALS.run({ aviso: true }, () => encaminharComprovanteInner(phone, nome, midia)); }
+async function encaminharComprovanteInner(phone, nome, midia) {
   const numeros = ((await cfgGet('alerta_numeros', process.env.ALERTA_NUMEROS || '')) || '').split(',').map(n => n.replace(/\D/g, '')).filter(Boolean);
   if (!numeros.length || !midia || !midia.base64) return;
   const mime = midia.mime || 'image/jpeg';
@@ -2875,7 +2882,8 @@ function resumoAlerta(phone, nome) {
 }
 const alertaRecente = new Map();
 // Aviso para o(s) número(s) da equipe (config "alerta_numeros", separados por vírgula)
-async function crmAlertar(tipo, phone, detalhe, nome) {
+async function crmAlertar(tipo, phone, detalhe, nome) { return avisoALS.run({ aviso: true }, () => crmAlertarInner(tipo, phone, detalhe, nome)); }
+async function crmAlertarInner(tipo, phone, detalhe, nome) {
   await crmEvento(phone, tipo, detalhe);
   const chave = tipo + ':' + phone + (tipo === 'saiu_do_fluxo' ? ':' + String(detalhe || '').slice(0, 60) : '');
   const janela = (tipo === 'pagamento_solicitado' ? 60 : 10) * 60 * 1000;
