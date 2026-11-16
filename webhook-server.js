@@ -1072,7 +1072,7 @@ const NAT_ULTIMAS = "Depois de enviar o questionário, escreva aqui na conversa 
 const NAT_BANCO = "Banco Caixa Econômica Federal.\nNome: Paulo Cesar Rodrigues.\nAgência: 1610\nCódigo da Operação: 013\nCPF: 054.168.938-00\nConta número: 26877-2.\n\nAssim que fizer me mande o comprovante para que eu possa dar baixa em minha contabilidade, realizar o envio do questionário inicial e demais instruções. Grato.";
 const NAT_BOLETOS = { '289': ['289,00', 'https://www.asaas.com/000/c/85x7k4nhnctii7f5'], '339': ['339,00', 'https://www.asaas.com/000/c/vid87san3uda197a'] };
 const NAT_QUEST_LINK = 'https://apometriabrasil.com.br/questionario-inicial/';
-const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e [ASSUNTO: questões específicas ligadas ao que a pessoa relatou, com as palavras dela]. A apometria age também principalmente no quesito de investigar, identificar e corrigir diversas situações espirituais/energéticas que estão interligadas a totalidade do seu ser e que tem o poder de influênciar negativamente em diversos aspectos de sua vida que estão desencadeando esses problemas, liberando bloqueios e situações negativas ligadas a [ASSUNTO] que estão fazendo parte da sua vida.";
+const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual para [ASSUNTO: o problema que a pessoa relatou, com as palavras dela]. A apometria investiga, identifica e corrige as situações espirituais/energéticas ligadas a [ASSUNTO] que estão fazendo parte da sua vida.";
 
 function natPrompt(session) {
   const periodo = saudacao(); // horário de Brasília: bom dia 5h-11h59, boa tarde 12h-17h59, boa noite 18h-4h59
@@ -1096,7 +1096,7 @@ JEITO DE ESCREVER DO PAULO
 CAMINHO DA CONVERSA (siga a ordem, um passo por vez; a saudação inicial o sistema já enviou)
 1) A pessoa contou pela PRIMEIRA vez, de forma ESPECÍFICA, o que quer trabalhar (o texto de encaixe ainda não foi enviado): responda em QUATRO balões:
    a) cumprimento em balão próprio e PRIMEIRO, SEMPRE ("Oi [Nome], ${periodo}. Tudo bem?"; sem nome: "Oi, ${periodo}. Tudo bem?") e depois, em outro balão, "Ok, entendo perfeitamente essa situação. Vou lhe explicar tudo o que podemos realizar através da Apometria e as possibilidades nesse caso." (em balão próprio, nunca junto do texto de encaixe)
-   b) o TEXTO DE ENCAIXE, um único parágrafo, adaptado ao problema que a pessoa relatou. O modelo abaixo é só a ESTRUTURA e o tom; os trechos entre [colchetes] são os pontos que você substitui. REGRA PRINCIPAL: o assunto do texto é SEMPRE o problema que a pessoa mencionou, com as palavras dela. Nunca desvie o foco: doença grave ou saúde, o texto gira em torno de saúde e cura (medicina convencional atua no plano físico, cada problema físico tem um aspecto espiritual correspondente, sem prometer cura); traumas, fale de traumas; relacionamento, de relacionamento; financeiro, de financeiro; vício, de vício. É PROIBIDO citar assuntos que a pessoa não mencionou (prosperidade e abundância, finanças, ansiedade, relacionamentos, corpo físico, ciclo repetitivo etc.). O texto é só esse parágrafo, TERMINA em "...que estão fazendo parte da sua vida." e NÃO continua com "Nesse caso é feito um trabalho direcionado...", mentores, obsessores, ancestralidade, magia, carma, resgate, reprogramação ou chacras: isso vai na imagem do balão c. Se a pessoa falou de magia/feitiço, cite no parágrafo "trabalho de feitiço lançado contra você como comentamos anteriormente". Se o trabalho for para outra pessoa, escreva em terceira pessoa ("na vida dele"). Sem nome conhecido, comece "Olha a apometria se encaixa...".
+   b) o TEXTO DE ENCAIXE: CURTO, no máximo DUAS frases (cerca de 300 caracteres), só identificando o problema que a pessoa relatou. Nada de explicar o procedimento. O modelo abaixo é só a ESTRUTURA e o tom; os trechos entre [colchetes] são os pontos que você substitui. REGRA PRINCIPAL: o assunto do texto é SEMPRE o problema que a pessoa mencionou, com as palavras dela. Nunca desvie o foco: doença grave ou saúde, o texto gira em torno de saúde e cura (medicina convencional atua no plano físico, cada problema físico tem um aspecto espiritual correspondente, sem prometer cura); traumas, fale de traumas; relacionamento, de relacionamento; financeiro, de financeiro; vício, de vício. É PROIBIDO citar assuntos que a pessoa não mencionou (prosperidade e abundância, finanças, ansiedade, relacionamentos, corpo físico, ciclo repetitivo etc.). O texto é só esse parágrafo, TERMINA em "...que estão fazendo parte da sua vida." e NÃO continua com "Nesse caso é feito um trabalho direcionado...", mentores, obsessores, ancestralidade, magia, carma, resgate, reprogramação ou chacras: isso vai na imagem do balão c. NUNCA cite no texto de encaixe magia, feitiço, inveja, obsessores, mentores, carma, ancestralidade, vínculos nem reprogramação, mesmo que a pessoa tenha falado disso (isso fica para depois, na imagem e no atendimento). Fale só do problema dela e termine. Se o trabalho for para outra pessoa, escreva em terceira pessoa ("na vida dele"). Sem nome conhecido, comece "Olha a apometria se encaixa...".
    c) [[IMAGEM]] sozinho no balão (se o problema for de BLOQUEIOS, TRAVAS, vida que não anda, não prospera, problemas financeiros, dinheiro, trabalho ou negócio que não vai para frente, ciclos que se repetem, use [[IMAGEM: vida]]; se for SAÚDE, doença, dor ou desconforto físico, use [[IMAGEM: saude]]; qualquer outro, [[IMAGEM]]; genérico, [[IMAGEM: geral]]. O sistema envia sozinho depois da imagem os áudios gravados do Paulo; não os mencione) (o sistema escreve "Vou te enviar uma imagem para você entender melhor como tratamos essas questões." e envia a imagem "Como funciona nosso trabalho"; NÃO escreva essa frase)
    d) NÃO envie mais nada depois da imagem (nada de "Assim que ler me mande um OK"): espere a pessoa responder, perguntar como funciona ou perguntar o valor.
    MODELO DO TEXTO DE ENCAIXE:
@@ -1258,6 +1258,16 @@ async function sendAudioLink(to, link) {
   } catch (e) { console.error('❌ Erro ao enviar áudio para ' + to + ':', e.response?.data || e.message); return false; }
 }
 // Frases que o modelo às vezes cola no mesmo balão: cada uma sai como balão próprio, com o tempo entre eles
+// Texto de encaixe: no máximo 2 frases e sem magia/feitiço/obsessores se a pessoa não falou disso
+function natEncaixeCurto(p, session) {
+  if (!/se encaixa/i.test(p) || p.length < 120) return p;
+  const magia = /(magia|feiti[cç]|macumba|obsess|mentor|encosto|carma|c[aá]rmic|ancestr|inveja|vidas? passadas?|entidades?|reprograma|v[ií]nculos?|corte d)/i;
+  let fr = p.split(/(?<=[.!?])\s+/).filter(s => s.trim() && !magia.test(s));
+  if (!fr.length) return p.split(/(?<=[.!?])\s+/)[0];
+  let out = fr[0];
+  if (fr[1] && (out + ' ' + fr[1]).length <= 420) out += ' ' + fr[1];
+  return out;
+}
 function natSepara(txt) {
   return String(txt)
     .replace(/(se encaixa[^|]*?fazendo parte d[^.|]*\.)\s+(?=\S)(?![|])[^|\[]*?(?=\||\[\[|$)/gi, '$1')
@@ -1291,6 +1301,7 @@ async function natEnviar(to, session, bruto, opcoes) {
   if (/\[\[SEM_RESPOSTA\]\]/.test(bruto)) { console.log('🤫 Modo natural: sem resposta necessária para ' + to); return; }
   const mPausa = bruto.match(/\[\[PAUSAR:?\s*([^\]]*)\]\]/); const pausar = !!mPausa; const motivoPausa = (mPausa && mPausa[1] || '').trim();
   let partes = natSepara(bruto.replace(/\[\[PAUSAR[^\]]*\]\]/g, '')).slice(0, 10);
+  partes = partes.map(p => natEncaixeCurto(p, session));
   const nat = session.nat;
   partes = partes.filter(x => /\[\[(BANCO|PIX)/.test(x) || !/26877|054\.?168\.?938|ag[eê]ncia:?\s*1610/i.test(x)); if (!partes.length) return;
   // Pix: só o bloco oficial (o que pede o comprovante); some qualquer Pix digitado pela IA e blocos repetidos
@@ -1384,7 +1395,7 @@ async function natEnviar(to, session, bruto, opcoes) {
       if (citar && primeiro) { const al = natAlvoCitar(session); if (al) session.citarId = al; }
       await sendMessage(to, b.t);
       session.citarId = null; primeiro = false;
-      if (!b.colado && b.t.length > 900) nat.encaixe = Date.now();
+      if (!b.colado && (b.t.length > 900 || /se encaixa perfeitamente/i.test(b.t))) nat.encaixe = Date.now();
       nat.saidas = (nat.saidas || []).concat({ t: b.t.slice(0, 140), ts: Date.now() }).slice(-12);
     }
   }
