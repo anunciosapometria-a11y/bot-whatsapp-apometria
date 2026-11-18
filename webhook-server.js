@@ -1497,7 +1497,7 @@ async function natClaude(session, userMessage) {
       const r = await anthropic.messages.create({ model: process.env.NAT_MODEL || 'claude-haiku-4-5-20251001', max_tokens: 2500, system: natPrompt(session) + (session.ctxCliente ? '\n\n' + session.ctxCliente : ''), messages: session.history });
       const t = (r.content && r.content[0] && r.content[0].text || '').trim();
       if (t) { session.history.push({ role: 'assistant', content: t }); return t; }
-    } catch (err) { console.error('❌ Claude (natural, tentativa ' + tentativa + '):', err.message); if (tentativa === 1) await sleep(2000); }
+    } catch (err) { global.natUltErro = new Date().toISOString() + ' status=' + (err.status || '') + ' ' + String(err.message).slice(0, 300); console.error('❌ Claude (natural, tentativa ' + tentativa + '):', err.message); if (tentativa === 1) await sleep(2000); }
   }
   session.history.pop();
   return null;
@@ -2255,7 +2255,7 @@ app.get('/media/:nome', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', sessions: sessions.size, banco: !!pool });
+  res.json({ status: 'ok', sessions: sessions.size, banco: !!pool, ia_erro: global.natUltErro || null });
 });
 
 // ─── PAINEL DE CONVERSAS (protegido por usuário/senha) ────────────────────────
