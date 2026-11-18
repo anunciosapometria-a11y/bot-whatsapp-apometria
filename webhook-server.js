@@ -1559,6 +1559,30 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
       await upsertConversation(from, session.clientName, session.stage);
       return true;
     }
+    // Perguntas com texto oficial: o código escolhe o marcador (o modelo às vezes reescreve e erra)
+    if (String(text || '').length <= 220) {
+      const nmF = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '';
+      let respF = '';
+      if (/(medic|remedio|quimio|radioterap|psiquiatr|antidepress|cancer|tumor|\bcura\b|curar|curam|\bcurou\b)/.test(x) && !/(curios|cura de vida)/.test(x)) {
+        respF = '[[MEDICO]]';
+        if (/(cancer|tumor|quimio|radioterap|remedio|psiquiatr|antidepress|medicacao|largar|parar)/.test(x)) respF += ' ||| Ok' + nmF + ', só um momento. ||| [[PAUSAR: assunto médico/doença: ' + String(text).replace(/[\[\]|]/g, ' ').slice(0, 80) + ']]';
+      }
+      else if (/(participa|so responder|apenas responder|so preciso responder)/.test(x) && /questionario/.test(x)) respF = '[[PARTICIPACAO]]';
+      else if (/(relatorio|questionario)/.test(x) && /(como|qual|o que|feito|funciona|consiste)/.test(x)) respF = '[[RELATORIO]]';
+      else if (/(limpeza|reiki)/.test(x)) respF = '[[LIMPEZA]]';
+      else if (/((resultado|efeito|melhora|sentir)[^.?!]{0,40}(quando|quanto tempo|tempo|rapido|demora))|((quando|quanto tempo|em quanto)[^.?!]{0,40}(resultado|efeito|melhora|sentir))/.test(x)) respF = '[[RESULTADO]]';
+      else if (/(dia e (a )?hora|que dia|qual (o )?(dia|horario)|que horas|horario (da|de) sessao|hora exata|dia e horario)/.test(x)) respF = '[[HORA]]';
+      else if (/(prazo|agenda|agendar|quantos dias|quando (voces )?(comecam|iniciam))/.test(x)) respF = '[[PRAZO]]';
+      else if (/(preparo|estaremos online|estar online|ficar online)/.test(x)) respF = '[[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]';
+      else if (/(assistir|assisto|gravad|filmad|videochamada|video chamada|chamada de video|ao vivo|acompanhar a sessao|participar da sessao|video da sessao)/.test(x)) respF = '[[VIDEO]]';
+      if (respF) {
+        session.history.push({ role: 'user', content: entrada }, { role: 'assistant', content: respF });
+        console.log('📌 Texto oficial por código: ' + respF.slice(0, 40) + ' (' + from + ')');
+        await natEnviar(from, session, respF, {});
+        await upsertConversation(from, session.clientName, session.stage);
+        return true;
+      }
+    }
   }
   let resp;
   const pagouTexto = !mediaInfo && natDisseQuePagou(text);
