@@ -1617,6 +1617,20 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   const nat = session.nat;
   const novo = session.stage === 'abertura' || (!nat.saudou && !(session.history || []).some(h => h.role === 'assistant')); // 1ª resposta sempre é a saudação padrão do Paulo
   session.stage = 'conversa'; session.etapa = null; session.pediuNome = true; session.encerrado = false;
+  // Cliente conhecido / indicação / quer andamento: desconecta o robô, avisa e deixa para o Paulo (sem responder)
+  { const xs = semAcento(String(text || '')).toLowerCase();
+    if (!mediaInfo && /(indicacao|indicad[oa]|me indicou|indicaram|ja fiz (o |a |um |uma )?(trabalho|sessao|apometria|tratamento)|ja fizemos|ja fui atendid|ja sou cliente|ja (e|sou|somos) (da casa|de voces)|ja conheco (voces|o paulo|o trabalho)|ja conhecem|conheco o (trabalho|paulo|instituto)|(faz|fazem) parte do pacote|parte do pacote|pacote d[aeo]s? (minha|meu|mae|pai|irma|irmao|filh|espos|marido|amig|outra)|andamento|como (esta|ta|anda) (o |a |meu |minha )?(trabalho|sessao|tratamento)|ja (foi|fez|fizeram) (o |a )?(trabalho|sessao)|ja paguei|ja realizou|ja realizaram|status d[oa] (meu )?(trabalho|sessao))/.test(xs)) {
+      console.log('🔌 Cliente conhecido/indicação/andamento: desconectado, passado ao Paulo (' + from + ')');
+      session.natSilencio = Date.now();
+      await pausarEAvisar(from, session, 'cliente conhecido / indicação / andamento do trabalho: "' + String(text || '').replace(/[\[\]|]/g, ' ').slice(0, 100) + '"');
+      return true;
+    } }
+  // Só responde quem chega pela mensagem padrão do site ("vim através do site", com Ref.); "bom dia" e mensagens avulsas ficam sem resposta
+  if (novo && !RE_MSG_SITE.test(text || '') && !/\bref\.?\s*:?\s*\d{3,}/i.test(text || '')) {
+    console.log('🔕 Mensagem avulsa sem mensagem do site: sem resposta (' + from + ')');
+    session.natSilencio = Date.now();
+    return true;
+  }
   // DDD 17 (região do Paulo): por enquanto só a saudação inicial; o restante é atendido por ele. Exceção: números de teste e de administração.
   const ddd17 = (() => { const d = String(from || '').replace(/\D/g, ''); return (d.startsWith('55') ? d.slice(2, 4) : d.slice(0, 2)) === '17'; })();
   const so17 = ddd17 && !ehAdmin(from) && !(YC.enabled && (YC.ehFixoTeste(from) || YC.isTester(from)));
