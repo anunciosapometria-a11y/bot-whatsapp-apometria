@@ -1068,12 +1068,11 @@ const NAT_VIDEO = 'Te explicando melhor, no caso do trabalho de apometria em si,
 const NAT_HORA = 'Nós não costumamos avisar e nem recomendamos que você saiba a hora exata da sessão de apometria pelo motivo de que possíveis entidades obsessoras ou influenciações que possam estar presentes no seu campo ou da casa também se preparam contra o nosso trabalho, por incrível que pareça! Por esse motivo e por estratégia passamos que ao final do prazo estipulado, todas as etapas do trabalho serão concluídas.';
 const NAT_ROTINA = 'Você pode seguir a sua rotina normalmente pois dessa forma podemos entrar em contato com as energias do seu cotidiano e são elas que queremos abordar e tratar.';
 const NAT_RELATORIO = 'No caso o relatório inicial é realizado através de um questionário por escrito que contem todas as perguntas necessárias para a realização do trabalho e também o espaço para você detalhar seus principais objetivos. Essas respostas também podem ser complementadas através de áudios. As informações por escrito são importantes para nos basearmos para elaborar o trabalho e além disso usar como testemunho no momento da sessão com suas próprias palavras.';
-const NAT_LIMPEZA = 'A limpeza energética no lar fazemos no mesmo dia da sessão de apometria e o reiki um dia após. Todo esse processo é finalizado dentro do prazo de 15 dias úteis ou 08 dias úteis caso escolha a opção emergencial.';
 const NAT_PARTICIPACAO = 'Sim, isso mesmo. Da sua parte é responder o questionário com todos os dados e o endereço, depois entraremos na elaboração, estudo e realização da sua apometria e essa parte é com a gente. Durante esse período você deve apenas aguardar o término do prazo.';
 const NAT_PRAZO = 'Todo o trabalho é finalizado dentro do prazo de 15 dias úteis, ou de 08 dias úteis caso escolha a opção emergencial, a partir da confirmação do pagamento.';
 const NAT_MEDICO = 'A apometria é um trabalho espiritual que atua no campo energético e espiritual, e o que é tratado nesse plano pode refletir também no corpo físico. Não prometemos cura e não substituímos o acompanhamento médico, que deve ser mantido.';
 const NAT_RESULTADO = ['Notamos que, quando se trata de fatores externos como obsessores, trabalhos de magia e outras influenciações como essas, os resultados aparecem logo nos primeiros dias, porque ao realizar essa retirada é como liberar algo que estava prejudicando muito intensamente.', 'Nos outros casos, que envolvem situações mais enraizadas, as melhoras vêm com o passar dos dias. Cada caso é único e tem as suas particularidades.', 'Fazemos o máximo possível dentro das possibilidades, somos reconhecidos pelos resultados efetivos e temos muitos relatos positivos.'];
-const NAT_FIXOS = { local: NAT_LOCAL, video: NAT_VIDEO, hora: NAT_HORA, rotina: NAT_ROTINA, relatorio: NAT_RELATORIO, limpeza: NAT_LIMPEZA, participacao: NAT_PARTICIPACAO, prazo: NAT_PRAZO, medico: NAT_MEDICO, resultado: NAT_RESULTADO };
+const NAT_FIXOS = { local: NAT_LOCAL, video: NAT_VIDEO, hora: NAT_HORA, rotina: NAT_ROTINA, relatorio: NAT_RELATORIO, participacao: NAT_PARTICIPACAO, prazo: NAT_PRAZO, medico: NAT_MEDICO, resultado: NAT_RESULTADO, formaspag: NAT_PAGAMENTO };
 const NAT_OK_INFO = 'Assim que ler me mande um OK para que eu possa lhe enviar mais informações. Grato.';
 const NAT_SAUDACAO_CURTA = 'Olá, seja bem-vinda(o). Sou Paulo Rodrigues, especialista em apometria.';
 const NAT_INFORMATIVO = "*Como é realizado o trabalho e como o tratamento funciona -*\n\n📖 Primeiramente é feito um relatório inicial (cerca de 15 a 20 minutos) com perguntas sobre o seu caso, dos seus estados físicos, mentais, espiritual, emocional e quais outras questões você deseja que seja trabalhado. Após colher as suas queixas faço um estudo profundo para trabalhar da melhor maneira no seu caso. Peço 2 dias úteis para fazer essa analise e deixar seu relatório inicial o melhor possível para realizar o trabalho e assim aproveita-lo ao máximo.\n\n\n✨ Não há a necessidade de você estar presente ou assistir o trabalho, pois não acrescenta e nem influencia na eficiência ou nos resultados. O mesmo é feito por ligação do caso, nome, endereço, data de nascimento, entre dados que serão colhidos no relatório inicial. Após o trabalho te envio o relatório completo da sessão com grande nível de detalhes.\n\n\n📅 No dia da realização do trabalho, você pode ter sua rotina normal, de trabalho, estudo ou outra atividade à qual tenha que se dedicar.\n\n\n📑 Trabalho com suas personalidades múltiplas, vidas passadas, obsessores, quebra de trabalhos/magias, sub personalidades, entidades, além de todas a ferramentas a disposição na mesa, para fatos que venham aparecer durante a realização do trabalho que possam ser captadas ou visualizadas através da minha sensibilidade.\n\n\n✨ O tratamento é feito totalmente a distância, através do seu nome, caso e endereço é feita a abertura do duplo etérico e dos corpos fluídicos e a conexão com o seu Eu divino, sua personalidade e psiquismo.\n\n\n🗓️ O trabalho todo e relatório final é concluído e enviado em até no máximo 15 dias úteis.\n\n\n🗒️ Faço um relatório detalhado e minucioso no final do trabalho através de áudios, explicando todos os aspectos que foram trabalhados e encontrados durante a realização, além de mensagens ou conselhos deixados para você através das equipes espirituais.\n\n\n🧘 Em alguns casos através de minha experiência envio dicas e exercícios específicos para que a própria pessoa dê continuidade ao seu processo de tratamento, cultivando assim uma atmosfera energética e espiritual sadia durante a sua jornada.\n\n\n❕ Sempre aproveito a oportunidade para na *primeira* realização de apometria, também realizar *gratuitamente* a limpeza energética do lar e envio de Reiki à distância. Estas atividades ficam como *bônus* de atendimento 👍\n\n\n📳 Fico a sua disposição para acolhimento pessoal após a realização do tratamento, para dúvidas que possam surgir, de forma gratuita.\n\n\n🔂 Você pode ter a experiência e colher os benefícios e resultados de uma única sessão de apometria, ou optar por trabalhos periódicos mensais para continuar o processo de cura e as limpezas energéticas e espirituais constantes.\n\n\n✨ Como trabalho com agendamentos dou prioridade as pessoas que realizaram a *confirmação* através do pagamento, para a realização do trabalho o mais rápido possível, comportando possibilidade de encaixe em casos de urgência.\n\n\n✔️ Havendo oportunidade de antecipação, eu aviso e adiantamos o dia!";
@@ -1099,6 +1098,7 @@ REGRAS INVIOLÁVEIS (valem acima de qualquer outra instrução deste prompt)
 5. NUNCA discuta com a pessoa, nunca diga que o valor já foi enviado, nunca pergunte se já pagou ou se já decidiu.
 6. Assunto médico/cura: somente o texto [[MEDICO]]. Madrugada (0h–6h): sem áudio, bem engessado.
 7b. INTERPRETE A INTENÇÃO: \"ok\", \"entendi\", \"envia\", \"pode enviar\", \"já li\", \"certo\", \"pode mandar\" e parecidos significam CONTINUAR o fluxo: envie o próximo passo (se o informativo ainda não foi, [[INFORMATIVO]]). Não dependa de palavras exatas.
+8. PIX/PAGAMENTO SÓ COM PEDIDO EXPLÍCITO (\"quero pagar\", \"me manda o Pix\", \"qual a chave\", \"vou fazer no cartão\"). Pergunta SOBRE Pix, cartão, parcelamento ou formas de pagamento NÃO é pedido: responda a pergunta (para formas de pagamento use [[FORMASPAG]] sozinho) e NUNCA envie chave, link ou dados. Se vier pergunta E pedido explícito juntos: responda a pergunta primeiro e, no balão seguinte, envie o pagamento. Nunca esqueça de voltar ao pagamento quando ele foi pedido.
 7. Na dúvida entre responder algo que não está neste prompt ou passar para o Paulo: PASSE para o Paulo.
 
 FORMATO DA SAÍDA
@@ -1166,7 +1166,7 @@ ENGESSAMENTO (REGRAS MÁXIMAS: valem mais que QUALQUER outra regra, exemplo ou i
 - NUNCA reenvie nem comente valores com frases como "já passei o valor", "como te falei" ou parecidas (soa arrogante). Se ela perguntar de novo, responda de forma suave e curta ou reenvie o texto oficial com [[INFORMATIVO]].
 - NÃO cobre, NÃO lembre do pagamento e NÃO pergunte se ela escolheu uma opção: depois de enviar os valores, o Pix ou o link, apenas AGUARDE. Dúvidas soltas que o texto de valores já responde: envie o texto oficial (use [[INFORMATIVO]]) em vez de responder com palavras próprias, e sem "não".
 - SE A CONVERSA SE ALONGAR em muitas dúvidas e comentários: "Entendo perfeitamente." e conduza com naturalidade para o informativo de como funciona e os valores ([[INFORMATIVO]]).
-- TEXTOS OFICIAIS POR MARCADOR (o sistema cola o texto exato do Paulo; use SOZINHO no balão, sem reescrever): [[VIDEO]] para perguntas sobre participar, assistir, ser gravada/filmada, videochamada, estar online, qual o preparo (texto da sessão mediúnica em equipe, em que o consulente não participa); para "estaremos online? qual o preparo?" use [[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]; [[HORA]] para dia e hora exatos; [[ROTINA]] para "preciso fazer algo/me preparar/ficar em casa"; [[RELATORIO]] para "como é feito o relatório inicial/questionário"; [[PARTICIPACAO]] quando ela pergunta se a participação dela é só responder o questionário; [[LIMPEZA]] para limpeza energética da casa ou reiki; [[PRAZO]] para prazo, "quando tem agenda", "para quando posso agendar", "em quantos dias"; [[RESULTADO]] para "quando terei resultado/efeito", "em quanto tempo sinto"; [[MEDICO]] para qualquer assunto de médico, remédio, tratamento médico ou cura de doença física (o sistema envia o texto de que tratamos o campo energético e espiritual, sem prometer cura). Sobre médico, remédio ou doença você NUNCA escreve nada por conta própria e NUNCA prolonga o assunto: se ela insistir, "Ok [Nome], só um momento." ||| [[PAUSAR: assunto médico/doença]].
+- TEXTOS OFICIAIS POR MARCADOR (o sistema cola o texto exato do Paulo; use SOZINHO no balão, sem reescrever): [[VIDEO]] para perguntas sobre participar, assistir, ser gravada/filmada, videochamada, estar online, qual o preparo (texto da sessão mediúnica em equipe, em que o consulente não participa); para "estaremos online? qual o preparo?" use [[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]; [[HORA]] para dia e hora exatos; [[ROTINA]] para "preciso fazer algo/me preparar/ficar em casa"; [[RELATORIO]] para "como é feito o relatório inicial/questionário"; [[PARTICIPACAO]] quando ela pergunta se a participação dela é só responder o questionário; LIMPEZA ENERGÉTICA DO LAR/CASA e REIKI: NUNCA fale sobre isso, não explique, não responda, não cite prazo nem como é feito, mesmo que a pessoa comente ou elogie o bônus (apenas siga o assunto dela sem mencionar); se ela fizer pergunta direta sobre isso: "Ok [Nome], vou lhe explicar melhor sobre isso, só um momento." ||| [[PAUSAR: perguntou sobre limpeza do lar/reiki]]; [[PRAZO]] para prazo, "quando tem agenda", "para quando posso agendar", "em quantos dias"; [[RESULTADO]] para "quando terei resultado/efeito", "em quanto tempo sinto"; [[MEDICO]] para qualquer assunto de médico, remédio, tratamento médico ou cura de doença física (o sistema envia o texto de que tratamos o campo energético e espiritual, sem prometer cura). Sobre médico, remédio ou doença você NUNCA escreve nada por conta própria e NUNCA prolonga o assunto: se ela insistir, "Ok [Nome], só um momento." ||| [[PAUSAR: assunto médico/doença]].
 - DATA ESPECÍFICA ("quero hoje", "amanhã", "antes do prazo", dia marcado): "Ok [Nome], só um momento que vou verificar na agenda e já lhe retorno." ||| [[PAUSAR: pediu data específica/antecipar]].
 - Fale "consulente" ou "consulentes", NUNCA "cliente(s)". Use o nome da pessoa POUCO: no máximo em um balão a cada duas ou três respostas, e nunca em dois balões seguidos da mesma resposta.
 
@@ -1377,27 +1377,38 @@ async function natEnviar(to, session, bruto, opcoes) {
     if (/\[\[INFORMATIVO\]\]/.test(p)) {
       const resto = p.replace(/\[\[INFORMATIVO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
       if (!nat.info || Date.now() - nat.info > 180000) { nat.info = Date.now(); session.viuValores = true; blocos.push({ audio: 'informativo-valores.ogg', seg: 12 }, ...(nat.imgEnv ? [] : [{ img: 'como-funciona-info.jpg' }]), { t: NAT_INFORMATIVO, colado: true }, { t: NAT_PAGAMENTO, colado: true }); if (nat.difPend && !nat.difEnv && !nat.audGen2) { nat.difEnv = true; nat.audGen2 = true; blocos.push({ audio: 'aud-geral-2.ogg', seg: 33, label: 'diferenciais: equipe e à distância' }); } }
-    } else if (/\[\[(LOCAL|VIDEO|HORA|ROTINA|RELATORIO|LIMPEZA|PARTICIPACAO|PRAZO|MEDICO|RESULTADO)\]\]/.test(p)) {
-      const tipo = p.match(/\[\[(LOCAL|VIDEO|HORA|ROTINA|RELATORIO|LIMPEZA|PARTICIPACAO|PRAZO|MEDICO|RESULTADO)\]\]/)[1].toLowerCase();
+    } else if (/\[\[(LOCAL|VIDEO|HORA|ROTINA|RELATORIO|PARTICIPACAO|PRAZO|MEDICO|RESULTADO|FORMASPAG)\]\]/.test(p)) {
+      const tipo = p.match(/\[\[(LOCAL|VIDEO|HORA|ROTINA|RELATORIO|PARTICIPACAO|PRAZO|MEDICO|RESULTADO|FORMASPAG)\]\]/)[1].toLowerCase();
       nat.fixos = nat.fixos || {};
       if (nat.fixos[tipo] && Date.now() - nat.fixos[tipo] < 1800000) { blocos.push({ t: 'Ok, vou lhe explicar melhor sobre isso, só um momento.' }); pausar2 = true; motivoPausa2 = 'insistiu/repetiu a pergunta (' + tipo + ') depois do texto oficial'; }
       else { nat.fixos[tipo] = Date.now(); for (const tx of [].concat(NAT_FIXOS[tipo])) blocos.push({ t: tx, fixo: true }); }
     } else if (/\[\[PIX_E_LINK:?([^\]]*)\]\]/.test(p)) {
       const ch0 = semAcento(p.match(/\[\[PIX_E_LINK:?([^\]]*)\]\]/)[1]).trim().toLowerCase();
       const ch = Object.keys(NAT_VALOR).find(k => ch0.includes(k)) || 'individual';
-      const resto = p.replace(/\[\[PIX_E_LINK[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
-      if (!pixEnv) { pixEnv = true; nat.pix = Date.now(); nat.link = Date.now();
-        blocos.push({ t: NAT_PIX(NAT_VALOR[ch]), colado: true }, { t: 'Caso prefira pagar no cartão, segue abaixo o link 👇' }, { t: NAT_LINKS[ch][1], colado: true }); }
+      const resto = p.replace(/\[\[PIX_E_LINK[^\]]*\]\]/g, '').trim();
+      const pixRec = natPagRecente(nat, 'pix', NAT_VALOR[ch]), linkRec = natPagRecente(nat, 'link', ch);
+      if (pixRec && linkRec) { natPonteiroPag(nat, blocos); }
+      else if (!pixEnv) {
+        pixEnv = true;
+        if (pixRec) { nat.link = Date.now(); nat.linkCh = ch; blocos.push({ t: 'Caso prefira pagar no cartão, segue abaixo o link 👇' }, { t: NAT_LINKS[ch][1], colado: true }); }
+        else if (linkRec) { nat.pix = Date.now(); nat.pixVal = NAT_VALOR[ch]; blocos.push({ t: 'Ok, combinado! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇' }, { t: NAT_PIX(NAT_VALOR[ch]), colado: true }); }
+        else { if (resto) blocos.push({ t: resto }); nat.pix = Date.now(); nat.pixVal = NAT_VALOR[ch]; nat.link = Date.now(); nat.linkCh = ch;
+          blocos.push({ t: NAT_PIX(NAT_VALOR[ch]), colado: true }, { t: 'Caso prefira pagar no cartão, segue abaixo o link 👇' }, { t: NAT_LINKS[ch][1], colado: true }); }
+      }
     } else if (/\[\[PIX:([^\]]*)\]\]/.test(p)) {
       const v = p.match(/\[\[PIX:([^\]]*)\]\]/)[1].trim() || '289,00 - Sessão de Apometria';
-      const resto = p.replace(/\[\[PIX:[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
-      if (!pixEnv) { pixEnv = true; nat.pix = Date.now(); blocos.push({ t: NAT_PIX(v), colado: true }); }
+      const resto = p.replace(/\[\[PIX:[^\]]*\]\]/g, '').trim();
+      if (natPagRecente(nat, 'pix', v)) natPonteiroPag(nat, blocos);
+      else if (!pixEnv) { pixEnv = true; if (resto) blocos.push({ t: resto }); nat.pix = Date.now(); nat.pixVal = v; blocos.push({ t: NAT_PIX(v), colado: true }); }
     } else if (/\[\[LINK:([^\]]*)\]\]/.test(p)) {
       const ch = semAcento(p.match(/\[\[LINK:([^\]]*)\]\]/)[1]).trim().toLowerCase();
       const alvo = NAT_LINKS[ch] || NAT_LINKS[Object.keys(NAT_LINKS).find(k => ch.includes(k))];
-      const resto = p.replace(/\[\[LINK:[^\]]*\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
-      if (alvo) { nat.link = Date.now(); blocos.push({ t: alvo[1], colado: true }, { t: NAT_POS_LINK, colado: true }); }
-      else { blocos.push({ t: 'Ok! Vou gerar o link para você e já lhe envio.' }); pausar2 = true; }
+      const resto = p.replace(/\[\[LINK:[^\]]*\]\]/g, '').trim();
+      const chK = NAT_LINKS[ch] ? ch : Object.keys(NAT_LINKS).find(k => ch.includes(k));
+      if (alvo && natPagRecente(nat, 'link', chK)) natPonteiroPag(nat, blocos);
+      else { if (resto) blocos.push({ t: resto });
+        if (alvo) { nat.link = Date.now(); nat.linkCh = chK; blocos.push({ t: alvo[1], colado: true }, { t: NAT_POS_LINK, colado: true }); }
+        else { blocos.push({ t: 'Ok! Vou gerar o link para você e já lhe envio.' }); pausar2 = true; } }
     } else if (/\[\[FOLDER\]\]/.test(p)) {
       // Problema específico: frase curta + folder "Como funciona" + áudio dos diferenciais (o áudio de explicação genérica fica para quem quer tratar tudo)
       if (nat.audExpl) console.log('🔇 Folder/áudio já enviado (' + nat.audExpl + '): não repete (' + to + ')');
@@ -1522,6 +1533,26 @@ async function natClaude(session, userMessage) {
   session.history.pop();
   return null;
 }
+// Pagamento já enviado há pouco (mesmo valor/opção): não repete mensagem idêntica
+const NAT_PAG_JANELA = 15 * 60 * 1000;
+function natPagRecente(nat, tipo, v) {
+  if (tipo === 'pix') return !!(nat.pix && Date.now() - nat.pix < NAT_PAG_JANELA && String(nat.pixVal || '') === String(v || ''));
+  return !!(nat.link && Date.now() - nat.link < NAT_PAG_JANELA && String(nat.linkCh || '') === String(v || ''));
+}
+function natPonteiroPag(nat, blocos) {
+  console.log('♻️ Pagamento já enviado há pouco: não repete Pix/link');
+  if (!nat.ponteiroPag || Date.now() - nat.ponteiroPag > NAT_PAG_JANELA) { nat.ponteiroPag = Date.now(); blocos.push({ t: 'Os dados para o pagamento estão logo acima 👆' }); }
+}
+// Frase de transição do fluxo: 1ª vez no modelo do Paulo; depois varia (nunca repete a mesma em seguida)
+function natFrase(nat, nm, tipo) {
+  nat = nat || {};
+  const A = ['Ok' + nm + '! Vou lhe explicar melhor como funciona.', 'Certo' + nm + ', já lhe explico melhor como funciona.', 'Claro' + nm + ', vou lhe explicar como funciona.', 'Ok' + nm + ', vou lhe explicar melhor sobre isso.'];
+  const I = ['Ok' + nm + '! Vou lhe enviar o informativo.', 'Ok' + nm + ', vou lhe enviar as demais informações.', 'Certo' + nm + ', vou lhe passar as informações completas.', 'Claro' + nm + ', vou lhe enviar mais detalhes.'];
+  const n = nat.fraseN || 0; nat.fraseN = n + 1;
+  if (n === 0) return 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona.';
+  const lista = tipo === 'A' ? A : I;
+  return lista[(n - 1) % lista.length];
+}
 // ─── ROTEIRO POR CÓDIGO: o que não pode depender da IA ───────────────────────────
 function natEstagio(nat) { return nat && nat.info ? 'C' : (nat && (nat.audExpl || nat.encaixe)) ? 'B' : 'A'; } // A: nada explicado | B: explicou, falta o informativo | C: informativo (valores) enviado
 const NAT_RE = {
@@ -1530,7 +1561,8 @@ const NAT_RE = {
   garantia: /(garantia|garante|garantid|certeza que|tem certeza|promete|prometer|funciona mesmo|funciona de verdade|e garantido|vai resolver|resolve mesmo|devolve|dinheiro de volta)/,
   medico: /(medic|remedio|quimio|radioterap|psiquiatr|antidepress|cancer|tumor|\bcura\b|curar|curam|\bcurou\b)/,
   medicoGrave: /(cancer|tumor|quimio|radioterap|remedio|psiquiatr|antidepress|medicacao|largar|parar)/,
-  pagExp: /(\bpix\b|\bpics\b|cartao|credito|debito|\bchave\b|como (eu )?pago|como faco (o |para )?pag|quero pagar|vou pagar|posso pagar|pagar (agora|hoje|no|pelo|com)|dados (bancarios|do banco|para (o )?pagamento|para pagar)|transferencia|deposito|(manda|mande|envia|envie|passa|passe|pode (mandar|enviar|passar)|me (manda|envia|passa)|cade o|quero o) (o |um )?link|link (de|do|para|pra) (pagamento|pagar|cartao))/,
+  pagExp: /(formas? de pagamento|forma de pagar|\bpagamento\b|parcel|boleto|\bpix\b|\bpics\b|cartao|credito|debito|\bchave\b|como (eu )?pago|como faco (o |para )?pag|quero pagar|vou pagar|posso pagar|pagar (agora|hoje|no|pelo|com)|dados (bancarios|do banco|para (o )?pagamento|para pagar)|transferencia|deposito|(manda|mande|envia|envie|passa|passe|pode (mandar|enviar|passar)|me (manda|envia|passa)|cade o|quero o) (o |um )?link|link (de|do|para|pra) (pagamento|pagar|cartao))/,
+  pagPedido: /(\bquero (pagar|fazer o pagamento|o pix|a chave|o link|os dados|fechar|contratar|no pix|no cartao|(a |o )?(individual|emergencial|pacote))|\bvou (pagar|fazer o pix|fazer o pagamento|de pix|de cartao|pelo pix|pelo cartao|fechar|contratar)|vai ser (no |de |por |pelo )?(pix|cartao|link)|prefiro (o |no |pelo |pagar no |pagar pelo )?(pix|cartao)|(me )?(manda|mande|envia|envie|passa|passe|mandar|enviar|passar)( ai| aqui| por favor)? (o |a |os |as |seu |sua |um |uma )?(pix|chave|link|dados|conta)|pode (me )?(mandar|enviar|passar) (o |a |os |as |seu |sua |um |uma )?(pix|chave|link|dados|conta)|cade (o |a )?(pix|chave|link)|qual (e )?(a |o )?(sua |seu )?(chave|conta)\b|pix,? por favor|dados (bancarios|para (o )?pagamento|pra (o )?pagamento|para pagar|pra pagar)|(quero|vou) (de |pelo |no |com )?(pix|cartao))/,
   pagIntencao: /(quero (fazer|fechar|contratar|marcar|agendar|iniciar|comecar)|vou (fazer|fechar|contratar)|bora (fazer|fechar)|pode marcar|fechado|fechou|vamos (fazer|fechar)|gostaria de (agendar|marcar|fazer|contratar|fechar|iniciar)|(agendar|marcar) (uma |a |minha )?(consulta|sessao))/,
   valorDuvida: /(valor|valores|preco|quanto (custa|e|sai|fica|cobra)|custa|cobra|investimento|como funciona|formas? de pagamento|parcel|desconto)/,
   fluxoTema: /(prazo|dias uteis|agenda|agendar|demora|quanto tempo (leva|demora|fica)|limpeza|reiki|resultado|efeito|melhora|relatorio|questionario|participa|valor|valores|preco|quanto (custa|e|sai|fica|cobra)|custa|cobra|investimento|como funciona|funciona|formas? de pagamento|parcel|desconto|quantas sessoes|quantas vezes|hoje|amanha|urgente|garantia)/,
@@ -1545,6 +1577,28 @@ const NAT_RE = {
   hoje: /(\bhoje\b|amanha|urgente|urgencia|o quanto antes|mais rapido|antes do prazo|essa semana|esta semana|ainda hoje)/,
   prazo: /(prazo|agenda|agendar|quantos dias|quando (voces )?(comecam|iniciam)|demora|quanto tempo (leva|demora|fica))/
 };
+// Pedido EXPLÍCITO de pagamento (intenção clara). Pergunta sobre Pix/cartão/parcelamento NÃO conta.
+function natPedidoPag(raw, est, nat) {
+  const x = semAcento(String(raw || '')).toLowerCase();
+  if (!x.trim()) return false;
+  nat = nat || {};
+  const corrige = !!((nat.pix || nat.link) && /(emergencial|pacote|\b339\b|\b800\b|individual|\bnormal\b)/.test(x));
+  const intFluxo = est !== 'A' && !(nat.pix || nat.link) && NAT_RE.pagIntencao.test(x);
+  const soPagC = est === 'C' && x.trim().split(/\s+/).length <= 4 && !/\?/.test(String(raw)) && /(pix|\blink\b|cartao|chave)/.test(x);
+  return NAT_RE.pagPedido.test(x) || intFluxo || corrige || soPagC;
+}
+// Texto oficial (marcador) para a pergunta, só no estágio C (informativo já enviado)
+function natOficial(x) {
+  if (NAT_RE.participacao.test(x) && /questionario/.test(x)) return '[[PARTICIPACAO]]';
+  if (NAT_RE.relatorio.test(x) && /(como|qual|o que|feito|funciona|consiste)/.test(x)) return '[[RELATORIO]]';
+  if (NAT_RE.resultado.test(x)) return '[[RESULTADO]]';
+  if (NAT_RE.hora.test(x)) return '[[HORA]]';
+  if (NAT_RE.hoje.test(x) && /(faz|consig|pod|inici|comec|realiz|marc|agend|da para|tem como|ainda)/.test(x)) return '[[PRAZO]]';
+  if (NAT_RE.prazo.test(x) && !(NAT_RE.pagIntencao.test(x) && !/(prazo|quantos dias|quando|demora|quanto tempo|dias uteis)/.test(x))) return '[[PRAZO]]'; // "gostaria de agendar" é intenção, não pergunta de prazo
+  if (NAT_RE.online.test(x)) return '[[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]';
+  if (NAT_RE.video.test(x)) return '[[VIDEO]]';
+  return '';
+}
 // Devolve { r: resposta no formato dos marcadores, k: tipo, m: método de pagamento } ou null (aí segue para a IA)
 function natRoteiro(text, session) {
   const nat = session.nat || {};
@@ -1555,45 +1609,49 @@ function natRoteiro(text, session) {
   const resumo = String(text).replace(/[\[\]|]/g, ' ').replace(/\s+/g, ' ').slice(0, 90);
   const pausa = (msg, motivo, k) => ({ r: 'Ok' + nm + ', ' + msg + ' ||| [[PAUSAR: ' + motivo + ']]', k });
   const EXPL = 'vou lhe explicar melhor sobre isso, só um momento.';
-  const flow = est === 'A' ? { r: 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[AUDIO]]', k: 'fluxo-A' } : { r: 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[INFORMATIVO]]', k: 'fluxo-B' };
+  const flowF = () => est === 'A' ? { r: natFrase(nat, nm, 'A') + ' ||| [[AUDIO]]', k: 'fluxo-A' } : { r: natFrase(nat, nm, 'I') + ' ||| [[INFORMATIVO]]', k: 'fluxo-B' };
   const curto = x.length <= 220;
   if (NAT_RE.estranho.test(x)) return pausa('só um momento.', 'URGENTE desconfiança/estranhamento: "' + resumo + '"', 'estranho');
   if (NAT_RE.fora.test(x)) return pausa(EXPL, 'assunto fora do roteiro (imóvel/animais/judicial/sessão extra etc.): "' + resumo + '"', 'fora');
   if (NAT_RE.medico.test(x) && !/(curios)/.test(x)) { return { r: '[[MEDICO]] ||| Ok' + nm + ', só um momento. ||| [[PAUSAR: URGENTE assunto delicado (cura/médico/doença): ' + resumo + ']]', k: 'medico' }; }
   if (NAT_RE.garantia.test(x)) return pausa(EXPL, 'URGENTE assunto delicado (garantia de resultado): "' + resumo + '"', 'garantia');
-  // pagamento: vai direto, sem mudar de assunto
+  // limpeza energética do lar / reiki: o bot NUNCA fala disso; pergunta direta vai para o Paulo (em A/B segue o fluxo normal, o informativo já traz o bônus)
+  if (NAT_RE.limpeza.test(x) && est === 'C' && (/\?/.test(String(text)) || /(como|quando|quanto|fazem|faz |feito|funciona|explica|tem )/.test(x)) && !NAT_RE.pagPedido.test(x)) return pausa(EXPL, 'perguntou sobre limpeza do lar/reiki: "' + resumo + '"', 'limpeza');
+  // pagamento: SÓ com pedido explícito (intenção clara); pergunta sobre Pix/cartão não envia dados
   const corrige = (nat.pix || nat.link) && /(emergencial|pacote|\b339\b|\b800\b|individual|\bnormal\b)/.test(x);
-  const pagIntFluxo = est !== 'A' && NAT_RE.pagIntencao.test(x);
-  if (NAT_RE.pagExp.test(x) || pagIntFluxo || corrige) {
+  if (natPedidoPag(text, est, nat)) {
     const pergValor = /(valor|valores|preco|quanto|como funciona)/.test(x) && est !== 'C' && !corrige;
     if (!pergValor) {
       const opc = /(emergenc|urgen|8 dias|08 dias|oito dias|mais rapido|\b339\b)/.test(x) ? 'emergencial' : /(pacote|4 sessoes|quatro sessoes|\b800\b)/.test(x) ? 'pacote' : 'individual';
       const quPix = /(\bpix\b|\bpics\b|\bchave\b|transferencia|deposito|dados bancarios)/.test(x), quCar = /(cartao|credito|debito|\blink\b|parcel)/.test(x);
-      let m = quPix && !quCar ? 'PIX' : quCar && !quPix ? 'LINK' : (corrige && !quPix && !quCar && nat.metodo) ? nat.metodo : 'BOTH';
-      if (m === 'PIX') return { r: 'Ok, combinado' + nm + '! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇 ||| [[PIX: ' + NAT_VALOR[opc] + ']]', k: 'pag-pix', m };
-      if (m === 'LINK') return { r: 'Ok' + nm + '. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇 ||| [[LINK: ' + opc + ']]', k: 'pag-link', m };
-      return { r: 'Ok, combinado' + nm + '! Vou lhe enviar as opções para o pagamento. Segue abaixo 👇 ||| [[PIX_E_LINK: ' + opc + ']]', k: 'pag-ambos', m: 'BOTH' };
+      const m = quPix && !quCar ? 'PIX' : quCar && !quPix ? 'LINK' : (corrige && !quPix && !quCar && nat.metodo) ? nat.metodo : 'BOTH';
+      const pay = m === 'PIX' ? { r: 'Ok, combinado' + nm + '! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇 ||| [[PIX: ' + NAT_VALOR[opc] + ']]', k: 'pag-pix', m }
+        : m === 'LINK' ? { r: 'Ok' + nm + '. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇 ||| [[LINK: ' + opc + ']]', k: 'pag-link', m }
+        : { r: 'Ok, combinado' + nm + '! Vou lhe enviar as opções para o pagamento. Segue abaixo 👇 ||| [[PIX_E_LINK: ' + opc + ']]', k: 'pag-ambos', m: 'BOTH' };
+      // pergunta junto com o pedido: responde a pergunta primeiro e depois envia os dados, sem esquecer o pagamento
+      const ofic = est === 'C' ? natOficial(x) : '';
+      if (ofic) return { r: ofic + ' ||| ' + pay.r, k: pay.k, m: pay.m };
+      const outraPerg = String(text).split(/(?<=[?!.\n])\s*/).some(sn => { const xn = semAcento(sn).toLowerCase(); return /\?/.test(sn) && !NAT_RE.pagPedido.test(xn) && !NAT_RE.pagExp.test(xn); });
+      if (outraPerg && est !== 'A') { nat.pagAnexar = { r: pay.r, ts: Date.now() }; nat.metodo = pay.m; return null; } // a IA responde e o código anexa o pagamento logo depois
+      return pay;
     }
+  }
+  // pergunta SOBRE Pix/cartão/pagamento (sem pedido): responde, não envia chave nem link
+  if (NAT_RE.pagExp.test(x) && curto && !/(ja (fiz|paguei|realizei|efetuei|enviei)|fiz o |paguei|comprovante|transferi)/.test(x)) {
+    if (est === 'C') return { r: '[[FORMASPAG]]', k: 'formas-pag' };
+    if (est === 'B' || !NAT_RE.problema.test(x)) return flowF();
   }
   // estágios A e B: não pula etapa; qualquer dúvida de prazo/valor/limpeza etc. vai para o fluxo de explicação
   const nUser = (session.history || []).filter(h => h.role === 'user').length;
-  if (est === 'A' && curto && nUser <= 1 && /(valor|valores|preco|quanto (custa|e|sai|fica|cobra)|custa|cobra|investimento)/.test(x) && !NAT_RE.problema.test(x)) return { r: 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[INFORMATIVO]]', k: 'valor-primeira' };
+  if (est === 'A' && curto && nUser <= 1 && /(valor|valores|preco|quanto (custa|e|sai|fica|cobra)|custa|cobra|investimento)/.test(x) && !NAT_RE.problema.test(x)) return { r: natFrase(nat, nm, 'I') + ' ||| [[INFORMATIVO]]', k: 'valor-primeira' };
   if (est === 'B' && (natAfirmacaoSolta(text) || (x.length <= 80 && /(envia|enviar|manda|mandar|pode (enviar|mandar|passar|continuar|seguir|prosseguir)|segue|continua|prossiga|prosseguir|ja li|li sim|li tudo|li o|li a|li as|pode ser|vamos|bora|quero ver|quero saber|passa|me passa|certo|beleza|blz|combinado|claro|show|perfeito|otimo|sim|ta bom|esta bom|tudo bem|entendido|compreendi|compreendo)/.test(x) && !/\?/.test(x)))) return { r: '[[INFORMATIVO]]', k: 'ok-informativo' };
+  if (est === 'B' && /(^|[\s.,!?])(ok|okay|oks|entendi|entendido|compreendi|pode enviar|pode mandar|pode continuar|pode seguir|envia|manda|ja li|li tudo)[\s.!]*$/.test(x.trim())) return flowF(); // dúvida + "ok" no fim: segue o fluxo (o informativo responde)
   if (est !== 'C') {
-    if (est === 'A' && curto && NAT_RE.fluxoTema.test(x) && !NAT_RE.problema.test(x)) return flow;
-    if (est === 'B' && curto && NAT_RE.fluxoTema.test(x)) return flow;
+    if (est === 'A' && curto && NAT_RE.fluxoTema.test(x) && !NAT_RE.problema.test(x)) return flowF();
+    if (est === 'B' && curto && NAT_RE.fluxoTema.test(x)) return flowF();
   }
   if (est === 'C' && curto) {
-    let r = '';
-    if (NAT_RE.participacao.test(x) && /questionario/.test(x)) r = '[[PARTICIPACAO]]';
-    else if (NAT_RE.relatorio.test(x) && /(como|qual|o que|feito|funciona|consiste)/.test(x)) r = '[[RELATORIO]]';
-    else if (NAT_RE.limpeza.test(x)) r = '[[LIMPEZA]]';
-    else if (NAT_RE.resultado.test(x)) r = '[[RESULTADO]]';
-    else if (NAT_RE.hora.test(x)) r = '[[HORA]]';
-    else if (NAT_RE.hoje.test(x) && /(faz|consig|pod|inici|comec|realiz|marc|agend|da para|tem como|ainda)/.test(x)) r = '[[PRAZO]]';
-    else if (NAT_RE.prazo.test(x)) r = '[[PRAZO]]';
-    else if (NAT_RE.online.test(x)) r = '[[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]';
-    else if (NAT_RE.video.test(x)) r = '[[VIDEO]]';
+    const r = natOficial(x);
     if (r) return { r, k: 'oficial' };
   } else if (curto) {
     // textos que não citam prazo nem valores valem em qualquer estágio
@@ -1608,7 +1666,16 @@ function natSaneia(session, resp, text) {
   const nat = session.nat || {};
   const est = natEstagio(nat);
   const nm = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '';
-  const r = String(resp || '');
+  let r = String(resp || '');
+  if (/limpeza|reiki|\[\[LIMPEZA\]\]/i.test(r)) {
+    const keep = r.split('|||').filter(pt => !/limpeza|reiki|\[\[LIMPEZA\]\]/i.test(pt));
+    console.log('🧹 Limpeza/reiki: trecho da IA removido');
+    r = keep.join('|||').trim() || '[[SEM_RESPOSTA]]';
+  }
+  if (/\[\[(PIX_E_LINK|PIX|LINK|BANCO|BOLETO)/.test(r) && !natPedidoPag(text, est, nat) && (/\?/.test(String(text || '')) || NAT_RE.pagExp.test(semAcento(String(text || '')).toLowerCase()))) {
+    console.log('🛡️ Pagamento sem pedido explícito: dados NÃO enviados (resposta da IA trocada)');
+    return est === 'C' ? '[[FORMASPAG]]' : natFrase(nat, nm, est === 'B' ? 'I' : 'A') + ' ||| ' + (est === 'B' ? '[[INFORMATIVO]]' : '[[AUDIO]]');
+  }
   if (/\[\[(PAUSAR|SEM_RESPOSTA)/.test(r) && !/\[\[(PIX|LINK|INFORMATIVO)/.test(r)) return r;
   const sem = r.replace(/\[\[[^\]]*\]\]/g, ' ');
   const pausa = motivo => 'Ok' + nm + ', vou lhe explicar melhor sobre isso, só um momento. ||| [[PAUSAR: ' + motivo + ']]';
@@ -1619,15 +1686,16 @@ function natSaneia(session, resp, text) {
   for (const m of r.matchAll(/\[\[(?:LINK|PIX_E_LINK):([^\]]*)\]\]/g)) if (!/(individual|emergencial|pacote)/i.test(semAcento(m[1]))) return pausa('link fora do roteiro (descartado): "' + String(text || '').slice(0, 70) + '"');
   if (/\[\[BOLETO:\s*(?!289)/.test(r)) return pausa('boleto fora do roteiro (descartado)');
   if (!/\[\[(LINK|PIX_E_LINK)/.test(r) && /(link (atualizado|novo|correto|com as)|vou (lhe )?(enviar|gerar|mandar|passar) o link)/i.test(sem)) return pausa('IA prometeu link fora do roteiro (descartado)');
-  const gated = /\[\[(PRAZO|LIMPEZA|RESULTADO|RELATORIO|PARTICIPACAO)\]\]/.test(r) || /dias [uú]teis|prazo de \d/i.test(sem);
-  if (est === 'A' && (gated || /\[\[INFORMATIVO\]\]/.test(r))) { console.log('🧱 Sem pular etapa (A): resposta da IA trocada pelo fluxo'); return 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[AUDIO]]'; }
-  if (est === 'B' && gated) { console.log('🧱 Sem pular etapa (B): resposta da IA trocada pelo fluxo'); return 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[INFORMATIVO]]'; }
+  const gated = /\[\[(PRAZO|RESULTADO|RELATORIO|PARTICIPACAO)\]\]/.test(r) || /dias [uú]teis|prazo de \d/i.test(sem);
+  if (est === 'A' && (gated || /\[\[INFORMATIVO\]\]/.test(r))) { console.log('🧱 Sem pular etapa (A): resposta da IA trocada pelo fluxo'); return natFrase(nat, nm, 'A') + ' ||| [[AUDIO]]'; }
+  if (est === 'B' && gated) { console.log('🧱 Sem pular etapa (B): resposta da IA trocada pelo fluxo'); return natFrase(nat, nm, 'I') + ' ||| [[INFORMATIVO]]'; }
   return r;
 }
 // Retorna true se tratou a mensagem
 async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   session.nat = session.nat || {};
   const nat = session.nat;
+  if (nat.acum && nat.acum.length) { text = nat.acum.concat(String(text || '')).join('\n'); nat.acum = []; } // junta o que ficou guardado (vários áudios/dúvidas em sequência)
   const novo = session.stage === 'abertura' || (!nat.saudou && !(session.history || []).some(h => h.role === 'assistant')); // 1ª resposta sempre é a saudação padrão do Paulo
   session.stage = 'conversa'; session.etapa = null; session.pediuNome = true; session.encerrado = false;
   // Cliente conhecido / indicação / quer andamento: desconecta o robô, avisa e deixa para o Paulo (sem responder)
@@ -1653,6 +1721,9 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   // "abre" a conversa depois de um tempo, como uma pessoa
   await sleep(novo ? natRand(25000, 70000) : natRand(15000, 45000) + Math.round(Math.min(String(text || '').length * 70, 25000) * natCfg.vel));
   await natDigitando(session, false);
+  // Chegou mais coisa enquanto o bot "digitava" (áudios/dúvidas em sequência): guarda e responde UMA vez, com tudo junto (no máximo 3 adiamentos seguidos)
+  if ((filaN.get(from) || 0) > 1 && !mediaInfo && (nat.acumN || 0) < 3) { nat.acum = (nat.acum || []).concat(String(text || '')); nat.acumN = (nat.acumN || 0) + 1; console.log('🧺 Mais mensagens na fila: guardando e respondendo tudo junto (' + from + ')'); return true; }
+  nat.acumN = 0;
   const ctx = await contextoCliente(from, session);
   session.ctxCliente = ctx.nota;
   const soSite = RE_MSG_SITE.test(text) || semAcento(text).replace(/[^a-z ]/g, '').trim().split(/\s+/).length <= 3;
@@ -1724,9 +1795,13 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
     const estF = natEstagio(nat);
     crmAlertar('saiu_do_fluxo', from, 'URGENTE: a IA falhou (' + String(global.natUltErro || 'sem detalhe').slice(0, 140) + '). Última mensagem da pessoa: "' + String(text || '').slice(0, 100) + '"', session.clientName).catch(() => {});
     if (estF === 'C') { await pausarEAvisar(from, session, 'modo natural: falha da IA'); return true; }
-    resp = 'Ok' + (session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '') + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| ' + (estF === 'A' ? '[[AUDIO]]' : '[[INFORMATIVO]]');
+    resp = natFrase(nat, session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '', estF === 'A' ? 'A' : 'I') + ' ||| ' + (estF === 'A' ? '[[AUDIO]]' : '[[INFORMATIVO]]');
     session.history.push({ role: 'assistant', content: resp });
   } else if (!mediaInfo && !nat.quest) { resp = natSaneia(session, resp, text); }
+  if (nat.pagAnexar) { // pergunta + pedido de pagamento: depois da resposta, leva ao pagamento
+    if (resp && Date.now() - nat.pagAnexar.ts < 300000 && !/\[\[(PAUSAR|SEM_RESPOSTA|PIX|LINK|PIX_E_LINK|BANCO|BOLETO)/.test(resp)) resp = resp.replace(/\s*\|\|\|\s*$/, '') + ' ||| ' + nat.pagAnexar.r;
+    nat.pagAnexar = null;
+  }
   const fezPergunta = (session.audioTranscritoUsado || RE_PERGUNTA.test(text)) && !mediaInfo; session.audioTranscritoUsado = false;
   await natEnviar(from, session, resp, { citarPrimeiro: fezPergunta, pessoaOk: !mediaInfo && natAfirmacaoSolta(text), pessoaDisseOk: !mediaInfo && /^\s*(ok|okay|okk+|oks|ok,? obrigad[oa])\b/i.test(text) && text.trim().split(/\s+/).length <= 3, comprovante: !!(mediaInfo && mediaInfo.tipo !== 'audio') || pagouTexto });
   await upsertConversation(from, session.clientName, session.stage);
@@ -1750,14 +1825,16 @@ const filas = new Map();
 const lotes = new Map();
 const BATCH_MS = parseInt(process.env.BATCH_MS || '4000', 10);
 const pendentes = new Map();
+const filaN = new Map(); // quantas entradas da mesma pessoa estão na fila (a que está sendo processada conta 1)
 function enfileirar(from, messageText, mediaInfo, recebidoEm) {
   if (!mediaInfo) { const pd = pendentes.get(from); if (pd) { if (pd.textos[pd.textos.length - 1] !== messageText) pd.textos.push(messageText); pd.recebidoEm = recebidoEm; return pd.p; } }
+  filaN.set(from, (filaN.get(from) || 0) + 1);
   const anterior = filas.get(from) || Promise.resolve();
   const item = mediaInfo ? null : { textos: [messageText], recebidoEm };
   const p = anterior.catch(() => {}).then(() => { if (item && pendentes.get(from) === item) pendentes.delete(from); return handleMessageInner(from, item ? item.textos.join('\n') : messageText, mediaInfo, item ? item.recebidoEm : recebidoEm); });
   if (item) { item.p = p; if (filas.has(from)) pendentes.set(from, item); }
   filas.set(from, p);
-  p.catch(() => {}).then(() => { if (filas.get(from) === p) filas.delete(from); });
+  p.catch(() => {}).then(() => { filaN.set(from, Math.max(0, (filaN.get(from) || 1) - 1)); if (filas.get(from) === p) filas.delete(from); });
   return p;
 }
 function liberarLote(from) {
