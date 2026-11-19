@@ -1326,8 +1326,16 @@ const NAT_VALOR = { individual: '289,00 - Sessão de Apometria', emergencial: '3
 // A pessoa AFIRMA que já pagou ("já fiz o pagamento", "paguei", "feito"): o bot confia e segue o fluxo
 function natDisseQuePagou(t) {
   const x = semAcento(String(t || '')).replace(/[^a-z0-9?\s]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!x || /\?/.test(String(t)) || x.split(' ').length > 14) return false;
-  return /\b(paguei|ja paguei|pago ja|efetuei (o )?pagamento|realizei (o )?pagamento|fiz (o |a )?(pix|pagamento|transferencia|deposito|ted)|ja fiz (o |a )?(pix|pagamento|transferencia|deposito|ted)|pagamento (feito|realizado|efetuado|concluido)|(pix|transferencia|deposito|boleto) (feito|realizado|enviado|pago|efetuado)|transferi|depositei|ja foi pago)\b/.test(x) || /^(feito|pago|pronto|ja fiz|ja foi|fiz)$/.test(x);
+  if (!x || x.split(' ').length > 30) return false;
+  // ainda NÃO pagou / vai pagar / pergunta sobre como pagar: não conta
+  if (/\b(ainda nao (paguei|fiz|consegui|efetuei)|nao (paguei|fiz|efetuei|realizei)|vou (pagar|fazer|transferir|depositar)|vou ja|posso pagar|como (eu )?(pago|faco)|qual (a |e a )?chave|quero pagar|me (manda|passa|envia)|manda (o )?pix|nao vou|depois (eu )?(pago|faco)|amanha)\b/.test(x) && !/\b(ja paguei|ja fiz|feito)\b/.test(x)) return false;
+  const forte = /\b(paguei|ja paguei|pago ja|acabei de (pagar|fazer|transferir|depositar|efetuar)|efetuei|realizei|ja efetuei|ja realizei|fiz (o |a )?(pix|pagamento|transferencia|deposito|ted)|ja fiz|ja foi (feito|pago|realizado|efetuado)|pagamento (feito|realizado|efetuado|concluido)|(pix|transferencia|deposito|boleto) (feito|realizado|enviado|pago|efetuado)|transferi|depositei|ja (enviei|mandei) (o )?(pix|pagamento|valor|dinheiro|transferencia))\b/.test(x) || /^(feito|pago|pronto|ja fiz|ja foi|fiz|ja esta feito|ta feito|tudo certo|ok feito)\b/.test(x);
+  if (forte) return true;
+  // "confere", "vê se chegou", "caiu aí?", "não consigo enviar o comprovante": quem pede isso depois de receber o Pix já pagou
+  if (/\b(quanto tempo|quando|demora|prazo|posso|como|qual)\b/.test(x)) return false;
+  if (/\b(confere|confira|conferir|confirma|confirme|confirmar|ve se|veja se|ve ai|verifica|verifique|olha se|olhe se|ja chegou|chegou|caiu|entrou|compensou|apareceu)\b/.test(x)) return true;
+  if (/\b(nao (consigo|to conseguindo|estou conseguindo|deu|da)|sem (como|conseguir)|dificuldade|problema)\b[^?]{0,40}\b(enviar|mandar|anexar|encaminhar|subir)\b/.test(x) && /\b(comprovante|foto|print|imagem|arquivo)\b/.test(x)) return true;
+  return false;
 }
 // "ok", "sim", "pode ser", "certo"...: afirmação solta, nunca é pedido de pagamento
 function natAfirmacaoSolta(t) {
@@ -1491,6 +1499,7 @@ async function natEnviar(to, session, bruto, opcoes) {
       nat.saidas = (nat.saidas || []).concat({ t: b.t.slice(0, 140), ts: Date.now() }).slice(-12);
     }
   }
+  if (nat.audExpl && !nat.info) nat.audFim = Date.now(); // fim do envio da explicação (áudio/folder): mensagens recebidas antes disso não são resposta a ela
   if (adiarDias) await adiarRetorno(to, session, adiarDias);
   if (encerra) { await botDesligar(to, session, 'questionário e últimas informações enviados: Paulo assume'); return; }
   if (pausar || pausar2) await pausarEAvisar(to, session, motivoPausa || (pausar2 ? (motivoPausa2 || 'pediu link de cartão de uma opção sem link cadastrado') : 'a IA não soube responder e passou para o atendimento humano'));
@@ -1731,6 +1740,11 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   // Chegou mais coisa enquanto o bot "digitava" (áudios/dúvidas em sequência): guarda e responde UMA vez, com tudo junto (no máximo 3 adiamentos seguidos)
   if ((filaN.get(from) || 0) > 1 && !mediaInfo && (nat.acumN || 0) < 3) { nat.acum = (nat.acum || []).concat(String(text || '')); nat.acumN = (nat.acumN || 0) + 1; console.log('🧺 Mais mensagens na fila: guardando e respondendo tudo junto (' + from + ')'); return true; }
   nat.acumN = 0;
+  // A pessoa escreveu ANTES de receber o áudio/folder de explicação (mensagem que ficou na fila): não é o "OK" dela. Espera ela ler e responder; só segue se for pergunta/assunto de pagamento.
+  if (natEstagio(nat) === 'B' && recebidoEm && nat.audFim && recebidoEm < nat.audFim && !natAfirmacaoSolta(String(text || '')) && !/\?/.test(String(text || '')) && !/(pix|pagamento|pagar|valor|preco|quanto|cartao|link)/.test(semAcento(String(text || '')).toLowerCase())) {
+    console.log('⏳ Mensagem recebida antes do fim da explicação: aguardando a resposta da pessoa, sem avançar (' + from + ')');
+    return true;
+  }
   const ctx = await contextoCliente(from, session);
   session.ctxCliente = ctx.nota;
   const soSite = RE_MSG_SITE.test(text) || semAcento(text).replace(/[^a-z ]/g, '').trim().split(/\s+/).length <= 3;
@@ -1774,7 +1788,8 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
       return true;
     }
     // Roteiro por código (antes da IA): estranhamento, fora do roteiro, médico, pagamento direto e textos oficiais por estágio
-    const rot = natRoteiro(text, session);
+    // quem diz que já pagou/pede para conferir depois de receber o Pix/link: considerado PAGO, o fluxo final (mais abaixo) assume; o roteiro não interfere
+    const rot = (natDisseQuePagou(text) && (nat.pix || nat.link || nat.banco || nat.boleto)) ? null : natRoteiro(text, session);
     if (rot) {
       session.history.push({ role: 'user', content: entrada }, { role: 'assistant', content: rot.r });
       console.log('📌 Roteiro por código [' + rot.k + ']: ' + rot.r.slice(0, 60) + ' (' + from + ')');
