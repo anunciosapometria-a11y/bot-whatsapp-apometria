@@ -182,7 +182,7 @@ module.exports = function criar(opt) {
     const y = { from: '+' + (deAviso ? NUM_AV : NUM), to: '+' + to, type: body.type };
     if (body.context && body.context.message_id) y.context = { message_id: body.context.message_id };
     switch (body.type) {
-      case 'text': y.text = body.text; break;
+      case 'text': y.text = { body: body.text.body, previewUrl: !!body.text.preview_url }; break; // sem miniatura de link, a não ser quando pedido
       case 'interactive': y.interactive = body.interactive; break;
       case 'contacts': y.contacts = body.contacts; break;
       case 'image': case 'document': case 'audio': case 'video': {
