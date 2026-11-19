@@ -1091,6 +1091,15 @@ function natPrompt(session) {
   const horaBR = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
   return `Você escreve as respostas do WhatsApp do Paulo Rodrigues, especialista em apometria, EXATAMENTE no jeito que ele escreve. Agora são ${horaBR} em Brasília, então o cumprimento correto é "${periodo}" (use SEMPRE este, nunca outro; se a conversa atravessar o horário, o sistema atualiza).
 
+REGRAS INVIOLÁVEIS (valem acima de qualquer outra instrução deste prompt)
+1. SIGA O FLUXO, NUNCA PULE ETAPA: explicação (áudio) → "assim que ler me mande um ok" → informativo/valores → pagamento. Nunca explique prazo, dias úteis, valores, limpeza, relatório ou resultado antes do informativo ter sido enviado. Dúvida específica no início: diga "Ok, entendo perfeitamente, vou lhe explicar melhor como funciona." e siga o fluxo.
+2. PAGAMENTO: quando a pessoa falar em pagar/Pix/cartão/link, identifique a opção (individual 289, emergencial 339, pacote 800); se não disser, é a individual (289). Vá DIRETO ao pagamento com o marcador certo. Nunca mude de assunto quando pedirem Pix.
+3. NUNCA INVENTE. Só existem os valores 289, 339 e 800 e os links/Pix oficiais. Para qualquer outro valor, serviço, link, prazo ou procedimento que você não conhece (imóveis, venda de casa, animais, problemas judiciais, sessão adicional, empresa, procedimentos específicos): diga "Ok, vou lhe explicar melhor sobre isso, só um momento." e use [[PAUSAR: motivo]].
+4. ESTRANHAMENTO: "isso é real?", "estranho", "robô", "golpe", desconfiança → "Ok, só um momento." + [[PAUSAR: URGENTE desconfiança]].
+5. NUNCA discuta com a pessoa, nunca diga que o valor já foi enviado, nunca pergunte se já pagou ou se já decidiu.
+6. Assunto médico/cura: somente o texto [[MEDICO]]. Madrugada (0h–6h): sem áudio, bem engessado.
+7. Na dúvida entre responder algo que não está neste prompt ou passar para o Paulo: PASSE para o Paulo.
+
 FORMATO DA SAÍDA
 - Cada balão do WhatsApp é separado por "|||". Balões de conversa são curtos (1 a 3 frases).
 - Comece um balão com [[CITAR]] quando ele responde a uma dúvida ou pergunta da pessoa (o balão sai como resposta à mensagem dela, citando a pergunta). Quando a pessoa faz uma dúvida no meio do caminho: primeiro balão com [[CITAR]] respondendo a dúvida, e logo em seguida os balões do passo em que a conversa estava (ex.: o encaixe, o informativo), sem esperar nova mensagem.
@@ -1334,7 +1343,7 @@ async function natEnviar(to, session, bruto, opcoes) {
   let adiarDias = 0;
   { const ad = bruto.match(/\[\[ADIAR:?\s*(\d*)[^\]]*\]\]/); if (ad) { adiarDias = Math.min(60, Math.max(2, parseInt(ad[1], 10) || 7)); bruto = bruto.replace(/\[\[ADIAR[^\]]*\]\]/g, '').trim(); } }
   if (!bruto && adiarDias) { await adiarRetorno(to, session, adiarDias); return; }
-  if (/\[\[SEM_RESPOSTA\]\]/.test(bruto)) { console.log('🤫 Modo natural: sem resposta necessária para ' + to); return; }
+  if (/\[\[SEM_RESPOSTA\]\]/.test(bruto)) { console.log('🤫 Modo natural: sem resposta necessária para ' + to); session.natSilencio = Date.now(); return; }
   const mPausa = bruto.match(/\[\[PAUSAR:?\s*([^\]]*)\]\]/); const pausar = !!mPausa; const motivoPausa = (mPausa && mPausa[1] || '').trim();
   let partes = natSepara(bruto.replace(/\[\[PAUSAR[^\]]*\]\]/g, '')).slice(0, 10);
   partes = partes.map(p => natEncaixeCurto(p, session));
@@ -1396,7 +1405,7 @@ async function natEnviar(to, session, bruto, opcoes) {
       const argTema = semAcento(argImg).trim().toLowerCase();
       const tema = paraOutro ? null : argTema === 'vida' ? { f: 'aud-vida-travada.ogg', seg: 125, label: 'bloqueios, travas e vida que não anda' } : argTema === 'saude' ? { f: 'aud-saude.ogg', seg: 83, label: 'saúde nos quatro níveis' } : null;
       if (nat.audExpl) console.log('🔇 Áudio explicativo já enviado (' + nat.audExpl + '): não repete (' + to + ')');
-      else if (natMadrugada()) console.log('🌙 Madrugada: sem áudio (' + to + ')');
+      else if (natMadrugada()) { console.log('🌙 Madrugada: sem áudio (' + to + ')'); nat.audExpl = 'madrugada'; if (!nat.info) blocos.push({ t: NAT_OK_INFO }); }
       else {
         nat.audExpl = tema ? tema.f : 'geral';
         if (tema) { blocos.push({ audio: tema.f, seg: tema.seg, label: tema.label }); nat.difPend = true; }
@@ -1444,7 +1453,7 @@ async function natEnviar(to, session, bruto, opcoes) {
       }
       okAntes = !b.colado && /^ok\b/i.test(b.t);
       // texto colado sai rápido; texto longo "escrito na hora" (encaixe) demora alguns minutos; balão curto, o tempo de digitar
-      const ms = b.colado ? natRand(8000, 18000) : b.t.length > 900 ? natRand(75000, 160000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
+      const ms = b.colado ? natRand(2500, 6000) : b.t.length > 900 ? natRand(75000, 160000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
       await natEsperaDigitando(session, ms);
       if (citar && primeiro) { const al = natAlvoCitar(session); if (al) session.citarId = al; }
       await sendMessage(to, b.t);
@@ -1502,6 +1511,104 @@ async function natClaude(session, userMessage) {
   session.history.pop();
   return null;
 }
+// ─── ROTEIRO POR CÓDIGO: o que não pode depender da IA ───────────────────────────
+function natEstagio(nat) { return nat && nat.info ? 'C' : (nat && (nat.audExpl || nat.encaixe)) ? 'B' : 'A'; } // A: nada explicado | B: explicou, falta o informativo | C: informativo (valores) enviado
+const NAT_RE = {
+  estranho: /(isso (e|eh) real|\be real\b|ser real|e verdade mesmo|estranho|estranha|esquisit|\brobo\b|\bbot\b|automatic|inteligencia artificial|chat ?gpt|maquina|gente de verdade|pessoa de verdade|e humano|e uma pessoa|golpe|fake|falso|mentira|enganacao|desconfi|nao parece|parece (um |uma )?(robo|maquina|golpe))/,
+  fora: /(imovel|imoveis|apartamento|terreno|vender (a |o |minha |meu )?(casa|carro|apto|loja)|venda d[eo] (casa|carro|imovel|imoveis)|animal|animais|cachorr|\bgato\b|cavalo|\bpet\b|processo (judicial|na justica|criminal|trabalhista|contra)|judicial|justica|advogad|tribunal|\bjuiz|audiencia|heranca|inventario|divorcio|\bguarda\b|pensao|(para|pra) (a |minha |nossa )?empresa|cnpj|nota fiscal|reembols|cancel|adicionar (uma |mais uma )?sessao|mais uma sessao|outra sessao|segunda sessao|duas sessoes|dois trabalhos|dois atendimentos|varias sessoes|sessao extra|sessao a mais|pacote familiar)/,
+  medico: /(medic|remedio|quimio|radioterap|psiquiatr|antidepress|cancer|tumor|\bcura\b|curar|curam|\bcurou\b)/,
+  medicoGrave: /(cancer|tumor|quimio|radioterap|remedio|psiquiatr|antidepress|medicacao|largar|parar)/,
+  pagExp: /(\bpix\b|\bpics\b|cartao|credito|debito|\bchave\b|como (eu )?pago|como faco (o |para )?pag|quero pagar|vou pagar|posso pagar|pagar (agora|hoje|no|pelo|com)|dados (bancarios|do banco|para (o )?pagamento|para pagar)|transferencia|deposito|(manda|mande|envia|envie|passa|passe|pode (mandar|enviar|passar)|me (manda|envia|passa)|cade o|quero o) (o |um )?link|link (de|do|para|pra) (pagamento|pagar|cartao))/,
+  pagIntencao: /(quero (fazer|fechar|contratar|marcar|agendar|iniciar|comecar)|vou (fazer|fechar|contratar)|bora (fazer|fechar)|pode marcar|fechado|fechou|vamos (fazer|fechar)|gostaria de (agendar|marcar|fazer|contratar|fechar|iniciar)|(agendar|marcar) (uma |a |minha )?(consulta|sessao))/,
+  valorDuvida: /(valor|valores|preco|quanto (custa|e|sai|fica|cobra)|custa|cobra|investimento|como funciona|formas? de pagamento|parcel|desconto)/,
+  fluxoTema: /(prazo|dias uteis|agenda|agendar|demora|quanto tempo (leva|demora|fica)|limpeza|reiki|resultado|efeito|melhora|relatorio|questionario|participa|valor|valores|preco|quanto (custa|e|sai|fica|cobra)|custa|cobra|investimento|como funciona|funciona|formas? de pagamento|parcel|desconto|quantas sessoes|quantas vezes|hoje|amanha|urgente|garantia)/,
+  problema: /(estou|tenho|sinto|sofro|minha|meu|problema|\bdor\b|ansiedade|depress|trabalho|relacion|financ|casamento|marido|esposa|filh|vida|saude|energia|cansad|medo|trauma|bloque|trav|obsess|magia|inveja|vicio|bebe|dorm|insonia)/,
+  video: /(assistir|assisto|gravad|filmad|videochamada|video chamada|chamada de video|ao vivo|acompanhar a sessao|participar da sessao|video da sessao)/,
+  online: /(preparo|estaremos online|estar online|ficar online)/,
+  hora: /(dia e (a )?hora|que dia|qual (o )?(dia|horario)|que horas|horario (da|de) sessao|hora exata|dia e horario)/,
+  participacao: /(participa|so responder|apenas responder|so preciso responder)/,
+  relatorio: /(relatorio|questionario)/,
+  limpeza: /(limpeza|reiki)/,
+  resultado: /((resultado|efeito|melhora|sentir)[^.?!]{0,40}(quando|quanto tempo|tempo|rapido|demora))|((quando|quanto tempo|em quanto)[^.?!]{0,40}(resultado|efeito|melhora|sentir))/,
+  hoje: /(\bhoje\b|amanha|urgente|urgencia|o quanto antes|mais rapido|antes do prazo|essa semana|esta semana|ainda hoje)/,
+  prazo: /(prazo|agenda|agendar|quantos dias|quando (voces )?(comecam|iniciam)|demora|quanto tempo (leva|demora|fica))/
+};
+// Devolve { r: resposta no formato dos marcadores, k: tipo, m: método de pagamento } ou null (aí segue para a IA)
+function natRoteiro(text, session) {
+  const nat = session.nat || {};
+  const x = semAcento(String(text || '')).toLowerCase();
+  if (!x.trim()) return null;
+  const nm = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '';
+  const est = natEstagio(nat);
+  const resumo = String(text).replace(/[\[\]|]/g, ' ').replace(/\s+/g, ' ').slice(0, 90);
+  const pausa = (msg, motivo, k) => ({ r: 'Ok' + nm + ', ' + msg + ' ||| [[PAUSAR: ' + motivo + ']]', k });
+  const EXPL = 'vou lhe explicar melhor sobre isso, só um momento.';
+  const flow = est === 'A' ? { r: 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[AUDIO]]', k: 'fluxo-A' } : { r: 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[INFORMATIVO]]', k: 'fluxo-B' };
+  const curto = x.length <= 220;
+  if (NAT_RE.estranho.test(x)) return pausa('só um momento.', 'URGENTE desconfiança/estranhamento: "' + resumo + '"', 'estranho');
+  if (NAT_RE.fora.test(x)) return pausa(EXPL, 'assunto fora do roteiro (imóvel/animais/judicial/sessão extra etc.): "' + resumo + '"', 'fora');
+  if (curto && NAT_RE.medico.test(x) && !/(curios)/.test(x)) { let r = '[[MEDICO]]'; if (NAT_RE.medicoGrave.test(x)) r += ' ||| Ok' + nm + ', só um momento. ||| [[PAUSAR: assunto médico/doença: ' + resumo + ']]'; return { r, k: 'medico' }; }
+  // pagamento: vai direto, sem mudar de assunto
+  const corrige = (nat.pix || nat.link) && /(emergencial|pacote|\b339\b|\b800\b|individual|\bnormal\b)/.test(x);
+  const pagIntFluxo = est !== 'A' && NAT_RE.pagIntencao.test(x);
+  if (NAT_RE.pagExp.test(x) || pagIntFluxo || corrige) {
+    const pergValor = /(valor|valores|preco|quanto|como funciona)/.test(x) && est !== 'C' && !corrige;
+    if (!pergValor) {
+      const opc = /(emergenc|urgen|8 dias|08 dias|oito dias|mais rapido|\b339\b)/.test(x) ? 'emergencial' : /(pacote|4 sessoes|quatro sessoes|\b800\b)/.test(x) ? 'pacote' : 'individual';
+      const quPix = /(\bpix\b|\bpics\b|\bchave\b|transferencia|deposito|dados bancarios)/.test(x), quCar = /(cartao|credito|debito|\blink\b|parcel)/.test(x);
+      let m = quPix && !quCar ? 'PIX' : quCar && !quPix ? 'LINK' : (corrige && !quPix && !quCar && nat.metodo) ? nat.metodo : 'BOTH';
+      if (m === 'PIX') return { r: 'Ok, combinado' + nm + '! Vou lhe enviar meus dados bancários para o pagamento. Segue abaixo 👇 ||| [[PIX: ' + NAT_VALOR[opc] + ']]', k: 'pag-pix', m };
+      if (m === 'LINK') return { r: 'Ok' + nm + '. Vou lhe enviar o link para o pagamento no cartão. Segue abaixo 👇 ||| [[LINK: ' + opc + ']]', k: 'pag-link', m };
+      return { r: 'Ok, combinado' + nm + '! Vou lhe enviar as opções para o pagamento. Segue abaixo 👇 ||| [[PIX_E_LINK: ' + opc + ']]', k: 'pag-ambos', m: 'BOTH' };
+    }
+  }
+  // estágios A e B: não pula etapa; qualquer dúvida de prazo/valor/limpeza etc. vai para o fluxo de explicação
+  if (est === 'B' && natAfirmacaoSolta(text)) return { r: '[[INFORMATIVO]]', k: 'ok-informativo' };
+  if (est !== 'C') {
+    if (est === 'A' && curto && NAT_RE.fluxoTema.test(x) && !NAT_RE.problema.test(x)) return flow;
+    if (est === 'B' && curto && NAT_RE.fluxoTema.test(x)) return flow;
+  }
+  if (est === 'C' && curto) {
+    let r = '';
+    if (NAT_RE.participacao.test(x) && /questionario/.test(x)) r = '[[PARTICIPACAO]]';
+    else if (NAT_RE.relatorio.test(x) && /(como|qual|o que|feito|funciona|consiste)/.test(x)) r = '[[RELATORIO]]';
+    else if (NAT_RE.limpeza.test(x)) r = '[[LIMPEZA]]';
+    else if (NAT_RE.resultado.test(x)) r = '[[RESULTADO]]';
+    else if (NAT_RE.hora.test(x)) r = '[[HORA]]';
+    else if (NAT_RE.hoje.test(x) && /(faz|consig|pod|inici|comec|realiz|marc|agend|da para|tem como|ainda)/.test(x)) r = '[[PRAZO]]';
+    else if (NAT_RE.prazo.test(x)) r = '[[PRAZO]]';
+    else if (NAT_RE.online.test(x)) r = '[[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]';
+    else if (NAT_RE.video.test(x)) r = '[[VIDEO]]';
+    if (r) return { r, k: 'oficial' };
+  } else if (curto) {
+    // textos que não citam prazo nem valores valem em qualquer estágio
+    if (NAT_RE.hora.test(x)) return { r: '[[HORA]]', k: 'oficial' };
+    if (NAT_RE.online.test(x)) return { r: '[[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]', k: 'oficial' };
+    if (NAT_RE.video.test(x)) return { r: '[[VIDEO]]', k: 'oficial' };
+  }
+  return null;
+}
+// Rede de segurança sobre a resposta da IA: nada de valores/links fora do roteiro, nada de pular etapa
+function natSaneia(session, resp, text) {
+  const nat = session.nat || {};
+  const est = natEstagio(nat);
+  const nm = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '';
+  const r = String(resp || '');
+  if (/\[\[(PAUSAR|SEM_RESPOSTA)/.test(r) && !/\[\[(PIX|LINK|INFORMATIVO)/.test(r)) return r;
+  const sem = r.replace(/\[\[[^\]]*\]\]/g, ' ');
+  const pausa = motivo => 'Ok' + nm + ', vou lhe explicar melhor sobre isso, só um momento. ||| [[PAUSAR: ' + motivo + ']]';
+  const permitidos = new Set([289, 339, 800, 200, 144, 145]);
+  const dinheiro = [...sem.matchAll(/R\$\s*(\d[\d.]*)/g)].map(m => parseInt(m[1].replace(/\./g, ''), 10));
+  if (dinheiro.some(v => !permitidos.has(v))) return pausa('valor fora do roteiro na resposta da IA (descartada): "' + String(text || '').slice(0, 70) + '"');
+  for (const m of r.matchAll(/\[\[PIX:([^\]]*)\]\]/g)) if (!/\b(289|339|800|144|145)\b/.test(m[1])) return pausa('Pix com valor fora do roteiro (descartado): "' + String(text || '').slice(0, 70) + '"');
+  for (const m of r.matchAll(/\[\[(?:LINK|PIX_E_LINK):([^\]]*)\]\]/g)) if (!/(individual|emergencial|pacote)/i.test(semAcento(m[1]))) return pausa('link fora do roteiro (descartado): "' + String(text || '').slice(0, 70) + '"');
+  if (/\[\[BOLETO:\s*(?!289)/.test(r)) return pausa('boleto fora do roteiro (descartado)');
+  if (!/\[\[(LINK|PIX_E_LINK)/.test(r) && /(link (atualizado|novo|correto|com as)|vou (lhe )?(enviar|gerar|mandar|passar) o link)/i.test(sem)) return pausa('IA prometeu link fora do roteiro (descartado)');
+  const gated = /\[\[(PRAZO|LIMPEZA|RESULTADO|RELATORIO|PARTICIPACAO)\]\]/.test(r) || /dias [uú]teis|prazo de \d/i.test(sem);
+  if (est === 'A' && (gated || /\[\[INFORMATIVO\]\]/.test(r))) { console.log('🧱 Sem pular etapa (A): resposta da IA trocada pelo fluxo'); return 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[AUDIO]]'; }
+  if (est === 'B' && gated) { console.log('🧱 Sem pular etapa (B): resposta da IA trocada pelo fluxo'); return 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[INFORMATIVO]]'; }
+  return r;
+}
 // Retorna true se tratou a mensagem
 async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   session.nat = session.nat || {};
@@ -1511,7 +1618,7 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   // DDD 17 (região do Paulo): por enquanto só a saudação inicial; o restante é atendido por ele. Exceção: números de teste e de administração.
   const ddd17 = (() => { const d = String(from || '').replace(/\D/g, ''); return (d.startsWith('55') ? d.slice(2, 4) : d.slice(0, 2)) === '17'; })();
   const so17 = ddd17 && !ehAdmin(from) && !(YC.enabled && (YC.ehFixoTeste(from) || YC.isTester(from)));
-  if (so17 && (!novo || nat.saudou)) { console.log('🔕 DDD 17: sem resposta automática (' + from + ')'); return true; }
+  if (so17 && (!novo || nat.saudou)) { console.log('🔕 DDD 17: sem resposta automática (' + from + ')'); session.natSilencio = Date.now(); return true; }
   if (!session.clientName) { const nm = extrairNomeSeguro(text); if (nm && /\b(me chamo|meu nome|sou [oa]?\s*[A-ZÀ-Ú])/i.test(text)) session.clientName = nm; }
   if (!session.clientName && session.perfilNome) { const np = nomePerfil(session.perfilNome); if (np) { session.clientName = np; console.log('👤 Nome pelo perfil do WhatsApp: ' + np + ' (' + from + ')'); } }
   // "abre" a conversa depois de um tempo, como uma pessoa
@@ -1559,29 +1666,15 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
       await upsertConversation(from, session.clientName, session.stage);
       return true;
     }
-    // Perguntas com texto oficial: o código escolhe o marcador (o modelo às vezes reescreve e erra)
-    if (String(text || '').length <= 220) {
-      const nmF = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '';
-      let respF = '';
-      if (/(medic|remedio|quimio|radioterap|psiquiatr|antidepress|cancer|tumor|\bcura\b|curar|curam|\bcurou\b)/.test(x) && !/(curios|cura de vida)/.test(x)) {
-        respF = '[[MEDICO]]';
-        if (/(cancer|tumor|quimio|radioterap|remedio|psiquiatr|antidepress|medicacao|largar|parar)/.test(x)) respF += ' ||| Ok' + nmF + ', só um momento. ||| [[PAUSAR: assunto médico/doença: ' + String(text).replace(/[\[\]|]/g, ' ').slice(0, 80) + ']]';
-      }
-      else if (/(participa|so responder|apenas responder|so preciso responder)/.test(x) && /questionario/.test(x)) respF = '[[PARTICIPACAO]]';
-      else if (/(relatorio|questionario)/.test(x) && /(como|qual|o que|feito|funciona|consiste)/.test(x)) respF = '[[RELATORIO]]';
-      else if (/(limpeza|reiki)/.test(x)) respF = '[[LIMPEZA]]';
-      else if (/((resultado|efeito|melhora|sentir)[^.?!]{0,40}(quando|quanto tempo|tempo|rapido|demora))|((quando|quanto tempo|em quanto)[^.?!]{0,40}(resultado|efeito|melhora|sentir))/.test(x)) respF = '[[RESULTADO]]';
-      else if (/(dia e (a )?hora|que dia|qual (o )?(dia|horario)|que horas|horario (da|de) sessao|hora exata|dia e horario)/.test(x)) respF = '[[HORA]]';
-      else if (/(prazo|agenda|agendar|quantos dias|quando (voces )?(comecam|iniciam))/.test(x)) respF = '[[PRAZO]]';
-      else if (/(preparo|estaremos online|estar online|ficar online)/.test(x)) respF = '[[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]';
-      else if (/(assistir|assisto|gravad|filmad|videochamada|video chamada|chamada de video|ao vivo|acompanhar a sessao|participar da sessao|video da sessao)/.test(x)) respF = '[[VIDEO]]';
-      if (respF) {
-        session.history.push({ role: 'user', content: entrada }, { role: 'assistant', content: respF });
-        console.log('📌 Texto oficial por código: ' + respF.slice(0, 40) + ' (' + from + ')');
-        await natEnviar(from, session, respF, {});
-        await upsertConversation(from, session.clientName, session.stage);
-        return true;
-      }
+    // Roteiro por código (antes da IA): estranhamento, fora do roteiro, médico, pagamento direto e textos oficiais por estágio
+    const rot = natRoteiro(text, session);
+    if (rot) {
+      session.history.push({ role: 'user', content: entrada }, { role: 'assistant', content: rot.r });
+      console.log('📌 Roteiro por código [' + rot.k + ']: ' + rot.r.slice(0, 60) + ' (' + from + ')');
+      if (rot.m) nat.metodo = rot.m;
+      await natEnviar(from, session, rot.r, {});
+      await upsertConversation(from, session.clientName, session.stage);
+      return true;
     }
   }
   let resp;
@@ -1598,7 +1691,13 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   } else {
     resp = await natClaude(session, entrada);
   }
-  if (!resp) { await pausarEAvisar(from, session, 'modo natural: falha da IA'); return true; }
+  if (!resp) {
+    const estF = natEstagio(nat);
+    crmAlertar('saiu_do_fluxo', from, 'URGENTE: a IA falhou (' + String(global.natUltErro || 'sem detalhe').slice(0, 140) + '). Última mensagem da pessoa: "' + String(text || '').slice(0, 100) + '"', session.clientName).catch(() => {});
+    if (estF === 'C') { await pausarEAvisar(from, session, 'modo natural: falha da IA'); return true; }
+    resp = 'Ok' + (session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '') + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| ' + (estF === 'A' ? '[[AUDIO]]' : '[[INFORMATIVO]]');
+    session.history.push({ role: 'assistant', content: resp });
+  } else if (!mediaInfo && !nat.quest) { resp = natSaneia(session, resp, text); }
   const fezPergunta = (session.audioTranscritoUsado || RE_PERGUNTA.test(text)) && !mediaInfo; session.audioTranscritoUsado = false;
   await natEnviar(from, session, resp, { citarPrimeiro: fezPergunta, pessoaOk: !mediaInfo && natAfirmacaoSolta(text), pessoaDisseOk: !mediaInfo && /^\s*(ok|okay|okk+|oks|ok,? obrigad[oa])\b/i.test(text) && text.trim().split(/\s+/).length <= 3, comprovante: !!(mediaInfo && mediaInfo.tipo !== 'audio') || pagouTexto });
   await upsertConversation(from, session.clientName, session.stage);
@@ -3096,7 +3195,7 @@ async function crmAlertar(tipo, phone, detalhe, nome, midia) { return avisoALS.r
 async function crmAlertarInner(tipo, phone, detalhe, nome, midia) {
   await crmEvento(phone, tipo, detalhe);
   const chave = tipo + ':' + phone + (tipo === 'saiu_do_fluxo' ? ':' + String(detalhe || '').slice(0, 60) : '');
-  const janela = (tipo === 'pagamento_solicitado' ? 60 : 10) * 60 * 1000;
+  const janela = ((tipo === 'pagamento_solicitado' || tipo === 'pediu_pagamento') ? 30 : 10) * 60 * 1000;
   if (alertaRecente.get(chave) && Date.now() - alertaRecente.get(chave) < janela) return;
   alertaRecente.set(chave, Date.now());
   if (tipo === 'pagamento_solicitado') { const g = 'grupo:' + phone; if (alertaRecente.get(g) && Date.now() - alertaRecente.get(g) < 120000) return; alertaRecente.set(g, Date.now()); }
@@ -3104,7 +3203,7 @@ async function crmAlertarInner(tipo, phone, detalhe, nome, midia) {
   { const vistos = new Set(); numeros = numeros.filter(n => { const k = n.slice(-8); if (vistos.has(k)) return false; vistos.add(k); return true; }); } // mesmo celular em dois formatos = um aviso só
   if (tipo === 'pagamento_solicitado') return; // Pix/cartão enviado não gera aviso no celular: só o do comprovante
   if (!numeros.length) return;
-  const rotulos = { audio_sem_transcricao: '🎤 Áudio não transcrito', novo_contato: '🆕 Novo contato', saiu_do_fluxo: '⚠️ Conversa passada para o atendimento humano', pagamento_solicitado: '💳 Pix, boleto ou cartão solicitado', comprovante: '💰 Pagamento: conferir', questionario: '📝 Questionário respondido' };
+  const rotulos = { audio_sem_transcricao: '🎤 Áudio não transcrito', novo_contato: '🆕 Novo contato', saiu_do_fluxo: '⚠️ Conversa passada para o atendimento humano', pediu_pagamento: '💳 Pediu dados para pagamento', pagamento_solicitado: '💳 Pix, boleto ou cartão solicitado', comprovante: '💰 Pagamento: conferir', questionario: '📝 Questionário respondido' };
   const quem = (nome || 'Sem nome') + ' (' + fmtFone(phone) + ')';
   const resumo = resumoAlerta(phone, nome);
   const texto = (rotulos[tipo] || tipo) + (detalhe ? '\n' + detalhe : '') + '\n' + resumo;
@@ -3112,8 +3211,8 @@ async function crmAlertarInner(tipo, phone, detalhe, nome, midia) {
   const modelo = ((await cfgGet('alerta_template_' + tipo, '')) || '').trim() || ALERTA_PADRAO[tipo] || '';
   const ehTexto = /[\s{]/.test(modelo);
   let corpo = (modelo || texto).replace(/\\n/g, '\n').split('{pessoa}').join(quem).split('{detalhe}').join(detalhe || '-').split('{resumo}').join(resumo).replace(/\n?Painel:[^\n]*/g, '').trim() + ((modelo && ehTexto && !modelo.includes('{resumo}')) ? '\n' + resumo : '');
-  const grave = tipo === 'saiu_do_fluxo' && /(urgente|crise|machuc|suic|rob[oô]|golpe|desconf|madrugada|m[ée]dic|doen[cç]a|advogad|procon|processo|den[uú]ncia|reclama|pol[ií]cia)/i.test(String(detalhe || ''));
-  const cab = grave ? '🚨🔴🚨🔴🚨 ALERTA GRAVE: PAULO, ASSUMA AGORA 🚨🔴🚨🔴🚨' : tipo === 'saiu_do_fluxo' ? '🟠🔔 PAULO: esta conversa precisa de você' : tipo === 'comprovante' ? '💰💰💰 COMPROVANTE: CONFERIR PAGAMENTO 💰💰💰' : tipo === 'novo_contato' ? '🆕🟢 NOVO CONTATO' : tipo === 'questionario' ? '📝✅ QUESTIONÁRIO RESPONDIDO' : '';
+  const grave = tipo === 'saiu_do_fluxo' && /(urgente|estranhamento|crise|machuc|suic|rob[oô]|golpe|desconf|madrugada|m[ée]dic|doen[cç]a|advogad|procon|processo|den[uú]ncia|reclama|pol[ií]cia)/i.test(String(detalhe || ''));
+  const cab = grave ? '🚨🔴🚨🔴🚨 ALERTA GRAVE: PAULO, ASSUMA AGORA 🚨🔴🚨🔴🚨' : tipo === 'saiu_do_fluxo' ? '🟠🔔 PAULO: esta conversa precisa de você' : tipo === 'comprovante' ? '💰💰💰 COMPROVANTE: CONFERIR PAGAMENTO 💰💰💰' : tipo === 'pediu_pagamento' ? '💳💳💳 PEDIU DADOS PARA PAGAMENTO 💳💳💳' : tipo === 'novo_contato' ? '🆕🟢 NOVO CONTATO' : tipo === 'questionario' ? '📝✅ QUESTIONÁRIO RESPONDIDO' : '';
   if (cab) corpo = cab + '\n' + corpo;
   if (tipo === 'comprovante' && midia && midia.base64) { // foto do comprovante + aviso completo na MESMA mensagem (legenda)
     try { await encaminharComprovanteInner(phone, nome, midia, corpo); return; } catch (e) { console.error('❌ Comprovante com foto, enviando só o texto:', e.message); }
@@ -3159,10 +3258,10 @@ async function crmEntrada(phone, mediaInfo, session, textoMsg) {
 }
 async function crmSaida(phone, texto) {
   if (!pool) return;
-  if (false && texto && /17988271998|mpago\.li/i.test(texto) && !(sessions.get(phone)?.ultAlertaPag && Date.now() - sessions.get(phone).ultAlertaPag < 90000)) { // aviso de Pix/cartão enviado desligado: o celular recebe só o aviso do comprovante
+  if (texto && /17988271998|mpago\.li/i.test(texto) && !(sessions.get(phone)?.ultAlertaPag && Date.now() - sessions.get(phone).ultAlertaPag < 90000)) { // aviso de Pix/cartão enviado desligado: o celular recebe só o aviso do comprovante
     { const sp = sessions.get(phone); if (sp) sp.ultAlertaPag = Date.now(); }
     const link = (texto.match(/https?:\/\/mpago\.li\/\S+/i) || [])[0];
-    crmAlertar('pagamento_solicitado', phone, link ? 'Link de cartão enviado: ' + link : 'Chave Pix enviada.', sessions.get(phone)?.clientName).catch(() => {});
+    crmAlertar('pediu_pagamento', phone, link ? 'Link de cartão enviado: ' + link : 'Chave Pix enviada.', sessions.get(phone)?.clientName).catch(() => {});
   }
   pool.query('UPDATE conversations SET last_out_at = now() WHERE phone = $1', [phone]).catch(() => {});
 }
@@ -3543,6 +3642,26 @@ if(sv&&sv.parentNode){
 app.get('/painel/crm-extra.js', (req, res) => { res.type('application/javascript').send(CRM_EXTRA_JS); });
 
 setInterval(() => { rodarFollowups(); }, 5 * 60 * 1000);
+// Vigia: pessoa esperando resposta há mais de 6 min (sem pausa nem silêncio intencional) = alerta grave, para nenhuma venda se perder
+const vigiaAvisada = new Map();
+async function vigiaConversas() {
+  if (!pool || botParado) return;
+  try {
+    const { rows } = await pool.query(`SELECT phone, client_name, last_in_at FROM conversations WHERE last_in_at IS NOT NULL AND (last_out_at IS NULL OR last_out_at < last_in_at) AND last_in_at < now() - interval '6 minutes' AND last_in_at > now() - interval '90 minutes'`);
+    for (const r of rows) {
+      const sess = sessions.get(r.phone); if (!sess || sess.pausado) continue;
+      const tin = new Date(r.last_in_at).getTime();
+      if (sess.natSilencio && sess.natSilencio >= tin - 60000) continue;
+      if (YC.enabled && !(await YC.podeEnviar(r.phone))) continue;
+      if (vigiaAvisada.get(r.phone) === tin) continue; vigiaAvisada.set(r.phone, tin);
+      console.log('🐕 Vigia: ' + r.phone + ' sem resposta há mais de 6 min');
+      crmAlertar('saiu_do_fluxo', r.phone, 'URGENTE: cliente esperando resposta há mais de 6 minutos e o robô não respondeu. Assuma a conversa.', r.client_name).catch(() => {});
+    }
+  } catch (e) { console.error('❌ Vigia:', e.message); }
+}
+setInterval(vigiaConversas, 2 * 60 * 1000);
+// Saúde da IA: se a chave/crédito falhar, avisa sem esperar um cliente
+setInterval(async () => { try { await anthropic.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 5, messages: [{ role: 'user', content: 'ok' }] }); global.natUltErro = null; } catch (e) { global.natUltErro = new Date().toISOString() + ' ' + String(e.message).slice(0, 200); if (!global.natAvisoSaude || Date.now() - global.natAvisoSaude > 3600000) { global.natAvisoSaude = Date.now(); crmAlertar('saiu_do_fluxo', 'saude-ia', 'URGENTE: a IA do robô está com erro (' + String(e.message).slice(0, 120) + '). Verifique créditos/chave.', 'Sistema').catch(() => {}); } } }, 20 * 60 * 1000);
 app.rodarFollowups = rodarFollowups;
 
 // ─── DESVIO DO FLUXO: respostas fora do esperado durante as etapas ───────────────
