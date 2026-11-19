@@ -1363,6 +1363,13 @@ async function natEnviar(to, session, bruto, opcoes) {
     if (partes.some(ehSaud)) nat.cumpExp = true;
     else if (!nat.cumpExp && (nat.saidas || []).length <= 1 && partes.length) { nat.cumpExp = true; const nm = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : ''; partes.unshift('Oi' + nm + ', ' + saudacao() + '. Tudo bem?'); } }
   let pixEnv = false;
+  { // pagamento repetido (mesmo valor/opção há pouco): some também o "Vou lhe enviar os dados..." que vem antes do bloco
+    const dupPag = x => { const mm = x.match(/\[\[(PIX_E_LINK|PIX|LINK):?([^\]]*)\]\]/); if (!mm) return false; const arg = semAcento(mm[2]).trim().toLowerCase();
+      if (mm[1] === 'PIX') return natPagRecente(nat, 'pix', mm[2].trim() || '289,00 - Sessão de Apometria');
+      const ch = Object.keys(NAT_VALOR).find(k => arg.includes(k)) || (mm[1] === 'LINK' ? Object.keys(NAT_LINKS).find(k => arg.includes(k)) : 'individual');
+      return mm[1] === 'LINK' ? natPagRecente(nat, 'link', ch) : (natPagRecente(nat, 'pix', NAT_VALOR[ch]) || natPagRecente(nat, 'link', ch)); };
+    if (partes.some(dupPag)) partes = partes.filter(x => /\[\[(PIX_E_LINK|PIX|LINK)\b/.test(x) || !/(segue abaixo|vou lhe enviar|dados banc[aá]rios|op[cç][õo]es para o pagamento|link para o pagamento)/i.test(x));
+  }
   // o áudio gravado do informativo já diz que o material vai ser enviado: some o aviso em texto ("vou lhe enviar o informativo... segue abaixo")
   if (partes.some(x => /\[\[INFORMATIVO\]\]/.test(x)) && (!nat.info || Date.now() - nat.info > 180000)) {
     partes = partes.filter(x => /\[\[INFORMATIVO\]\]/.test(x) || !NAT_AVISO_INFO.test(x.replace(/\[\[[^\]]*\]\]/g, '')));
@@ -1616,7 +1623,7 @@ function natRoteiro(text, session) {
   if (NAT_RE.medico.test(x) && !/(curios)/.test(x)) { return { r: '[[MEDICO]] ||| Ok' + nm + ', só um momento. ||| [[PAUSAR: URGENTE assunto delicado (cura/médico/doença): ' + resumo + ']]', k: 'medico' }; }
   if (NAT_RE.garantia.test(x)) return pausa(EXPL, 'URGENTE assunto delicado (garantia de resultado): "' + resumo + '"', 'garantia');
   // limpeza energética do lar / reiki: o bot NUNCA fala disso; pergunta direta vai para o Paulo (em A/B segue o fluxo normal, o informativo já traz o bônus)
-  if (NAT_RE.limpeza.test(x) && est === 'C' && (/\?/.test(String(text)) || /(como|quando|quanto|fazem|faz |feito|funciona|explica|tem )/.test(x)) && !NAT_RE.pagPedido.test(x)) return pausa(EXPL, 'perguntou sobre limpeza do lar/reiki: "' + resumo + '"', 'limpeza');
+  if (NAT_RE.limpeza.test(x) && est === 'C' && (/\?/.test(String(text)) || /\b(como (e|eh|funciona|fazem|faz|sao|e feita|e feito)|quando (e|eh|fazem|faz)|quanto tempo|fazem (a )?(limpeza|reiki)|explica)/.test(x)) && !NAT_RE.pagPedido.test(x)) return pausa(EXPL, 'perguntou sobre limpeza do lar/reiki: "' + resumo + '"', 'limpeza');
   // pagamento: SÓ com pedido explícito (intenção clara); pergunta sobre Pix/cartão não envia dados
   const corrige = (nat.pix || nat.link) && /(emergencial|pacote|\b339\b|\b800\b|individual|\bnormal\b)/.test(x);
   if (natPedidoPag(text, est, nat)) {
