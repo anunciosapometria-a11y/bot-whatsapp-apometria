@@ -1098,6 +1098,7 @@ REGRAS INVIOLÁVEIS (valem acima de qualquer outra instrução deste prompt)
 4. ESTRANHAMENTO: "isso é real?", "estranho", "robô", "golpe", desconfiança → "Ok, só um momento." + [[PAUSAR: URGENTE desconfiança]].
 5. NUNCA discuta com a pessoa, nunca diga que o valor já foi enviado, nunca pergunte se já pagou ou se já decidiu.
 6. Assunto médico/cura: somente o texto [[MEDICO]]. Madrugada (0h–6h): sem áudio, bem engessado.
+7b. INTERPRETE A INTENÇÃO: \"ok\", \"entendi\", \"envia\", \"pode enviar\", \"já li\", \"certo\", \"pode mandar\" e parecidos significam CONTINUAR o fluxo: envie o próximo passo (se o informativo ainda não foi, [[INFORMATIVO]]). Não dependa de palavras exatas.
 7. Na dúvida entre responder algo que não está neste prompt ou passar para o Paulo: PASSE para o Paulo.
 
 FORMATO DA SAÍDA
@@ -1453,7 +1454,7 @@ async function natEnviar(to, session, bruto, opcoes) {
       }
       okAntes = !b.colado && /^ok\b/i.test(b.t);
       // texto colado sai rápido; texto longo "escrito na hora" (encaixe) demora alguns minutos; balão curto, o tempo de digitar
-      const ms = b.colado ? natRand(2500, 6000) : b.t.length > 900 ? natRand(75000, 160000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
+      const ms = b.colado ? natRand(8000, 10000) : b.t.length > 900 ? natRand(75000, 160000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
       await natEsperaDigitando(session, ms);
       if (citar && primeiro) { const al = natAlvoCitar(session); if (al) session.citarId = al; }
       await sendMessage(to, b.t);
@@ -1565,7 +1566,9 @@ function natRoteiro(text, session) {
     }
   }
   // estágios A e B: não pula etapa; qualquer dúvida de prazo/valor/limpeza etc. vai para o fluxo de explicação
-  if (est === 'B' && natAfirmacaoSolta(text)) return { r: '[[INFORMATIVO]]', k: 'ok-informativo' };
+  const nUser = (session.history || []).filter(h => h.role === 'user').length;
+  if (est === 'A' && curto && nUser <= 1 && /(valor|valores|preco|quanto (custa|e|sai|fica|cobra)|custa|cobra|investimento)/.test(x) && !NAT_RE.problema.test(x)) return { r: 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona. ||| [[INFORMATIVO]]', k: 'valor-primeira' };
+  if (est === 'B' && (natAfirmacaoSolta(text) || (x.length <= 80 && /(envia|enviar|manda|mandar|pode (enviar|mandar|passar|continuar|seguir|prosseguir)|segue|continua|prossiga|prosseguir|ja li|li sim|li tudo|li o|li a|li as|pode ser|vamos|bora|quero ver|quero saber|passa|me passa|certo|beleza|blz|combinado|claro|show|perfeito|otimo|sim|ta bom|esta bom|tudo bem|entendido|compreendi|compreendo)/.test(x) && !/\?/.test(x)))) return { r: '[[INFORMATIVO]]', k: 'ok-informativo' };
   if (est !== 'C') {
     if (est === 'A' && curto && NAT_RE.fluxoTema.test(x) && !NAT_RE.problema.test(x)) return flow;
     if (est === 'B' && curto && NAT_RE.fluxoTema.test(x)) return flow;
