@@ -1043,6 +1043,7 @@ async function sendManual(phone, texto) {
   const session = getSession(phone);
   if (!(session.pausado && session.pausadoPor === 'humano')) await crmEvento(phone, 'humano_assumiu', 'PAUSADO POR RESPOSTA HUMANA: mensagem enviada pelo painel. O bot ficou calado (não foi o bot que pausou).');
   session.pausado = true; // ao responder manualmente, pausa as respostas automáticas
+  persistirPausaHumana(phone);
   session.pausadoEm = Date.now();
   session.pausadoPor = 'humano';
   session.history.push({ role: 'assistant', content: texto });
@@ -1053,8 +1054,14 @@ async function sendManual(phone, texto) {
   await upsertConversation(phone, session.clientName, session.stage);
 }
 
+// Pausa por humano precisa sobreviver a reinício/deploy: grava no banco (bot_off) além da memória
+function persistirPausaHumana(phone) {
+  if (!pool) return;
+  pool.query('UPDATE conversations SET bot_off = true WHERE phone = $1', [phone]).catch(e => console.error('❌ bot_off humano:', e.message));
+}
 function setPausado(phone, pausado) {
   const session = getSession(phone);
+  if (pausado) persistirPausaHumana(phone);
   crmEvento(phone, pausado ? 'humano_assumiu' : 'bot_religado', pausado ? 'PAUSADO PELO PAINEL: alguém pausou o bot manualmente.' : 'Bot religado pelo painel.').catch(() => {});
   session.pausado = pausado;
   session.pausadoEm = pausado ? Date.now() : null;
@@ -2398,6 +2405,7 @@ app.post('/webhook-yc', async (req, res) => {
     if (r.acao === 'eco') {
       await YC.grava(r.phone, 'bloqueado', null, 'eco: atendimento humano');
       const s = getSession(r.phone); const jaHumano = s.pausado && s.pausadoPor === 'humano'; s.pausado = true; s.pausadoEm = Date.now(); s.pausadoPor = 'humano';
+      persistirPausaHumana(r.phone);
       if (!jaHumano) await crmEvento(r.phone, 'humano_assumiu', 'PAUSADO POR RESPOSTA HUMANA: mensagem enviada pelo celular do Paulo. O bot ficou calado (não foi o bot que pausou).');
       console.log('🔒 resposta humana detectada — bot calado para este contato'); return;
     }
@@ -2674,6 +2682,7 @@ app.post('/painel/api/app/audio/:phone', express.raw({ type: () => true, limit: 
     try { const inf = await axios.get('https://graph.facebook.com/v21.0/' + uj.id, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN } }); console.log('🎤 media na Meta: ' + JSON.stringify(inf.data)); } catch (e) {}
     await axios.post('https://graph.facebook.com/v21.0/' + WHATSAPP_PHONE_ID + '/messages', { messaging_product: 'whatsapp', to: phone, type: 'audio', audio: { id: uj.id, voice: true } }, { headers: { Authorization: 'Bearer ' + WHATSAPP_TOKEN, 'Content-Type': 'application/json' } });
     const session = getSession(phone);
+    persistirPausaHumana(phone);
     session.pausado = true; session.pausadoEm = Date.now(); session.pausadoPor = 'humano';
     session.history.push({ role: 'assistant', content: '[áudio enviado pela equipe]' });
     await saveMessage(phone, 'out', '[áudio]', ogg.toString('base64'), 'audio/ogg');
