@@ -1041,6 +1041,7 @@ async function processWithClaude(session, userMessage) {
 // ─── ENVIO MANUAL PELO PAINEL (humano assume a conversa) ─────────────────────
 async function sendManual(phone, texto) {
   const session = getSession(phone);
+  if (!(session.pausado && session.pausadoPor === 'humano')) await crmEvento(phone, 'humano_assumiu', 'PAUSADO POR RESPOSTA HUMANA: mensagem enviada pelo painel. O bot ficou calado (não foi o bot que pausou).');
   session.pausado = true; // ao responder manualmente, pausa as respostas automáticas
   session.pausadoEm = Date.now();
   session.pausadoPor = 'humano';
@@ -1054,6 +1055,7 @@ async function sendManual(phone, texto) {
 
 function setPausado(phone, pausado) {
   const session = getSession(phone);
+  crmEvento(phone, pausado ? 'humano_assumiu' : 'bot_religado', pausado ? 'PAUSADO PELO PAINEL: alguém pausou o bot manualmente.' : 'Bot religado pelo painel.').catch(() => {});
   session.pausado = pausado;
   session.pausadoEm = pausado ? Date.now() : null;
   session.pausadoPor = pausado ? 'humano' : null;
@@ -2395,7 +2397,8 @@ app.post('/webhook-yc', async (req, res) => {
     if (r.acao === 'status') return await processarMeta(r.meta);
     if (r.acao === 'eco') {
       await YC.grava(r.phone, 'bloqueado', null, 'eco: atendimento humano');
-      const s = getSession(r.phone); s.pausado = true; s.pausadoEm = Date.now(); s.pausadoPor = 'humano';
+      const s = getSession(r.phone); const jaHumano = s.pausado && s.pausadoPor === 'humano'; s.pausado = true; s.pausadoEm = Date.now(); s.pausadoPor = 'humano';
+      if (!jaHumano) await crmEvento(r.phone, 'humano_assumiu', 'PAUSADO POR RESPOSTA HUMANA: mensagem enviada pelo celular do Paulo. O bot ficou calado (não foi o bot que pausou).');
       console.log('🔒 resposta humana detectada — bot calado para este contato'); return;
     }
     if (r.acao === 'avisos') { // mensagem recebida no número notificador (Instituto): só comandos de quem administra
