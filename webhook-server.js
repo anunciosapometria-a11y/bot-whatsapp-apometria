@@ -1087,6 +1087,8 @@ const NAT_PRAZO = 'Todo o trabalho é finalizado dentro do prazo de 15 dias úte
 const NAT_MEDICO = 'A apometria é um trabalho espiritual que atua no campo energético e espiritual, e o que é tratado nesse plano pode refletir também no corpo físico. Não prometemos cura e não substituímos o acompanhamento médico, que deve ser mantido.';
 const NAT_RESULTADO = ['Notamos que, quando se trata de fatores externos como obsessores, trabalhos de magia e outras influenciações como essas, os resultados aparecem logo nos primeiros dias, porque ao realizar essa retirada é como liberar algo que estava prejudicando muito intensamente.', 'Nos outros casos, que envolvem situações mais enraizadas, as melhoras vêm com o passar dos dias. Cada caso é único e tem as suas particularidades.', 'Fazemos o máximo possível dentro das possibilidades, somos reconhecidos pelos resultados efetivos e temos muitos relatos positivos.'];
 const NAT_OK_INFO = 'Assim que ler me mande um OK para que eu possa lhe enviar mais informações. Grato.';
+const NAT_OK_OUVIR = 'Assim que ouvir me mande um OK para que eu possa lhe enviar mais informações. Grato.'; // depois de áudio
+const NAT_OK_VER_OUVIR = 'Assim que ver e ouvir me mande um OK para que eu possa lhe enviar mais informações. Grato.'; // imagem + áudio
 const NAT_SAUDACAO_CURTA = 'Olá, seja bem-vinda(o). Sou Paulo Rodrigues, especialista em apometria.';
 const NAT_INFORMATIVO = "*Como é realizado o trabalho e como o tratamento funciona -*\n\n📖 Primeiramente é feito um relatório inicial (cerca de 15 a 20 minutos) com perguntas sobre o seu caso, dos seus estados físicos, mentais, espiritual, emocional e quais outras questões você deseja que seja trabalhado. Após colher as suas queixas faço um estudo profundo para trabalhar da melhor maneira no seu caso. Peço 2 dias úteis para fazer essa analise e deixar seu relatório inicial o melhor possível para realizar o trabalho e assim aproveita-lo ao máximo.\n\n\n✨ Não há a necessidade de você estar presente ou assistir o trabalho, pois não acrescenta e nem influencia na eficiência ou nos resultados. O mesmo é feito por ligação do caso, nome, endereço, data de nascimento, entre dados que serão colhidos no relatório inicial. Após o trabalho te envio o relatório completo da sessão com grande nível de detalhes.\n\n\n📅 No dia da realização do trabalho, você pode ter sua rotina normal, de trabalho, estudo ou outra atividade à qual tenha que se dedicar.\n\n\n📑 Trabalho com suas personalidades múltiplas, vidas passadas, obsessores, quebra de trabalhos/magias, sub personalidades, entidades, além de todas a ferramentas a disposição na mesa, para fatos que venham aparecer durante a realização do trabalho que possam ser captadas ou visualizadas através da minha sensibilidade.\n\n\n✨ O tratamento é feito totalmente a distância, através do seu nome, caso e endereço é feita a abertura do duplo etérico e dos corpos fluídicos e a conexão com o seu Eu divino, sua personalidade e psiquismo.\n\n\n🗓️ O trabalho todo e relatório final é concluído e enviado em até no máximo 15 dias úteis.\n\n\n🗒️ Faço um relatório detalhado e minucioso no final do trabalho através de áudios, explicando todos os aspectos que foram trabalhados e encontrados durante a realização, além de mensagens ou conselhos deixados para você através das equipes espirituais.\n\n\n🧘 Em alguns casos através de minha experiência envio dicas e exercícios específicos para que a própria pessoa dê continuidade ao seu processo de tratamento, cultivando assim uma atmosfera energética e espiritual sadia durante a sua jornada.\n\n\n❕ Sempre aproveito a oportunidade para na *primeira* realização de apometria, também realizar *gratuitamente* a limpeza energética do lar e envio de Reiki à distância. Estas atividades ficam como *bônus* de atendimento 👍\n\n\n📳 Fico a sua disposição para acolhimento pessoal após a realização do tratamento, para dúvidas que possam surgir, de forma gratuita.\n\n\n🔂 Você pode ter a experiência e colher os benefícios e resultados de uma única sessão de apometria, ou optar por trabalhos periódicos mensais para continuar o processo de cura e as limpezas energéticas e espirituais constantes.\n\n\n✨ Como trabalho com agendamentos dou prioridade as pessoas que realizaram a *confirmação* através do pagamento, para a realização do trabalho o mais rápido possível, comportando possibilidade de encaixe em casos de urgência.\n\n\n✔️ Havendo oportunidade de antecipação, eu aviso e adiantamos o dia!";
 const NAT_PAGAMENTO = "*Sobre o Pagamento*\n\n\n Valor à vista:\n✅ *R$289,00* (15 dias úteis)\n(Pix / Transferência /Depósito/2x sem juros no cartão)\n\n\n*Emergencial* (Realização em até 08 dias úteis) : *R$ 339,00* (Pix / Transferência / Depósito/2x sem juros no cartão)\n\n\n*Pacote* A partir de 4x sessões de apometria individuais ou para a família\n✅ *R$200,00* cada trabalho.     (Pix / Transferência /Depósito/4x sem juros no cartão)\n\n\n*OBS:* 👉 O pagamento funciona como a confirmação do agendamento e para a realização do trabalho.\n\n______\n\nPara pagamento:\n\n\n\n👉 Solicite o Pix ou Link para pagamento via cartão.\n\n_____";
@@ -1346,7 +1348,7 @@ function natSepara(txt) {
     .replace(/(se encaixa[^|]*?fazendo parte d[^.|]*\.)\s+(?=\S)(?![|])[^|\[]*?(?=\||\[\[|$)/gi, '$1')
     .replace(/(\S)\s+(Ok,? entendo perfeitamente)/gi, '$1|||$2')
     .replace(/(possibilidades nesse caso\.)\s+(?=\S)/gi, '$1|||')
-    .split('|||').map(p => p.trim()).filter(p => p && !/^Assim que ler me mande um OK/i.test(p));
+    .split('|||').map(p => p.trim()).filter(p => p && !/^Assim que (ler|ouvir|ver)( e ouvir)? me mande um OK/i.test(p));
 }
 const NAT_AVISO_INFO = /vou (lhe )?(enviar|mandar)[^.!?\n]{0,60}(informativo|material|valores|detalhes)|segue abaixo|segue o informativo/i;
 const NAT_VALOR = { individual: '289,00 - Sessão de Apometria', emergencial: '339,00 - Sessão de Apometria Emergencial', pacote: '800,00 - Pacote 4 sessões de Apometria' };
@@ -1475,7 +1477,7 @@ async function natEnviarInner(to, session, bruto, opcoes) {
         blocos.push({ t: 'Segue abaixo um resumo de como funciona o nosso trabalho. Ele atua justamente nos pontos que você precisa 👇', colado: true }, { img: 'como-funciona-info.jpg' });
         if (natMadrugada()) console.log('🌙 Madrugada: sem áudio (' + to + ')');
         else blocos.push({ audio: 'aud-geral-2.ogg', seg: 33, label: 'diferenciais: equipe e à distância' });
-        if (!nat.info) blocos.push({ t: NAT_OK_INFO });
+        if (!nat.info) blocos.push({ t: natMadrugada() ? NAT_OK_INFO : NAT_OK_VER_OUVIR });
       }
     } else if (/\[\[(?:IMAGEM|AUDIO):?([^\]]*)\]\]/.test(p)) {
       const argImg = p.match(/\[\[(?:IMAGEM|AUDIO):?([^\]]*)\]\]/)[1];
@@ -1490,7 +1492,7 @@ async function natEnviarInner(to, session, bruto, opcoes) {
         nat.audExpl = tema ? tema.f : 'geral';
         if (tema) { blocos.push({ audio: tema.f, seg: tema.seg, label: tema.label }); nat.difPend = true; }
         else { nat.difEnv = true; nat.audGen2 = true; blocos.push({ audio: 'aud-geral-1.ogg', seg: 105, label: 'explicação geral do trabalho' }, { audio: 'aud-geral-2.ogg', seg: 33, label: 'diferenciais: equipe e à distância' }); }
-        if (!nat.info) blocos.push({ t: NAT_OK_INFO });
+        if (!nat.info) blocos.push({ t: NAT_OK_OUVIR });
       }
     } else if (/\[\[BANCO\]\]/.test(p)) {
       const resto = p.replace(/\[\[BANCO\]\]/g, '').trim(); if (resto) blocos.push({ t: resto });
@@ -1608,7 +1610,7 @@ function natFrase(nat, nm, tipo) {
   const A = ['Ok' + nm + '! Vou lhe explicar melhor como funciona.', 'Certo' + nm + ', já lhe explico melhor como funciona.', 'Claro' + nm + ', vou lhe explicar como funciona.', 'Ok' + nm + ', vou lhe explicar melhor sobre isso.'];
   const I = ['Ok' + nm + '! Vou lhe enviar o informativo.', 'Ok' + nm + ', vou lhe enviar as demais informações.', 'Certo' + nm + ', vou lhe passar as informações completas.', 'Claro' + nm + ', vou lhe enviar mais detalhes.'];
   const n = nat.fraseN || 0; nat.fraseN = n + 1;
-  if (n === 0) return 'Ok' + nm + ', entendo perfeitamente, vou lhe explicar melhor como funciona.';
+  if (n === 0) return tipo === 'A' ? 'Ok' + nm + ', vou lhe explicar melhor como funciona.' : 'Ok' + nm + ', vou lhe enviar o informativo de como funciona e os valores.';
   const lista = tipo === 'A' ? A : I;
   return lista[(n - 1) % lista.length];
 }
