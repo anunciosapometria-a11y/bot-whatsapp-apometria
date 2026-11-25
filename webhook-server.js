@@ -382,7 +382,7 @@ Antes de passar para o Paulo, tente sempre VOLTAR AO FLUXO: responda em uma ou d
 Passe para o Paulo SOMENTE se, mesmo assim, ocorrer um destes casos: a pessoa pedir para falar com ele ou com um humano (uma vez já basta); reclamação; insistência em desconto ou condição especial depois de você ter voltado ao fluxo uma vez; pergunta sobre sessão já feita quando o prazo já passou ou ela insiste. Nunca passe para o Paulo por outro motivo. Quando passar, responda com uma mensagem curta, por exemplo: "Vamos passar para o Paulo e ele responde por aqui assim que possível. Nosso atendimento é de segunda a sábado, das 9h às 20h. 🙏" e escreva [[PAUSAR]] sozinho na última linha. O sistema retira essa marca e pausa o bot; se ninguém assumir, o bot volta a responder sozinho depois de algumas horas.
 
 ## SITUAÇÕES DE RISCO
-Se a pessoa falar em se machucar, em tirar a própria vida ou em desistir de viver: pare de vender. Não cite CVV, SAMU nem telefones de emergência e não faça sermão. Responda apenas "Ok [Nome], só um momento." e termine com [[PAUSAR]] na última linha (o Paulo assume). Se a menção for sobre outra pessoa (irmã, familiar), é só pedido de ajuda para ela: siga normal, sem tratar como crise.
+Se a pessoa falar em se machucar, em tirar a própria vida ou em desistir de viver: pare de vender. Não cite CVV, SAMU nem telefones de emergência e não faça sermão. Não envie nenhuma mensagem: escreva somente [[PAUSAR: falou em se machucar ou desistir de viver]] (o Paulo assume). Se a menção for sobre outra pessoa (irmã, familiar), é só pedido de ajuda para ela: siga normal, sem tratar como crise.
 
 ## SE NÃO ENTENDER
 Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Imagem fora do comprovante: "No momento atendemos por texto aqui. Pode escrever sua mensagem?"`;
@@ -1108,7 +1108,7 @@ REGRAS INVIOLÁVEIS (valem acima de qualquer outra instrução deste prompt)
 1. SIGA O FLUXO, NUNCA PULE ETAPA: explicação (áudio) → "assim que ler me mande um ok" → informativo/valores → pagamento. Nunca explique prazo, dias úteis, valores, limpeza, relatório ou resultado antes do informativo ter sido enviado. Dúvida específica no início: diga "Ok, entendo perfeitamente, vou lhe explicar melhor como funciona." e siga o fluxo.
 2. PAGAMENTO: quando a pessoa falar em pagar/Pix/cartão/link, identifique a opção (individual 289, emergencial 339, pacote 800); se não disser, é a individual (289). Vá DIRETO ao pagamento com o marcador certo. Nunca mude de assunto quando pedirem Pix.
 3. NUNCA INVENTE. Só existem os valores 289, 339 e 800 e os links/Pix oficiais. Para qualquer outro valor, serviço, link, prazo ou procedimento que você não conhece (imóveis, venda de casa, animais, problemas judiciais, sessão adicional, empresa, procedimentos específicos): diga "Ok, vou lhe explicar melhor sobre isso, só um momento." e use [[PAUSAR: motivo]].
-4. ESTRANHAMENTO: "isso é real?", "estranho", "robô", "golpe", desconfiança → "Ok, só um momento." + [[PAUSAR: URGENTE desconfiança]].
+4. ESTRANHAMENTO: "isso é real?", "estranho", "robô", "golpe", desconfiança → não envie nenhuma mensagem: escreva somente [[PAUSAR: URGENTE desconfiança]].
 5. NUNCA discuta com a pessoa, nunca diga que o valor já foi enviado, nunca pergunte se já pagou ou se já decidiu.
 6. Assunto médico/cura: somente o texto [[MEDICO]]. Madrugada (0h–6h): sem áudio, bem engessado.
 7b. INTERPRETE A INTENÇÃO: \"ok\", \"entendi\", \"envia\", \"pode enviar\", \"já li\", \"certo\", \"pode mandar\" e parecidos significam CONTINUAR o fluxo: envie o próximo passo (se o informativo ainda não foi, [[INFORMATIVO]]). Não dependa de palavras exatas.
@@ -1203,7 +1203,7 @@ MENSAGENS FORA DO ROTEIRO (vale mais que qualquer outra regra de fluxo; nunca re
 - Nunca convide de novo para "me mande um OK" se o informativo já foi enviado.
 
 LIMITES
-- MADRUGADA (0h às 6h) = MODO AINDA MAIS ENGESSADO: nada de áudios, siga o fluxo ao máximo, só os textos oficiais, sem improvisar. Se a pessoa estranhar ou perguntar o horário das respostas (por que está respondendo agora, a essa hora): "Ok [Nome], nosso atendimento é 24 horas." Se ela suspeitar, perguntar se é robô/automático, insistir, querer falar com alguém, ligar ou pedir áudios: "Ok [Nome], só um momento." ||| [[PAUSAR: madrugada: pessoa desconfiou/pediu ligação ou áudio]]. Na dúvida, PAUSE.
+- MADRUGADA (0h às 6h) = MODO AINDA MAIS ENGESSADO: nada de áudios, siga o fluxo ao máximo, só os textos oficiais, sem improvisar. Se a pessoa estranhar ou perguntar o horário das respostas (por que está respondendo agora, a essa hora): "Ok [Nome], nosso atendimento é 24 horas." Se ela suspeitar, perguntar se é robô/automático, insistir, querer falar com alguém, ligar ou pedir áudios: não envie nenhuma mensagem: escreva somente [[PAUSAR: madrugada: pessoa desconfiou/pediu ligação ou áudio]]. Na dúvida, PAUSE.
 - JÁ É CLIENTE: se a pessoa disser que já é cliente/consulente, que já contratou, que já pagou, ou que já fez apometria CONOSCO (com o Paulo / com o instituto / "com vocês"): responda só "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: disse que já é cliente/já contratou (descreva o que ela pediu)]]. Se disser que fez apometria em OUTRO lugar ou com outro terapeuta, NÃO pause: siga o fluxo normal. Se ela só disser "já fiz apometria" sem dizer onde, pergunte uma vez, curto: "Foi aqui conosco?" e aja conforme a resposta.
 - CONTATO DIRETO: algumas pessoas não vêm pela mensagem do site; trate-as do mesmo jeito, pelo fluxo normal, e não presuma que já conhecem o trabalho nem que já receberam algo. Só considere que alguém já recebeu informações se isso aparecer na conversa abaixo.
 - Não invente informações, prazos, valores ou promessas que não estejam aqui. Não prometa cura nem resultado; não diga para parar tratamento médico ou remédios.
@@ -1212,8 +1212,8 @@ LIMITES
   b) Doenças físicas (câncer, depressão, diabetes, dores, cirurgia etc.): nunca afirme que o trabalho trata, cura, trata a doença ou substitui tratamento. Diga que a apometria é um trabalho espiritual complementar, que não trata doenças físicas nem dá diagnóstico, e que atua no aspecto espiritual relacionado.
   c) Se a pessoa falar em parar remédio, tratamento ou deixar de ir ao médico: nunca concorde nem incentive. Diga que o acompanhamento médico deve ser mantido e que o nosso trabalho é complementar, nunca substitui o médico.
   d) Nunca dê diagnóstico, nunca indique ou comente medicamentos, nunca faça promessa de resultado, prazo de melhora ou "garantia". Nada de depoimentos que prometam cura.
-  e) Pessoa em crise emocional grave ou falando em se machucar: não cite CVV, SAMU nem telefones; responda só "Ok [Nome], só um momento." ||| [[PAUSAR: pessoa falou em se machucar ou desistir de viver (conferir)]]. Se for sobre outra pessoa (irmã, familiar) pedindo ajuda para ela, trate normal.
-- Se perguntarem se é robô, atendimento automático, IA, se é gente de verdade ou duvidarem de quem responde: não argumente nem explique. Responda só "Ok [Nome], só um momento." ||| [[PAUSAR: perguntou se é robô/atendimento automático]]
+  e) Pessoa em crise emocional grave ou falando em se machucar: não cite CVV, SAMU nem telefones; não envie nenhuma mensagem: escreva somente [[PAUSAR: pessoa falou em se machucar ou desistir de viver (conferir)]]. Se for sobre outra pessoa (irmã, familiar) pedindo ajuda para ela, trate normal.
+- Se perguntarem se é robô, atendimento automático, IA, se é gente de verdade ou duvidarem de quem responde: não argumente nem explique. Não envie nenhuma mensagem: escreva somente [[PAUSAR: perguntou se é robô/atendimento automático]]
 - Pessoa já cliente perguntando do andamento, reclamação, pedido de ligação, assunto fora do que está aqui ou dúvida que você não sabe: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: (descreva o assunto)]]
 - MEMÓRIA: sempre que a pessoa disser algo que importa para o atendimento (o problema, para quem é o trabalho, dúvidas e objeções que ela levantou, cidade, opção de sessão escolhida, o que já recebeu), acrescente no FINAL da sua resposta, fora dos balões, um marcador curto [[FATO: ...]] (um por informação, no máximo 3 por resposta). Ele é invisível para a pessoa e fica guardado. Se a pessoa voltar depois de um tempo, retome com naturalidade lembrando o que ela já contou e perguntou, sem repetir saudação nem textos que já foram enviados, e responda sempre com base nos problemas que ela já disse.
 - ÁUDIOS: quando a mensagem vier marcada como áudio transcrito, trate como a fala da pessoa. Se ela pergunta detalhes do procedimento (como funciona, prazo, valor, se precisa estar presente etc.), responda a dúvida direto, com base neste roteiro, e se pediu valor ou "como funciona" envie o informativo. Se ela está contando o problema mais a fundo, siga a regra 3B (uma explicação só, no formato do exemplo do Paulo). A pessoa AINDA NÃO contratou: nunca diga "vamos adicionar essas questões à sua sessão" nem fale como se a sessão já estivesse marcada. Só quem já pagou recebe "Vamos adicionar estas questões para serem trabalhadas na sua sessão". Nunca responda algo aleatório a um áudio que não faça sentido: nesse caso responda somente [[SEM_RESPOSTA]].
@@ -1384,6 +1384,7 @@ async function natEnviarInner(to, session, bruto, opcoes) {
   if (/\[\[SEM_RESPOSTA\]\]/.test(bruto)) { console.log('🤫 Modo natural: sem resposta necessária para ' + to); session.natSilencio = Date.now(); return; }
   const mPausa = bruto.match(/\[\[PAUSAR:?\s*([^\]]*)\]\]/); const pausar = !!mPausa; const motivoPausa = (mPausa && mPausa[1] || '').trim();
   let partes = natSepara(bruto.replace(/\[\[PAUSAR[^\]]*\]\]/g, '')).slice(0, 10);
+  if (!partes.length && pausar && session) { console.log('🤫 Pausa silenciosa (sem mensagem ao cliente) ' + to + ': ' + motivoPausa); await pausarEAvisar(to, session, motivoPausa || 'pausa silenciosa'); return; }
   partes = partes.map(p => natEncaixeCurto(p, session));
   const nat = session.nat;
   partes = partes.filter(x => /\[\[(BANCO|PIX)/.test(x) || !/26877|054\.?168\.?938|ag[eê]ncia:?\s*1610/i.test(x)); if (!partes.length) return;
@@ -1656,7 +1657,7 @@ function natRoteiro(text, session) {
   const EXPL = 'vou lhe explicar melhor sobre isso, só um momento.';
   const flowF = () => est === 'A' ? { r: natFrase(nat, nm, 'A') + ' ||| [[AUDIO]]', k: 'fluxo-A' } : { r: natFrase(nat, nm, 'I') + ' ||| [[INFORMATIVO]]', k: 'fluxo-B' };
   const curto = x.length <= 220;
-  if (NAT_RE.estranho.test(x)) return pausa('só um momento.', 'URGENTE desconfiança/estranhamento: "' + resumo + '"', 'estranho');
+  if (NAT_RE.estranho.test(x)) return { r: '[[PAUSAR: URGENTE desconfiança/estranhamento: "' + resumo + '"]]', k: 'estranho' };
   if (NAT_RE.fora.test(x)) return pausa(EXPL, 'assunto fora do roteiro (imóvel/animais/judicial/sessão extra etc.): "' + resumo + '"', 'fora');
   if (NAT_RE.medico.test(x) && !/(curios)/.test(x)) { return { r: '[[MEDICO]] ||| Ok' + nm + ', só um momento. ||| [[PAUSAR: URGENTE assunto delicado (cura/médico/doença): ' + resumo + ']]', k: 'medico' }; }
   if (NAT_RE.garantia.test(x)) return pausa(EXPL, 'URGENTE assunto delicado (garantia de resultado): "' + resumo + '"', 'garantia');
@@ -1752,9 +1753,9 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
     const motE = 'estranhou/pediu pessoa/perguntou o que está acontecendo (qualquer horário): "' + String(text || '').replace(/[\[\]|]/g, ' ').slice(0, 100) + '"';
     session.nat.acum = []; session.nat.cumpExp = true; session.natSilencio = Date.now(); session.natCancelaTs = Date.now();
     console.log('🛑 Trava 0 (estranhamento): ' + motE + ' (' + from + ')');
-    session.history.push({ role: 'user', content: String(text || '') }, { role: 'assistant', content: 'Ok' + nmE + ', só um momento.' });
+    session.history.push({ role: 'user', content: String(text || '') }, { role: 'assistant', content: '(conversa pausada, sem resposta)' });
     await sleep(natRand(4000, 9000));
-    if (!session.pausado) await natEnviar(from, session, 'Ok' + nmE + ', só um momento. ||| [[PAUSAR: ' + motE + ']]', {});
+    if (!session.pausado) await natEnviar(from, session, '[[PAUSAR: ' + motE + ']]', {});
     await upsertConversation(from, session.clientName, session.stage);
     return true;
   }
@@ -1828,7 +1829,7 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
     else if (natMadrugada() && /(\brobo\b|\bbot\b|automatic|inteligencia artificial|chat ?gpt|maquina|gente de verdade|pessoa de verdade|e humano|atendente|falar com (o |a )?(paulo|alguem|pessoa)|me liga|ligar|ligacao|chamada|\baudio|quero falar|suspeit|desconfi|golpe|fake)/.test(x)) motivoG = 'madrugada: pessoa suspeitou ou pediu ligação, áudio ou falar com alguém';
     if (motivoG) {
       const nmG = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '';
-      const respG = 'Ok' + nmG + ', só um momento. ||| [[PAUSAR: ' + motivoG + ']]'; nat.cumpExp = true;
+      const respG = /Rio Preto/.test(motivoG) ? 'Ok' + nmG + ', só um momento. ||| [[PAUSAR: ' + motivoG + ']]' : '[[PAUSAR: ' + motivoG + ']]'; nat.cumpExp = true;
       session.history.push({ role: 'user', content: entrada }, { role: 'assistant', content: respG });
       console.log('🛑 Trava em código: ' + motivoG + ' (' + from + ')');
       await natEnviar(from, session, respG, {});
@@ -2061,8 +2062,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   if (!mediaInfo && ehCrise(text)) {
     if (session.stage === 'abertura' || session.stage === 'aguardando_nome') { session.stage = 'conversa'; session.pediuNome = true; }
     session.encerrado = false;
-    // Decisão do dono: nada de CVV/SAMU nem texto de crise. Só passa para o Paulo (pausa + aviso à equipe).
-    await sendClaudeResponse(from, 'Ok' + (session.clientName ? ' ' + String(session.clientName).split(' ')[0] : '') + ', só um momento.', session);
+    // Decisão do dono: nada de CVV/SAMU nem texto algum ao cliente. Só interrompe e avisa a equipe (o Paulo assume).
     await pausarEAvisar(from, session, 'falou em morrer/suicídio (pode ser sobre outra pessoa): conferir e responder');
     return;
   }
