@@ -1098,7 +1098,16 @@ const NAT_BANCO = "Banco Caixa Econômica Federal.\nNome: Paulo Cesar Rodrigues.
 const NAT_BOLETOS = { '289': ['289,00', 'https://www.asaas.com/000/c/85x7k4nhnctii7f5'], '339': ['339,00', 'https://www.asaas.com/000/c/vid87san3uda197a'] };
 const NAT_QUEST_LINK = 'https://apometriabrasil.com.br/questionario-inicial/';
 // Texto de encaixe GERAL (pessoa não especificou ou quer tratar vários assuntos): fixo, sem depender da IA
-const natEncaixeGeral = nm => 'Olha' + nm + ' a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida, passando por todos eles: físico, mental, emocional e espiritual, e tratando tudo o que for encontrado na investigação.';
+const natAssuntos = t => { // tira o que a pessoa disse em itens curtos (suas próprias palavras) para encaixar no texto
+  let x = String(t || '').replace(/\s+/g, ' ').trim();
+  x = x.replace(/\b(quero|gostaria de|preciso) (saber|trabalhar|tratar|resolver)( de| sobre| em| tudo)?\b/gi, ' ');
+  x = x.replace(/\b(v[áa]rias? coisas?|v[áa]rios( assuntos)?|muitas? coisas?|de tudo|tudo|geral|n[ãa]o sei|quero saber tudo|todos os (campos|assuntos|aspectos|pontos)|em tudo)\b/gi, ' ');
+  const it = x.split(/[.;!?\n]+|,/).map(a => a.replace(/^\s*(e|mais|tamb[eé]m)\s+/i, '').trim()).filter(a => a.length >= 3);
+  if (!it.length || it.length > 5 || it.some(a => a.length > 60 || /^(quero|gostaria|preciso|eu |estou|tenho|sinto|minha |meu )/i.test(a))) return '';
+  const l = it.map(a => a.charAt(0).toLowerCase() + a.slice(1));
+  return l.length === 1 ? l[0] : l.slice(0, -1).join(', ') + ' e ' + l[l.length - 1];
+};
+const natEncaixeGeral = (nm, tx) => { const as = natAssuntos(tx); return as ? 'Olha' + nm + ' a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e questões como ' + as + '.' : 'Olha' + nm + ' a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida, passando por todos eles: físico, mental, emocional e espiritual, e tratando tudo o que for encontrado na investigação.'; };
 const NAT_ABERTURA_EXPL = 'Ok, entendo perfeitamente essa situação. Vou lhe explicar tudo o que podemos realizar através da Apometria e as possibilidades nesse caso.';
 const NAT_RE_GERAL = /(\bvarias? coisas?\b|\bvarios\b|\bvarias\b|\bmuitas? coisas?\b|\bde tudo\b|\bgeral\b|\btodos os (campos|assuntos|aspectos|pontos)\b|\btudo (que|o que)\b|\bquero tudo\b|\bnao sei\b|\bquero saber tudo\b|^tudo[.!\s]*$|\bem tudo\b)/;
 const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e [ASSUNTO: questões específicas ligadas ao que a pessoa relatou, com as palavras dela]. A apometria age também principalmente no quesito de investigar, identificar e corrigir diversas situações espirituais/energéticas que estão interligadas a totalidade do seu ser e que tem o poder de influênciar negativamente em diversos aspectos de sua vida que estão desencadeando esses problemas, liberando bloqueios e situações negativas ligadas a [ASSUNTO] que estão fazendo parte da sua vida.";
@@ -1697,7 +1706,7 @@ function natRoteiro(text, session) {
   // pessoa quer tratar VÁRIAS coisas / não especificou, antes de qualquer explicação: caminho completo em código (abertura + encaixe geral + áudio + pedido de OK)
   if (est === 'A' && !nat.encaixe && !nat.audExpl && NAT_RE_GERAL.test(x) && !NAT_RE.fluxoTema.test(x) && !NAT_RE.pagExp.test(x)) {
     console.log('🧭 Pessoa quer tratar vários assuntos: abertura + encaixe geral + áudio (em código)');
-    return { r: NAT_ABERTURA_EXPL + ' ||| ' + natEncaixeGeral(nm) + ' ||| [[AUDIO]]', k: 'geral' };
+    return { r: NAT_ABERTURA_EXPL + ' ||| ' + natEncaixeGeral(nm, text) + ' ||| [[AUDIO]]', k: 'geral' };
   }
   // estágios A e B: não pula etapa; qualquer dúvida de prazo/valor/limpeza etc. vai para o fluxo de explicação
   const nUser = (session.history || []).filter(h => h.role === 'user').length;
@@ -1750,7 +1759,7 @@ function natSaneia(session, resp, text) {
   if (est === 'A' && !nat.encaixe && /\[\[FOLDER\]\]/.test(r) && !/se encaixa/i.test(r)) { // a IA pulou o texto de encaixe: coloca o geral antes do folder, sem repetir a abertura
     console.log('🛡️ Faltou o texto de encaixe antes do folder: encaixe geral inserido');
     const partes = r.split('|||').map(t => t.trim()).filter(Boolean); const i = partes.findIndex(t => /\[\[FOLDER\]\]/.test(t));
-    partes.splice(i, 0, ...(partes.some(t => /entendo perfeitamente/i.test(t)) ? [] : [NAT_ABERTURA_EXPL]), natEncaixeGeral(nm)); r = partes.join(' ||| ');
+    partes.splice(i, 0, ...(partes.some(t => /entendo perfeitamente/i.test(t)) ? [] : [NAT_ABERTURA_EXPL]), natEncaixeGeral(nm, text)); r = partes.join(' ||| ');
   }
   const gated = /\[\[(PRAZO|RESULTADO|RELATORIO|PARTICIPACAO)\]\]/.test(r) || /dias [uú]teis|prazo de \d/i.test(sem);
   if (est === 'A' && (gated || /\[\[INFORMATIVO\]\]/.test(r))) { console.log('🧱 Sem pular etapa (A): resposta da IA trocada pelo fluxo'); return natFrase(nat, nm, 'A') + ' ||| [[AUDIO]]'; }
