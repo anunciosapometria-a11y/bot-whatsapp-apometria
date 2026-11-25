@@ -424,6 +424,9 @@ const RETORNO_MSG = "Gostaria de alguma informação ou como podemos ajudar?";
 const OK_PERF_MSG = "Ok, perfeito. Vou lhe explicar com mais detalhes o procedimento.";
 const APOMETRIA_TXT = "A apometria que realizamos é profunda, de maneira que investiga e trata, no campo da pessoa, energias densas, obsessores, vínculos e bloqueios que podem estar influenciando a vida.\n\nSomos uma equipe de 4 médiuns sensitivos, coordenada pelo Paulo. O trabalho em equipe amplia a percepção e os resultados alcançados.\n\nNo nosso trabalho você recebe:\n• Investigação espiritual das causas, e não só dos sintomas\n• Corte de vínculos energéticos e desobsessão, com o resgate das entidades para socorro no astral\n• Limpeza do corpo astral, reprogramação energética e harmonização dos chacras\n• Mensagens dos mentores espirituais, para mais clareza e direção\n• Relatório em áudios gravados pelo Paulo\n• Limpeza energética do lar e Reiki à distância, sem custo adicional";
 const PAULO_REDIR_MSG = "Vamos redirecionar o seu atendimento para o Paulo, e ele responde por aqui assim que possível. Nosso atendimento é de segunda a sábado, das 9h às 20h.";
+// Atendimento automático da madrugada (0h–6h): abertura explícita de que é o atendimento automático
+const ABERTURA_NOITE_MSG = "Olá, seja bem-vindo à Apometria Brasil e agradecemos o seu contato.\n\nVocê está no *atendimento automático da madrugada* do Instituto Apometria Brasil. Por aqui você conhece todo o procedimento, vê os valores e já pode fazer o seu agendamento, sozinho(a), com calma.\n\nO Instituto Apometria Brasil é especializado na realização de apometria, investigação espiritual, corte de vínculos energéticos e desobsessões, com coordenação do apometra e fundador Paulo Rodrigues.";
+const PAULO_REDIR_NOITE_MSG = "Vamos redirecionar o seu atendimento para o Paulo, e ele responde por aqui assim que possível.";
 const MENU_INICIO = "Sobre o que você gostaria de saber? Escolha uma das opções abaixo:";
 const MENU_MAIS = "Para saber mais sobre o trabalho ou ver as opções de agendamento, escolha uma das opções abaixo:";
 const MENU_VOLTAR = "Claro! Escolha uma opção:";
@@ -686,8 +689,9 @@ async function enviarOpcoesAgendamento(from, session, textoUsuario) {
 }
 async function paraPaulo(from, session, motivo, textoUsuario) {
   session.etapa = null;
-  await sleep(1200); await sendMessage(from, PAULO_REDIR_MSG);
-  session.history.push({ role: 'user', content: textoUsuario }, { role: 'assistant', content: PAULO_REDIR_MSG });
+  const redirMsg = session.menuNoite ? PAULO_REDIR_NOITE_MSG : PAULO_REDIR_MSG;
+  await sleep(1200); await sendMessage(from, redirMsg);
+  session.history.push({ role: 'user', content: textoUsuario }, { role: 'assistant', content: redirMsg });
   await pausarEAvisar(from, session, motivo);
 }
 const CONFIANCA_1 = "Entendemos perfeitamente a sua preocupação. Essa é justamente a nossa intenção: um lugar seguro e confiável para que você possa buscar tratamento espiritual e energético. Como não nos conhecemos e tudo acontece pela internet, é normal surgirem essas dúvidas.";
@@ -721,9 +725,10 @@ async function abrirFluxo(from, session, text, reinicio) {
   if (m) session.ref = m[1];
   const logoArq = acharFoto('logo');
   const logoUrl = logoArq ? `${PUBLIC_BASE}/media/${logoArq}` : LOGO_URL;
-  const imgOk = logoUrl ? await sendImage(from, logoUrl, ABERTURA_MSG) : false;
-  if (imgOk) { await saveMessage(from, 'out', ABERTURA_MSG); }
-  else { await sleep(typingDelay(ABERTURA_MSG)); await sendMessage(from, ABERTURA_MSG); }
+  const ABR = session.menuNoite ? ABERTURA_NOITE_MSG : ABERTURA_MSG;
+  const imgOk = logoUrl ? await sendImage(from, logoUrl, ABR) : false;
+  if (imgOk) { await saveMessage(from, 'out', ABR); }
+  else { await sleep(typingDelay(ABR)); await sendMessage(from, ABR); }
   const pergunta = !RE_MSG_SITE.test(text) && text.length > 3 && (/\?/.test(text) || /^(vcs|voc[eê]s|onde|como|quanto|qual|quem|quando|tem|posso|precisa|e de|[eé] de|d[aá])\b/i.test(text));
   if (pergunta) {
     await sleep(2000);
@@ -735,7 +740,7 @@ async function abrirFluxo(from, session, text, reinicio) {
   }
   await sleep(2500);
   await sendBotoes(from, PERGUNTA_PARA_QUEM, [{ id: 'pq_eu', title: 'Para mim' }, { id: 'pq_outra', title: 'Para outra pessoa' }]);
-  if (!pergunta) session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [ABERTURA_MSG, PERGUNTA_PARA_QUEM].join('\n\n') });
+  if (!pergunta) session.history.push({ role: 'user', content: text }, { role: 'assistant', content: [ABR, PERGUNTA_PARA_QUEM].join('\n\n') });
   else session.history.push({ role: 'assistant', content: PERGUNTA_PARA_QUEM });
   await upsertConversation(from, session.clientName, session.stage);
 }
@@ -1929,6 +1934,7 @@ async function resetarTeste(from) {
 }
 function handleMessage(from, messageText, mediaInfo = null) {
   if (!mediaInfo && ehAdmin(from) && /^\s*#(parar|iniciar|teste|status)\s*$/i.test(messageText)) return comandoAdmin(from, messageText);
+  if (!mediaInfo && (ehAdmin(from) || YC.isTester(from)) && /^\s*#noite\s+(liga|desliga|teste|fim|status)\s*$/i.test(messageText)) return comandoNoite(from, messageText);
   if (!mediaInfo && /^\s*#reset\s*$/i.test(messageText) && typeof YC !== 'undefined' && YC.enabled && YC.isTester(from)) return resetarTeste(from);
   if (mediaInfo) { liberarLote(from); return enfileirar(from, messageText, mediaInfo, Date.now()); }
   if (natEstranhou(messageText)) { const se = getSession(from); se.natCancelaTs = Date.now(); console.log('⚠️ Estranhamento detectado na chegada (' + from + '): envio em andamento cancelado'); }
@@ -1951,6 +1957,35 @@ function jaProcessada(id) {
   if (msgsVistas.has(id)) return true;
   msgsVistas.set(id, a);
   return false;
+}
+// ─── ATENDIMENTO AUTOMÁTICO DA MADRUGADA (menu, 0h–6h) ───────────────────────────
+// Nasce DESLIGADO (cfg menu_madrugada = '0'). Só contatos NOVOS que chegam pela mensagem do site entre 0h e 5h59 (ou números de teste com "#noite teste") vão para o menu; o resto segue exatamente como antes.
+const simulaNoite = new Set();
+const RE_PEDE_PESSOA = /(quero|preciso|prefiro|gostaria de) (falar|conversar|tratar) com (uma |um )?(pessoa|gente|humano|alguem|o paulo|paulo)|prefiro (pessoa|pessoas|humano|humanos)|me (liga|ligue)|ligar para mim/;
+async function menuNoiteAplica(from, text, mediaInfo, session) {
+  try {
+    if (session.menuNoite && Date.now() - session.menuNoite < 12 * 3600000) return true; // continua no menu quem começou
+    if (mediaInfo || !session || session.stage !== 'abertura' || (session.history || []).some(h => h.role === 'assistant')) return false; // só contato novo
+    const sim = simulaNoite.has(String(from).replace(/\D/g, ''));
+    if (!(sim || natMadrugada())) return false;
+    if (!(sim || (await cfgGet('menu_madrugada', '0')) === '1')) return false;
+    if (!RE_MSG_SITE.test(text || '') && !/\bref\.?\s*:?\s*\d{3,}/i.test(text || '')) return false; // mensagem avulsa: mesmo tratamento de hoje
+    const d = String(from || '').replace(/\D/g, ''); const ddd17 = (d.startsWith('55') ? d.slice(2, 4) : d.slice(0, 2)) === '17';
+    if (ddd17 && !sim) return false; // região do Paulo: regra de hoje
+    session.menuNoite = Date.now();
+    console.log('🌙 Atendimento automático da madrugada (menu): ' + from + (sim ? ' [simulado]' : ''));
+    return true;
+  } catch (e) { console.error('❌ menuNoiteAplica:', e.message); return false; }
+}
+async function comandoNoite(phone, txt) {
+  const cmd = (txt.match(/#noite\s+(liga|desliga|teste|fim|status)/i) || [])[1].toLowerCase();
+  const resp = m => manualALS.run({ manual: true }, () => sendMessage(phone, m));
+  const k = String(phone).replace(/\D/g, '');
+  if (cmd === 'liga') { await cfgSet('menu_madrugada', '1'); await resp('🌙 Atendimento automático da madrugada LIGADO (0h–6h, contatos novos).'); }
+  else if (cmd === 'desliga') { await cfgSet('menu_madrugada', '0'); await resp('☀️ Atendimento automático da madrugada DESLIGADO.'); }
+  else if (cmd === 'teste') { simulaNoite.add(k); await resp('🧪 Modo noite simulado ligado SÓ para este número. Mande #reset e depois a mensagem do site para ver o menu da madrugada. Para sair: #noite fim.'); }
+  else if (cmd === 'fim') { simulaNoite.delete(k); const s = sessions.get(phone); if (s) s.menuNoite = 0; await resp('Modo noite simulado desligado para este número.'); }
+  else { await resp('Atendimento da madrugada: ' + ((await cfgGet('menu_madrugada', '0')) === '1' ? 'LIGADO' : 'DESLIGADO') + '. Simulação neste número: ' + (simulaNoite.has(k) ? 'sim' : 'não') + '.'); }
 }
 async function handleMessageInner(from, messageText, mediaInfo = null, recebidoEm = Date.now()) {
   if (botParado && !(YC.enabled && YC.ehFixoTeste(from))) { // #parar: só registra a mensagem para a equipe ver; nada é respondido
@@ -2034,7 +2069,12 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   }
 
   // Modo natural (estilo do Paulo): assume a conversa inteira quando ligado para este número
-  if (await natAtivo(from)) { if (await natFluxo(from, text, session, mediaInfo, recebidoEm)) return; }
+  if (await natAtivo(from)) {
+    if (await menuNoiteAplica(from, text, mediaInfo, session)) {
+      // atendimento automático da madrugada: segue o fluxo do menu (abaixo); só quem pede uma pessoa vai para o Paulo
+      if (!mediaInfo && RE_PEDE_PESSOA.test(semAcento(text).toLowerCase())) { await paraPaulo(from, session, 'madrugada (menu): pediu para falar com uma pessoa: "' + String(text).replace(/[\[\]|]/g, ' ').slice(0, 80) + '"', text); await upsertConversation(from, session.clientName, session.stage); return; }
+    } else if (await natFluxo(from, text, session, mediaInfo, recebidoEm)) return;
+  }
 
   // Estágio travado ANTES de qualquer await (mensagens em rajada)
   if (session.stage === 'abertura') {
