@@ -2513,6 +2513,9 @@ async function processarMeta(body) {
             if (tb) handleMessage(from, tb).catch(err => console.error(`❌ Erro ao processar botão de ${from}:`, err));
           } else if (message.type === 'reaction' || message.type === 'sticker') {
             console.log(`🙂 ${message.type} de ${from} ignorado`);
+          } else if (message.type === 'order' || message.type === 'system' || message.type === 'unsupported' || message.type === 'request_welcome') {
+            // pedido via catálogo / mensagens do sistema: não é erro do cliente; sem resposta (o texto que ele manda junto segue o fluxo normal)
+            console.log(`🛒 ${message.type} de ${from}: sem resposta automática`);
           } else {
             const ssT = sessions.get(from); const agT = Date.now();
             if (!ssT || !ssT.soTextoEm || agT - ssT.soTextoEm > 600000) { if (ssT) { ssT.soTextoEm = agT; ssT.lastActivity = agT; } sendMessage(from, 'No momento processo apenas texto. Por favor, escreva sua mensagem. 🙏'); }
@@ -3508,7 +3511,10 @@ async function rodarFollowups() {
         await pool.query('UPDATE conversations SET followups_sent = followups_sent + 1, last_followup_at = now() WHERE phone = $1', [r.phone]);
         await crmEvento(r.phone, 'followup', 'Follow-up ' + (passo + 1) + ' de 3 enviado');
         if (passo === 2) await pool.query("UPDATE conversations SET funil = 'sem_resposta' WHERE phone = $1", [r.phone]);
-      } catch (e) { console.error('❌ Follow-up ' + r.phone + ':', e.response?.data || e.message); }
+      } catch (e) {
+        console.error('❌ Follow-up ' + r.phone + ': ' + (e.response && e.response.data ? JSON.stringify(e.response.data).slice(0, 300) : e.message));
+        try { await pool.query('UPDATE conversations SET last_followup_at = now() WHERE phone = $1', [r.phone]); } catch (e2) {} // falhou: espera o intervalo mínimo (4h) em vez de repetir a cada 5 min
+      }
       await sleep(3000);
     }
     // retornos agendados de quem adiou (uma única mensagem, na data combinada)
@@ -3835,19 +3841,19 @@ const vigiaAvisada = new Map();
 async function vigiaConversas() {
   if (!pool || botParado) return;
   try {
-    const { rows } = await pool.query(`SELECT phone, client_name, last_in_at FROM conversations WHERE last_in_at IS NOT NULL AND (last_out_at IS NULL OR last_out_at < last_in_at) AND last_in_at < now() - interval '6 minutes' AND last_in_at > now() - interval '90 minutes'`);
+    const { rows } = await pool.query(`SELECT phone, client_name, last_in_at FROM conversations WHERE last_in_at IS NOT NULL AND (last_out_at IS NULL OR last_out_at < last_in_at) AND last_in_at < now() - interval '4 minutes' AND last_in_at > now() - interval '90 minutes'`);
     for (const r of rows) {
       const sess = sessions.get(r.phone); if (!sess || sess.pausado) continue;
       const tin = new Date(r.last_in_at).getTime();
       if (sess.natSilencio && sess.natSilencio >= tin - 60000) continue;
       if (YC.enabled && !(await YC.podeEnviar(r.phone))) continue;
       if (vigiaAvisada.get(r.phone) === tin) continue; vigiaAvisada.set(r.phone, tin);
-      console.log('🐕 Vigia: ' + r.phone + ' sem resposta há mais de 6 min');
-      crmAlertar('saiu_do_fluxo', r.phone, 'URGENTE: cliente esperando resposta há mais de 6 minutos e o robô não respondeu. Assuma a conversa.', r.client_name).catch(() => {});
+      console.log('🐕 Vigia: ' + r.phone + ' sem resposta há mais de 4 min');
+      crmAlertar('saiu_do_fluxo', r.phone, 'URGENTE: cliente esperando resposta há mais de 4 minutos e o robô não respondeu. Assuma a conversa.', r.client_name).catch(() => {});
     }
   } catch (e) { console.error('❌ Vigia:', e.message); }
 }
-setInterval(vigiaConversas, 2 * 60 * 1000);
+setInterval(vigiaConversas, 60 * 1000);
 // Saúde da IA: se a chave/crédito falhar, avisa sem esperar um cliente
 setInterval(async () => { try { await anthropic.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 5, messages: [{ role: 'user', content: 'ok' }] }); global.natUltErro = null; } catch (e) { global.natUltErro = new Date().toISOString() + ' ' + String(e.message).slice(0, 200); if (!global.natAvisoSaude || Date.now() - global.natAvisoSaude > 3600000) { global.natAvisoSaude = Date.now(); crmAlertar('saiu_do_fluxo', 'saude-ia', 'URGENTE: a IA do robô está com erro (' + String(e.message).slice(0, 120) + '). Verifique créditos/chave.', 'Sistema').catch(() => {}); } } }, 20 * 60 * 1000);
 app.rodarFollowups = rodarFollowups;
