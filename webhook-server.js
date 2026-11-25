@@ -1185,7 +1185,7 @@ MENSAGENS FORA DO ROTEIRO (vale mais que qualquer outra regra de fluxo; nunca re
 - Pix, link ou dados bancários SÓ quando a pessoa pedir isso ("me passa o pix", "manda o link", "como pago?" quando já viu os valores), disser com clareza que quer fechar/contratar/fazer a sessão ("quero fechar", "vou fazer a sessão", "pode marcar", "fechado", "quero o emergencial") ou escolher uma opção. Na dúvida, NÃO envie pagamento.
 - A PESSOA DIZ QUE JÁ PAGOU ("já fiz o pagamento", "paguei", "feito", "transferi", "já enviei"), sem mandar comprovante: se o Pix ou link JÁ FOI enviado por você nesta conversa, responda como o sistema faz (gratidão e segue o fluxo; NUNCA exija comprovante). Se o Pix/link NÃO foi enviado nesta conversa, ela pode já ser cliente: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: disse que já pagou, mas nenhum Pix/link/boleto foi enviado nesta conversa]]. Quando o Pix/link/boleto JÁ foi enviado, o SISTEMA cuida sozinho (agradece, confia, envia o questionário e avisa a equipe), você não precisa escrever nada. Só envie [[QUESTIONARIO]] por conta própria quando chegar a imagem/documento do comprovante.
 - Pergunta se o pagamento caiu, foi recebido ou se está confirmado ("vocês receberam?", "caiu?", "já foi confirmado?"): você não vê o banco: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: perguntou se o pagamento foi recebido]].
-- CUMPRIMENTOS ("oi", "olá", "bom dia", "boa tarde", "boa noite", "tudo bem?") e AGRADECIMENTOS ("obrigada", "obrigado pelas informações") SEMPRE recebem resposta curta no jeito do Paulo (cumprimento: "Tudo bem também, grato!" quando ela perguntou, seguindo o passo 2 se ainda não contou o motivo; agradecimento: "Eu que agradeço a oportunidade [Nome]!"), nunca [[SEM_RESPOSTA]]. Só risada, figurinha e "ok" soltos ficam sem resposta.
+- REGRA ANTI-REPETIÇÃO: depois que você já cumprimentou nesta conversa, NUNCA repita "boa noite/bom dia/boa tarde" nem "tudo bem?" e NUNCA diga "Tudo bem também, grato!" se a pessoa NÃO perguntou como você está; um "Oi" solto ou "Obrigado por me atender" recebe só o passo seguinte do roteiro ou "Eu que agradeço a oportunidade [Nome]!". Um "?" solto NÃO é pergunta nova nem estranhamento: a pessoa quer que você retome; se o seu último balão já responde ao que ela disse, responda [[SEM_RESPOSTA]]; senão retome em UMA frase curta o ponto pendente, sem repetir saudação nem textos já enviados. Nunca pause só por causa de um "?". CUMPRIMENTOS ("oi", "olá", "bom dia", "boa tarde", "boa noite", "tudo bem?") e AGRADECIMENTOS ("obrigada", "obrigado pelas informações") SEMPRE recebem resposta curta no jeito do Paulo (cumprimento: "Tudo bem também, grato!" quando ela perguntou, seguindo o passo 2 se ainda não contou o motivo; agradecimento: "Eu que agradeço a oportunidade [Nome]!"), nunca [[SEM_RESPOSTA]]. Só risada, figurinha e "ok" soltos ficam sem resposta.
 - DÚVIDAS QUE ESTE ROTEIRO JÁ RESPONDE (prazo, valores, formas de pagamento, como funciona, relatório, equipe, à distância, duração, desconto, garantia, depoimentos) você RESPONDE normalmente conforme o roteiro; só pause o que realmente não está nele. Prazo: sessão normal 15 dias úteis e emergencial até 08 dias úteis, a partir da confirmação do pagamento; o relatório final chega por áudios.
 - PERGUNTA OU PEDIDO QUE NÃO ESTÁ NESTE ROTEIRO (horário ou data da sessão, endereço, CNPJ, nota fiscal, boleto, reembolso, cancelamento de sessão já paga, reclamação, assunto de outra pessoa, detalhe que você não sabe): NÃO invente, NÃO adivinhe e NÃO explique que não tem a informação. Responda só "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: (descreva em poucas palavras o que ela perguntou ou pediu)]].
 - ASSUNTO SEM NENHUMA RELAÇÃO com o atendimento (clima, esporte, piada, política, "teste", digitação sem sentido, número errado, figurinha, risada): responda só [[SEM_RESPOSTA]] (número errado: "Ok, sem problemas." e nada mais). Nunca converse sobre isso e nunca puxe o assunto de vendas à força.
@@ -1352,7 +1352,22 @@ function natAfirmacaoSolta(t) {
   if (!x || x.split(' ').length > 4) return false;
   return /^(ok|okay|okk+|oks|sim|certo|certinho|beleza|blz|ta bom|tudo bem|tudo certo|pode ser|pode|pode mandar|pode sim|entendi|entendido|show|legal|interessante|hum+|uhum|aham|confirmado|combinado|perfeito|otimo|aguardo|obrigad[oa]|valeu|isso|isso mesmo|ta|ta certo|bom|boa|massa|top)( (aguardo|obrigad[oa]|ok|sim|certo|beleza))?$/.test(x);
 }
+// Cancelamento de envio: se a pessoa estranhar (robô/máquina/prefiro pessoas/o que está acontecendo) ENQUANTO o bot ainda envia balões, o envio para na hora
+class NatCancela extends Error {}
+async function natEspera2(session, ms) {
+  const t0 = session.natEnvT0 || 0;
+  if (session.natCancelaTs && session.natCancelaTs > t0) throw new NatCancela();
+  const fim = Date.now() + ms;
+  const watch = (async () => { while (Date.now() < fim) { if (session.natCancelaTs && session.natCancelaTs > t0) return; await sleep(1000); } })();
+  await Promise.race([natEsperaDigitando(session, ms), watch]);
+  if (session.natCancelaTs && session.natCancelaTs > t0) throw new NatCancela();
+}
 async function natEnviar(to, session, bruto, opcoes) {
+  session.natEnvT0 = Date.now();
+  try { return await natEnviarInner(to, session, bruto, opcoes); }
+  catch (e) { if (e instanceof NatCancela) { console.log('🛑 Envio cancelado: a pessoa estranhou durante o envio (' + to + ')'); return; } throw e; }
+}
+async function natEnviarInner(to, session, bruto, opcoes) {
   opcoes = opcoes || {};
   if (botParado && !(YC.enabled && YC.ehFixoTeste(to))) { console.log('⏸️ Bot parado: resposta descartada (' + to + ')'); return; }
   { const fx = [...bruto.matchAll(/\[\[FATO:([^\]]*)\]\]/g)].map(m => m[1].trim().slice(0, 220)).filter(Boolean);
@@ -1378,7 +1393,7 @@ async function natEnviar(to, session, bruto, opcoes) {
   // cumprimento SEMPRE em balão separado e primeiro, no horário certo, quando a IA abre a explicação sem cumprimentar
   { const ehSaud = x => /^(oi+|ol[aá]|bom dia|boa tarde|boa noite)\b/i.test(x.replace(/\[\[[^\]]*\]\]/g, '').trim());
     if (partes.some(ehSaud)) nat.cumpExp = true;
-    else if (!nat.cumpExp && (nat.saidas || []).length <= 1 && partes.length) { nat.cumpExp = true; const nm = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : ''; partes.unshift('Oi' + nm + ', ' + saudacao() + '. Tudo bem?'); } }
+    else if (!nat.cumpExp && !nat.saudou && (nat.saidas || []).length <= 1 && partes.length) { nat.cumpExp = true; const nm = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : ''; partes.unshift('Oi' + nm + ', ' + saudacao() + '. Tudo bem?'); } }
   let pixEnv = false;
   { // pagamento repetido (mesmo valor/opção há pouco): some também o "Vou lhe enviar os dados..." que vem antes do bloco
     const dupPag = x => { const mm = x.match(/\[\[(PIX_E_LINK|PIX|LINK):?([^\]]*)\]\]/); if (!mm) return false; const arg = semAcento(mm[2]).trim().toLowerCase();
@@ -1471,13 +1486,13 @@ async function natEnviar(to, session, bruto, opcoes) {
     } else if (p.replace(/\[\[[^\]]*\]\]/g, '').trim()) blocos.push({ t: p.replace(/\[\[[^\]]*\]\]/g, '').trim() });
     for (const b of blocos) {
       if (b.doc) { // PDF "Como funciona nosso trabalho"
-        await natEsperaDigitando(session, natRand(3000, 7000));
+        await natEspera2(session, natRand(3000, 7000));
         await sendDocument(to, PUBLIC_BASE + '/media/' + b.doc, b.nome || b.doc);
         nat.encaixe = Date.now(); nat.saidas = (nat.saidas || []).concat({ t: '[pdf como funciona]', ts: Date.now() }).slice(-12);
         primeiro = false; continue;
       }
       if (b.img) { // imagem "Como funciona nosso trabalho"
-        await natEsperaDigitando(session, natRand(3000, 7000));
+        await natEspera2(session, natRand(3000, 7000));
         await sendImage(to, PUBLIC_BASE + '/media/' + b.img);
         await saveMessage(to, 'out', '[imagem: como funciona nosso trabalho]');
         nat.encaixe = Date.now(); nat.saidas = (nat.saidas || []).concat({ t: '[informativo como funciona]', ts: Date.now() }).slice(-12);
@@ -1485,7 +1500,7 @@ async function natEnviar(to, session, bruto, opcoes) {
       }
       if (b.audio) { // áudio gravado do Paulo (ogg/opus = aparece como mensagem de voz com as ondinhas)
         if (natMadrugada()) { console.log('🌙 Madrugada (00h-06h): áudio não enviado, só texto.'); continue; }
-        await natEsperaDigitando(session, natRand(5000, 9000) + Math.round(Math.min((b.seg || 20) * 1000 * 0.7, 110000) * natCfg.vel)); // o tempo de "gravar" um áudio de N segundos
+        await natEspera2(session, natRand(5000, 9000) + Math.round(Math.min((b.seg || 20) * 1000 * 0.7, 110000) * natCfg.vel)); // o tempo de "gravar" um áudio de N segundos
         const okA = await sendAudioLink(to, PUBLIC_BASE + '/media/' + b.audio);
         if (okA) { await saveMessage(to, 'out', '[áudio do Paulo: ' + (b.label || 'informativo e valores') + ']'); nat.saidas = (nat.saidas || []).concat({ t: '[áudio ' + (b.label || 'informativo') + ']', ts: Date.now() }).slice(-12); await sleep((b.seg + 4) * 1000); }
         primeiro = false; continue;
@@ -1500,7 +1515,7 @@ async function natEnviar(to, session, bruto, opcoes) {
       okAntes = !b.colado && /^ok\b/i.test(b.t);
       // texto colado sai rápido; texto longo "escrito na hora" (encaixe) demora alguns minutos; balão curto, o tempo de digitar
       const ms = b.colado ? natRand(8000, 10000) : b.t.length > 900 ? natRand(75000, 160000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
-      await natEsperaDigitando(session, ms);
+      await natEspera2(session, ms);
       if (citar && primeiro) { const al = natAlvoCitar(session); if (al) session.citarId = al; }
       await sendMessage(to, b.t);
       session.citarId = null; primeiro = false;
@@ -1717,8 +1732,27 @@ function natSaneia(session, resp, text) {
   return r;
 }
 // Retorna true se tratou a mensagem
+// Estranhamento (qualquer horário): robô/máquina/"prefiro pessoas"/"o que está acontecendo" => para tudo, "Ok, só um momento." e passa para o Paulo
+function natEstranhou(t) {
+  const raw = String(t || '');
+  const x = semAcento(raw).toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!x) return false;
+  return /(\brobo\b|\brobos\b|\bbot\b|\bbots\b|automatic|inteligencia artificial|chat ?gpt|maquina|gente de verdade|pessoa de verdade|pessoas de verdade|prefiro (conversar|falar|tratar) com (pessoa|gente|humano|alguem)|prefiro (pessoa|pessoas|humano|humanos)|nao quero (falar|conversar) com|quero (falar|conversar) com (uma |um )?(pessoa|gente|humano|alguem|o paulo|paulo)|e (um )?humano|com quem (eu )?(estou|to|esta|ta) (falando|conversando)|quem (e|esta|ta) (ai|falando|respondendo)|o que (esta|ta) acontecendo|o que (e|foi) isso|que (isso|bagunca)\b|nao entendi nada|golpe|fake|suspeit|desconfi)/.test(x);
+}
 async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   session.nat = session.nat || {};
+  // TRAVA 0 (qualquer horário, ANTES de dormir/enfileirar/qualquer retorno antecipado): estranhou => "Ok, só um momento." + pausa + alerta grave
+  if (!mediaInfo && session.nat && natEstranhou(text) && !(session.nat.quest)) {
+    const nmE = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : '';
+    const motE = 'estranhou/pediu pessoa/perguntou o que está acontecendo (qualquer horário): "' + String(text || '').replace(/[\[\]|]/g, ' ').slice(0, 100) + '"';
+    session.nat.acum = []; session.nat.cumpExp = true; session.natSilencio = Date.now(); session.natCancelaTs = Date.now();
+    console.log('🛑 Trava 0 (estranhamento): ' + motE + ' (' + from + ')');
+    session.history.push({ role: 'user', content: String(text || '') }, { role: 'assistant', content: 'Ok' + nmE + ', só um momento.' });
+    await sleep(natRand(4000, 9000));
+    if (!session.pausado) await natEnviar(from, session, 'Ok' + nmE + ', só um momento. ||| [[PAUSAR: ' + motE + ']]', {});
+    await upsertConversation(from, session.clientName, session.stage);
+    return true;
+  }
   const nat = session.nat;
   if (nat.acum && nat.acum.length) { text = nat.acum.concat(String(text || '')).join('\n'); nat.acum = []; } // junta o que ficou guardado (vários áudios/dúvidas em sequência)
   const novo = session.stage === 'abertura' || (!nat.saudou && !(session.history || []).some(h => h.role === 'assistant')); // 1ª resposta sempre é a saudação padrão do Paulo
@@ -1897,6 +1931,7 @@ function handleMessage(from, messageText, mediaInfo = null) {
   if (!mediaInfo && ehAdmin(from) && /^\s*#(parar|iniciar|teste|status)\s*$/i.test(messageText)) return comandoAdmin(from, messageText);
   if (!mediaInfo && /^\s*#reset\s*$/i.test(messageText) && typeof YC !== 'undefined' && YC.enabled && YC.isTester(from)) return resetarTeste(from);
   if (mediaInfo) { liberarLote(from); return enfileirar(from, messageText, mediaInfo, Date.now()); }
+  if (natEstranhou(messageText)) { const se = getSession(from); se.natCancelaTs = Date.now(); console.log('⚠️ Estranhamento detectado na chegada (' + from + '): envio em andamento cancelado'); }
   let l = lotes.get(from);
   if (!l) { l = { textos: [], t: null, ultimo: 0 }; lotes.set(from, l); }
   l.textos.push(messageText);
