@@ -1097,6 +1097,10 @@ const NAT_ULTIMAS = "Depois de enviar o questionário, escreva aqui na conversa 
 const NAT_BANCO = "Banco Caixa Econômica Federal.\nNome: Paulo Cesar Rodrigues.\nAgência: 1610\nCódigo da Operação: 013\nCPF: 054.168.938-00\nConta número: 26877-2.\n\nAssim que fizer me mande o comprovante para que eu possa dar baixa em minha contabilidade, realizar o envio do questionário inicial e demais instruções. Grato.";
 const NAT_BOLETOS = { '289': ['289,00', 'https://www.asaas.com/000/c/85x7k4nhnctii7f5'], '339': ['339,00', 'https://www.asaas.com/000/c/vid87san3uda197a'] };
 const NAT_QUEST_LINK = 'https://apometriabrasil.com.br/questionario-inicial/';
+// Texto de encaixe GERAL (pessoa não especificou ou quer tratar vários assuntos): fixo, sem depender da IA
+const natEncaixeGeral = nm => 'Olha' + nm + ' a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida, passando por todos eles: físico, mental, emocional e espiritual, e tratando tudo o que for encontrado na investigação.';
+const NAT_ABERTURA_EXPL = 'Ok, entendo perfeitamente essa situação. Vou lhe explicar tudo o que podemos realizar através da Apometria e as possibilidades nesse caso.';
+const NAT_RE_GERAL = /(\bvarias? coisas?\b|\bvarios\b|\bvarias\b|\bmuitas? coisas?\b|\bde tudo\b|\bgeral\b|\btodos os (campos|assuntos|aspectos|pontos)\b|\btudo (que|o que)\b|\bquero tudo\b|\bnao sei\b|\bquero saber tudo\b|^tudo[.!\s]*$|\bem tudo\b)/;
 const NAT_ENCAIXE_EX = "Olha Fábio a apometria se encaixa perfeitamente em situações em que busca realizar um tratamento espiritual em diversos campos de sua vida e [ASSUNTO: questões específicas ligadas ao que a pessoa relatou, com as palavras dela]. A apometria age também principalmente no quesito de investigar, identificar e corrigir diversas situações espirituais/energéticas que estão interligadas a totalidade do seu ser e que tem o poder de influênciar negativamente em diversos aspectos de sua vida que estão desencadeando esses problemas, liberando bloqueios e situações negativas ligadas a [ASSUNTO] que estão fazendo parte da sua vida.";
 
 function natPrompt(session) {
@@ -1180,7 +1184,7 @@ ENGESSAMENTO (REGRAS MÁXIMAS: valem mais que QUALQUER outra regra, exemplo ou i
 - NUNCA reenvie nem comente valores com frases como "já passei o valor", "como te falei" ou parecidas (soa arrogante). Se ela perguntar de novo, responda de forma suave e curta ou reenvie o texto oficial com [[INFORMATIVO]].
 - NÃO cobre, NÃO lembre do pagamento e NÃO pergunte se ela escolheu uma opção: depois de enviar os valores, o Pix ou o link, apenas AGUARDE. Dúvidas soltas que o texto de valores já responde: envie o texto oficial (use [[INFORMATIVO]]) em vez de responder com palavras próprias, e sem "não".
 - SE A CONVERSA SE ALONGAR em muitas dúvidas e comentários: "Entendo perfeitamente." e conduza com naturalidade para o informativo de como funciona e os valores ([[INFORMATIVO]]).
-- TEXTOS OFICIAIS POR MARCADOR (o sistema cola o texto exato do Paulo; use SOZINHO no balão, sem reescrever): [[VIDEO]] para perguntas sobre participar, assistir, ser gravada/filmada, videochamada, estar online, qual o preparo (texto da sessão mediúnica em equipe, em que o consulente não participa); para "estaremos online? qual o preparo?" use [[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]; [[HORA]] para dia e hora exatos; [[ROTINA]] para "preciso fazer algo/me preparar/ficar em casa"; [[RELATORIO]] para "como é feito o relatório inicial/questionário"; [[PARTICIPACAO]] quando ela pergunta se a participação dela é só responder o questionário; LIMPEZA ENERGÉTICA DO LAR/CASA e REIKI: NUNCA fale sobre isso, não explique, não responda, não cite prazo nem como é feito, mesmo que a pessoa comente ou elogie o bônus (apenas siga o assunto dela sem mencionar); se ela fizer pergunta direta sobre isso: "Ok [Nome], vou lhe explicar melhor sobre isso, só um momento." ||| [[PAUSAR: perguntou sobre limpeza do lar/reiki]]; [[PRAZO]] para prazo, "quando tem agenda", "para quando posso agendar", "em quantos dias"; [[RESULTADO]] para "quando terei resultado/efeito", "em quanto tempo sinto"; [[MEDICO]] para qualquer assunto de médico, remédio, tratamento médico ou cura de doença física (o sistema envia o texto de que tratamos o campo energético e espiritual, sem prometer cura). Sobre médico, remédio ou doença você NUNCA escreve nada por conta própria e NUNCA prolonga o assunto: se ela insistir, "Ok [Nome], só um momento." ||| [[PAUSAR: assunto médico/doença]].
+- TEXTOS OFICIAIS POR MARCADOR (o sistema cola o texto exato do Paulo; use SOZINHO no balão, sem reescrever): [[VIDEO]] para perguntas sobre participar, assistir, ser gravada/filmada, videochamada, estar online, qual o preparo (texto da sessão mediúnica em equipe, em que o consulente não participa); para "estaremos online? qual o preparo?" use [[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]; [[HORA]] para dia e hora exatos; [[ROTINA]] para "preciso fazer algo/me preparar/ficar em casa/durante a sessão preciso fazer algo" (SOZINHO). PROIBIDO inventar recomendação, preparo ou orientação (deitado, repouso, relaxado, local tranquilo, disponível, sem barulho): a ÚNICA orientação é seguir a rotina normalmente, que vem pelo marcador; [[LOCAL]] também para "preciso estar presente?/não precisa estar presente?" (SOZINHO, nunca resuma nem reescreva); [[RELATORIO]] para "como é feito o relatório inicial/questionário"; [[PARTICIPACAO]] quando ela pergunta se a participação dela é só responder o questionário; LIMPEZA ENERGÉTICA DO LAR/CASA e REIKI: NUNCA fale sobre isso, não explique, não responda, não cite prazo nem como é feito, mesmo que a pessoa comente ou elogie o bônus (apenas siga o assunto dela sem mencionar); se ela fizer pergunta direta sobre isso: "Ok [Nome], vou lhe explicar melhor sobre isso, só um momento." ||| [[PAUSAR: perguntou sobre limpeza do lar/reiki]]; [[PRAZO]] para prazo, "quando tem agenda", "para quando posso agendar", "em quantos dias"; [[RESULTADO]] para "quando terei resultado/efeito", "em quanto tempo sinto"; [[MEDICO]] para qualquer assunto de médico, remédio, tratamento médico ou cura de doença física (o sistema envia o texto de que tratamos o campo energético e espiritual, sem prometer cura). Sobre médico, remédio ou doença você NUNCA escreve nada por conta própria e NUNCA prolonga o assunto: se ela insistir, "Ok [Nome], só um momento." ||| [[PAUSAR: assunto médico/doença]].
 - DATA ESPECÍFICA ("quero hoje", "amanhã", "antes do prazo", dia marcado): "Ok [Nome], só um momento que vou verificar na agenda e já lhe retorno." ||| [[PAUSAR: pediu data específica/antecipar]].
 - Fale "consulente" ou "consulentes", NUNCA "cliente(s)". Use o nome da pessoa POUCO: no máximo em um balão a cada duas ou três respostas, e nunca em dois balões seguidos da mesma resposta.
 
@@ -1615,6 +1619,8 @@ const NAT_RE = {
   problema: /(estou|tenho|sinto|sofro|minha|meu|problema|\bdor\b|ansiedade|depress|trabalho|relacion|financ|casamento|marido|esposa|filh|vida|saude|energia|cansad|medo|trauma|bloque|trav|obsess|magia|inveja|vicio|bebe|dorm|insonia)/,
   video: /(assistir|assisto|gravad|filmad|videochamada|video chamada|chamada de video|ao vivo|acompanhar a sessao|participar da sessao|video da sessao)/,
   online: /(preparo|estaremos online|estar online|ficar online)/,
+  presente: /(estar presente|precisa(r)? (de )?(estar|ir|ficar) (presente|ai|la|no local)|preciso (ir|comparecer)|tenho que (ir|comparecer|estar)|tem que (ir|comparecer|estar)|presencialmente|presencial|obrigatorio (estar|ir)|necessario (estar|ir|a presenca)|necessita (estar|ir)|nao precisa estar|preciso estar|precisa estar|sao de onde|onde (voces )?(ficam|fica|atendem)|de que cidade|qual (a )?cidade)/,
+  fazer: /((preciso|precisa|devo|tenho que|tem que|posso|podemos|pode)[^.?!]{0,40}(fazer (algo|alguma coisa|nada|alguma)|me preparar|se preparar|preparar|ficar (em casa|deitad|quiet|parad|em repouso|de repouso)|deitar|repouso|rotina|trabalhar|dormir|sair)|durante (a |essa |essas |as |todo o |o )?(sessao|\d+ horas|duas horas|horas|trabalho|periodo)|nessas? (\d+ |duas )?horas|o que (eu )?(devo|preciso|tenho que|posso) fazer|seguir (a )?(minha )?rotina|rotina normal|alguma (preparacao|recomendacao|orientacao))/,
   hora: /(dia e (a )?hora|que dia|qual (o )?(dia|horario)|que horas|horario (da|de) sessao|hora exata|dia e horario)/,
   participacao: /(participa|so responder|apenas responder|so preciso responder)/,
   relatorio: /(relatorio|questionario)/,
@@ -1643,6 +1649,7 @@ function natOficial(x) {
   if (NAT_RE.prazo.test(x) && !(NAT_RE.pagIntencao.test(x) && !/(prazo|quantos dias|quando|demora|quanto tempo|dias uteis)/.test(x))) return '[[PRAZO]]'; // "gostaria de agendar" é intenção, não pergunta de prazo
   if (NAT_RE.online.test(x)) return '[[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]';
   if (NAT_RE.video.test(x)) return '[[VIDEO]]';
+  { const pr = NAT_RE.presente.test(x), fz = NAT_RE.fazer.test(x); if (pr && fz) return '[[LOCAL]] ||| [[ROTINA]]'; if (pr) return '[[LOCAL]]'; if (fz) return '[[ROTINA]]'; }
   return '';
 }
 // Devolve { r: resposta no formato dos marcadores, k: tipo, m: método de pagamento } ou null (aí segue para a IA)
@@ -1687,6 +1694,11 @@ function natRoteiro(text, session) {
     if (est === 'C') return { r: '[[FORMASPAG]]', k: 'formas-pag' };
     if (est === 'B' || !NAT_RE.problema.test(x)) return flowF();
   }
+  // pessoa quer tratar VÁRIAS coisas / não especificou, antes de qualquer explicação: caminho completo em código (abertura + encaixe geral + áudio + pedido de OK)
+  if (est === 'A' && !nat.encaixe && !nat.audExpl && NAT_RE_GERAL.test(x) && !NAT_RE.fluxoTema.test(x) && !NAT_RE.pagExp.test(x)) {
+    console.log('🧭 Pessoa quer tratar vários assuntos: abertura + encaixe geral + áudio (em código)');
+    return { r: NAT_ABERTURA_EXPL + ' ||| ' + natEncaixeGeral(nm) + ' ||| [[AUDIO]]', k: 'geral' };
+  }
   // estágios A e B: não pula etapa; qualquer dúvida de prazo/valor/limpeza etc. vai para o fluxo de explicação
   const nUser = (session.history || []).filter(h => h.role === 'user').length;
   if (est === 'A' && curto && nUser <= 1 && /(valor|valores|preco|quanto (custa|e|sai|fica|cobra)|custa|cobra|investimento)/.test(x) && !NAT_RE.problema.test(x)) return { r: natFrase(nat, nm, 'I') + ' ||| [[INFORMATIVO]]', k: 'valor-primeira' };
@@ -1704,6 +1716,7 @@ function natRoteiro(text, session) {
     if (NAT_RE.hora.test(x)) return { r: '[[HORA]]', k: 'oficial' };
     if (NAT_RE.online.test(x)) return { r: '[[VIDEO]] ||| [[HORA]] ||| [[ROTINA]]', k: 'oficial' };
     if (NAT_RE.video.test(x)) return { r: '[[VIDEO]]', k: 'oficial' };
+    { const pr = NAT_RE.presente.test(x), fz = NAT_RE.fazer.test(x); if (pr && fz) return { r: '[[LOCAL]] ||| [[ROTINA]]', k: 'oficial' }; if (pr) return { r: '[[LOCAL]]', k: 'oficial' }; if (fz) return { r: '[[ROTINA]]', k: 'oficial' }; }
   }
   return null;
 }
@@ -1724,6 +1737,8 @@ function natSaneia(session, resp, text) {
   }
   if (/\[\[(PAUSAR|SEM_RESPOSTA)/.test(r) && !/\[\[(PIX|LINK|INFORMATIVO)/.test(r)) return r;
   const sem = r.replace(/\[\[[^\]]*\]\]/g, ' ');
+  // NUNCA inventar recomendação de preparo (deitado, repouso, relaxado, local tranquilo, disponível...): a única orientação oficial é seguir a rotina normalmente
+  if (/(deitad|repouso|relaxad|local tranquilo|lugar tranquilo|interrup[cç]|barulh|dispon[ií]vel para|recomendamos que (nesse|neste|durante)|durante a sess[aã]o voc[eê] n[aã]o precisa|n[aã]o precisa fazer nada)/i.test(sem)) { console.log('🛡️ Recomendação inventada pela IA removida: trocada por [[ROTINA]]'); return '[[ROTINA]]'; }
   const pausa = motivo => 'Ok' + nm + ', vou lhe explicar melhor sobre isso, só um momento. ||| [[PAUSAR: ' + motivo + ']]';
   const permitidos = new Set([289, 339, 800, 200, 144, 145]);
   const dinheiro = [...sem.matchAll(/R\$\s*(\d[\d.]*)/g)].map(m => parseInt(m[1].replace(/\./g, ''), 10));
@@ -1732,6 +1747,11 @@ function natSaneia(session, resp, text) {
   for (const m of r.matchAll(/\[\[(?:LINK|PIX_E_LINK):([^\]]*)\]\]/g)) if (!/(individual|emergencial|pacote)/i.test(semAcento(m[1]))) return pausa('link fora do roteiro (descartado): "' + String(text || '').slice(0, 70) + '"');
   if (/\[\[BOLETO:\s*(?!289)/.test(r)) return pausa('boleto fora do roteiro (descartado)');
   if (!/\[\[(LINK|PIX_E_LINK)/.test(r) && /(link (atualizado|novo|correto|com as)|vou (lhe )?(enviar|gerar|mandar|passar) o link)/i.test(sem)) return pausa('IA prometeu link fora do roteiro (descartado)');
+  if (est === 'A' && !nat.encaixe && /\[\[FOLDER\]\]/.test(r) && !/se encaixa/i.test(r)) { // a IA pulou o texto de encaixe: coloca o geral antes do folder, sem repetir a abertura
+    console.log('🛡️ Faltou o texto de encaixe antes do folder: encaixe geral inserido');
+    const partes = r.split('|||').map(t => t.trim()).filter(Boolean); const i = partes.findIndex(t => /\[\[FOLDER\]\]/.test(t));
+    partes.splice(i, 0, ...(partes.some(t => /entendo perfeitamente/i.test(t)) ? [] : [NAT_ABERTURA_EXPL]), natEncaixeGeral(nm)); r = partes.join(' ||| ');
+  }
   const gated = /\[\[(PRAZO|RESULTADO|RELATORIO|PARTICIPACAO)\]\]/.test(r) || /dias [uú]teis|prazo de \d/i.test(sem);
   if (est === 'A' && (gated || /\[\[INFORMATIVO\]\]/.test(r))) { console.log('🧱 Sem pular etapa (A): resposta da IA trocada pelo fluxo'); return natFrase(nat, nm, 'A') + ' ||| [[AUDIO]]'; }
   if (est === 'B' && gated) { console.log('🧱 Sem pular etapa (B): resposta da IA trocada pelo fluxo'); return natFrase(nat, nm, 'I') + ' ||| [[INFORMATIVO]]'; }
