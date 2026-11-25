@@ -382,7 +382,7 @@ Antes de passar para o Paulo, tente sempre VOLTAR AO FLUXO: responda em uma ou d
 Passe para o Paulo SOMENTE se, mesmo assim, ocorrer um destes casos: a pessoa pedir para falar com ele ou com um humano (uma vez já basta); reclamação; insistência em desconto ou condição especial depois de você ter voltado ao fluxo uma vez; pergunta sobre sessão já feita quando o prazo já passou ou ela insiste. Nunca passe para o Paulo por outro motivo. Quando passar, responda com uma mensagem curta, por exemplo: "Vamos passar para o Paulo e ele responde por aqui assim que possível. Nosso atendimento é de segunda a sábado, das 9h às 20h. 🙏" e escreva [[PAUSAR]] sozinho na última linha. O sistema retira essa marca e pausa o bot; se ninguém assumir, o bot volta a responder sozinho depois de algumas horas.
 
 ## SITUAÇÕES DE RISCO
-Se a pessoa falar em se machucar, em tirar a própria vida ou em desistir de viver: pare de vender. Acolha em duas frases curtas, sem julgar. Diga que a vida dela importa e que, agora, o mais importante é falar com alguém de imediato: CVV pelo 188 (24 horas, gratuito) ou SAMU pelo 192 se houver risco imediato. Diga que vamos avisar o Paulo. Termine com [[PAUSAR]] na última linha.
+Se a pessoa falar em se machucar, em tirar a própria vida ou em desistir de viver: pare de vender. Não cite CVV, SAMU nem telefones de emergência e não faça sermão. Responda apenas "Ok [Nome], só um momento." e termine com [[PAUSAR]] na última linha (o Paulo assume). Se a menção for sobre outra pessoa (irmã, familiar), é só pedido de ajuda para ela: siga normal, sem tratar como crise.
 
 ## SE NÃO ENTENDER
 Mensagem confusa: "Não entendemos bem. Pode escrever de outro jeito?" Imagem fora do comprovante: "No momento atendemos por texto aqui. Pode escrever sua mensagem?"`;
@@ -1212,7 +1212,7 @@ LIMITES
   b) Doenças físicas (câncer, depressão, diabetes, dores, cirurgia etc.): nunca afirme que o trabalho trata, cura, trata a doença ou substitui tratamento. Diga que a apometria é um trabalho espiritual complementar, que não trata doenças físicas nem dá diagnóstico, e que atua no aspecto espiritual relacionado.
   c) Se a pessoa falar em parar remédio, tratamento ou deixar de ir ao médico: nunca concorde nem incentive. Diga que o acompanhamento médico deve ser mantido e que o nosso trabalho é complementar, nunca substitui o médico.
   d) Nunca dê diagnóstico, nunca indique ou comente medicamentos, nunca faça promessa de resultado, prazo de melhora ou "garantia". Nada de depoimentos que prometam cura.
-  e) Pessoa em crise emocional grave ou falando em se machucar: acolha com cuidado, recomende procurar ajuda profissional ou o CVV (188) e escreva [[PAUSAR: URGENTE, pessoa em crise emocional ou falando em se machucar]].
+  e) Pessoa em crise emocional grave ou falando em se machucar: não cite CVV, SAMU nem telefones; responda só "Ok [Nome], só um momento." ||| [[PAUSAR: pessoa falou em se machucar ou desistir de viver (conferir)]]. Se for sobre outra pessoa (irmã, familiar) pedindo ajuda para ela, trate normal.
 - Se perguntarem se é robô, atendimento automático, IA, se é gente de verdade ou duvidarem de quem responde: não argumente nem explique. Responda só "Ok [Nome], só um momento." ||| [[PAUSAR: perguntou se é robô/atendimento automático]]
 - Pessoa já cliente perguntando do andamento, reclamação, pedido de ligação, assunto fora do que está aqui ou dúvida que você não sabe: "Ok [Nome], vou verificar e já lhe retorno." ||| [[PAUSAR: (descreva o assunto)]]
 - MEMÓRIA: sempre que a pessoa disser algo que importa para o atendimento (o problema, para quem é o trabalho, dúvidas e objeções que ela levantou, cidade, opção de sessão escolhida, o que já recebeu), acrescente no FINAL da sua resposta, fora dos balões, um marcador curto [[FATO: ...]] (um por informação, no máximo 3 por resposta). Ele é invisível para a pessoa e fica guardado. Se a pessoa voltar depois de um tempo, retome com naturalidade lembrando o que ela já contou e perguntou, sem repetir saudação nem textos que já foram enviados, e responda sempre com base nos problemas que ela já disse.
@@ -2061,10 +2061,9 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   if (!mediaInfo && ehCrise(text)) {
     if (session.stage === 'abertura' || session.stage === 'aguardando_nome') { session.stage = 'conversa'; session.pediuNome = true; }
     session.encerrado = false;
-    let respC = await processWithClaude(session, text + '\n[Sistema: a pessoa falou em morrer ou desistir de viver. Siga a regra de acolhimento do roteiro: pare de vender, CVV 188, SAMU 192, diga que o Paulo será avisado e termine com [[PAUSAR]].]');
-    if (/problema técnico/.test(respC) || respC === FALLBACK_MSG || !/188/.test(respC)) respC = CRISE_MSG;
-    await sendClaudeResponse(from, respC.replace(/\[\[PAUSAR\]\]/g, ''), session);
-    await pausarEAvisar(from, session, 'possível crise: fala de risco à vida');
+    // Decisão do dono: nada de CVV/SAMU nem texto de crise. Só passa para o Paulo (pausa + aviso à equipe).
+    await sendClaudeResponse(from, 'Ok' + (session.clientName ? ' ' + String(session.clientName).split(' ')[0] : '') + ', só um momento.', session);
+    await pausarEAvisar(from, session, 'falou em morrer/suicídio (pode ser sobre outra pessoa): conferir e responder');
     return;
   }
 
@@ -2557,8 +2556,7 @@ async function processarMeta(body) {
             // pedido via catálogo / mensagens do sistema: não é erro do cliente; sem resposta (o texto que ele manda junto segue o fluxo normal)
             console.log(`🛒 ${message.type} de ${from}: sem resposta automática`);
           } else {
-            const ssT = sessions.get(from); const agT = Date.now();
-            if (!ssT || !ssT.soTextoEm || agT - ssT.soTextoEm > 600000) { if (ssT) { ssT.soTextoEm = agT; ssT.lastActivity = agT; } sendMessage(from, 'No momento processo apenas texto. Por favor, escreva sua mensagem. 🙏'); }
+            console.log(`❔ tipo ${message.type} de ${from}: sem resposta automática`);
           }
         }
       }
