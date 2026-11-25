@@ -14,6 +14,7 @@ const { Pool } = require('pg');
 const app = express();
 const { AsyncLocalStorage } = require('async_hooks');
 const avisoALS = new AsyncLocalStorage(); // dentro dele os envios saem pelo número notificador (Instituto)
+const noiteALS = new AsyncLocalStorage(); // menu da madrugada: dentro dele as pausas entre balões ficam curtas (atendimento automático responde quase na hora)
 const manualALS = new AsyncLocalStorage(); // envios feitos pela equipe no painel/app (não são do bot)
 // Comandos de quem administra: "#parar" desliga o bot em TODAS as conversas; "#iniciar" religa (conversas que já estavam pausadas continuam pausadas)
 const ADMIN_FONES = String(process.env.ADMIN_COMANDOS || '5517996171026,5517997391901').split(/[\s,;]+/).map(x => x.replace(/\D/g, '')).filter(Boolean);
@@ -954,6 +955,7 @@ async function aguardarEntrega(id, minMs, maxMs) {
   await sleep(1500);
 }
 function sleep(ms) {
+  const stN = noiteALS.getStore(); if (stN && stN.rapido) ms = Math.min(ms, 600);
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -1986,7 +1988,7 @@ function handleMessage(from, messageText, mediaInfo = null) {
   l.t = setTimeout(() => {
     const p = liberarLote(from);
     if (p) p.catch(err => console.error(`❌ Erro ao processar mensagem de ${from}:`, err));
-  }, (natCfg.modo === 'natural' || natCfg.fones.includes(String(from))) ? Math.round(25000 * natCfg.vel) : BATCH_MS);
+  }, noiteRapida(from, messageText) ? 1200 : (natCfg.modo === 'natural' || natCfg.fones.includes(String(from))) ? Math.round(25000 * natCfg.vel) : BATCH_MS);
   return Promise.resolve();
 }
 const msgsVistas = new Map();
@@ -2001,6 +2003,19 @@ function jaProcessada(id) {
 // ─── ATENDIMENTO AUTOMÁTICO DA MADRUGADA (menu, 0h–6h) ───────────────────────────
 // Nasce DESLIGADO (cfg menu_madrugada = '0'). Só contatos NOVOS que chegam pela mensagem do site entre 0h e 5h59 (ou números de teste com "#noite teste") vão para o menu; o resto segue exatamente como antes.
 const simulaNoite = new Set();
+let menuNoiteCache = false; // espelho de cfg menu_madrugada (para decidir, sem await, a espera curta ao receber a mensagem)
+const menuNoiteAtualiza = () => cfgGet('menu_madrugada', '0').then(v => { menuNoiteCache = v === '1'; }).catch(() => {});
+setTimeout(menuNoiteAtualiza, 8000); setInterval(menuNoiteAtualiza, 60000);
+function noiteRapida(from, text) { // true = esta mensagem vai para o menu da madrugada: espera curta (não os 25 s do modo natural)
+  try {
+    const k = String(from).replace(/\D/g, '');
+    if (simulaNoite.has(k)) return true;
+    const s = sessions.get(from);
+    if (s && s.menuNoite && Date.now() - s.menuNoite < 12 * 3600000) return true;
+    if (menuNoiteCache && natMadrugada() && RE_MSG_SITE.test(text || '') && !(s && (s.history || []).some(h => h.role === 'assistant'))) return true;
+  } catch (e) {}
+  return false;
+}
 const RE_PEDE_PESSOA = /(quero|preciso|prefiro|gostaria de) (falar|conversar|tratar) com (uma |um )?(pessoa|gente|humano|alguem|o paulo|paulo)|prefiro (pessoa|pessoas|humano|humanos)|me (liga|ligue)|ligar para mim/;
 async function menuNoiteAplica(from, text, mediaInfo, session) {
   try {
@@ -2021,13 +2036,16 @@ async function comandoNoite(phone, txt) {
   const cmd = (txt.match(/#noite\s+(liga|desliga|teste|fim|status)/i) || [])[1].toLowerCase();
   const resp = m => manualALS.run({ manual: true }, () => sendMessage(phone, m));
   const k = String(phone).replace(/\D/g, '');
-  if (cmd === 'liga') { await cfgSet('menu_madrugada', '1'); await resp('🌙 Atendimento automático da madrugada LIGADO (0h–6h, contatos novos).'); }
-  else if (cmd === 'desliga') { await cfgSet('menu_madrugada', '0'); await resp('☀️ Atendimento automático da madrugada DESLIGADO.'); }
+  if (cmd === 'liga') { await cfgSet('menu_madrugada', '1'); menuNoiteCache = true; await resp('🌙 Atendimento automático da madrugada LIGADO (0h–6h, contatos novos).'); }
+  else if (cmd === 'desliga') { await cfgSet('menu_madrugada', '0'); menuNoiteCache = false; await resp('☀️ Atendimento automático da madrugada DESLIGADO.'); }
   else if (cmd === 'teste') { simulaNoite.add(k); await resp('🧪 Modo noite simulado ligado SÓ para este número. Mande #reset e depois a mensagem do site para ver o menu da madrugada. Para sair: #noite fim.'); }
   else if (cmd === 'fim') { simulaNoite.delete(k); const s = sessions.get(phone); if (s) s.menuNoite = 0; await resp('Modo noite simulado desligado para este número.'); }
   else { await resp('Atendimento da madrugada: ' + ((await cfgGet('menu_madrugada', '0')) === '1' ? 'LIGADO' : 'DESLIGADO') + '. Simulação neste número: ' + (simulaNoite.has(k) ? 'sim' : 'não') + '.'); }
 }
-async function handleMessageInner(from, messageText, mediaInfo = null, recebidoEm = Date.now()) {
+function handleMessageInner(from, messageText, mediaInfo = null, recebidoEm = Date.now()) {
+  return noiteALS.run({ rapido: false }, () => handleMessageInnerBase(from, messageText, mediaInfo, recebidoEm));
+}
+async function handleMessageInnerBase(from, messageText, mediaInfo = null, recebidoEm = Date.now()) {
   if (botParado && !(YC.enabled && YC.ehFixoTeste(from))) { // #parar: só registra a mensagem para a equipe ver; nada é respondido
     console.log('⏸️ Bot parado: mensagem de ' + from + ' registrada, sem resposta.');
     try { await saveMessage(from, 'in', mediaInfo ? '[mídia recebida com o bot parado]' : String(messageText || '').trim()); notificarPush(); } catch (e) {}
@@ -2109,6 +2127,7 @@ async function handleMessageInner(from, messageText, mediaInfo = null, recebidoE
   // Modo natural (estilo do Paulo): assume a conversa inteira quando ligado para este número
   if (await natAtivo(from)) {
     if (await menuNoiteAplica(from, text, mediaInfo, session)) {
+      { const stN = noiteALS.getStore(); if (stN) stN.rapido = true; } // atendimento automático: resposta quase instantânea
       // atendimento automático da madrugada: segue o fluxo do menu (abaixo); só quem pede uma pessoa vai para o Paulo
       if (!mediaInfo && RE_PEDE_PESSOA.test(semAcento(text).toLowerCase())) { await paraPaulo(from, session, 'madrugada (menu): pediu para falar com uma pessoa: "' + String(text).replace(/[\[\]|]/g, ' ').slice(0, 80) + '"', text); await upsertConversation(from, session.clientName, session.stage); return; }
     } else if (await natFluxo(from, text, session, mediaInfo, recebidoEm)) return;
