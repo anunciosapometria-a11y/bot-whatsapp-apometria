@@ -1121,7 +1121,7 @@ function natEncaixeLongo(arg, nm) {
   const quem = pt[1] || '';
   const fem = /\b(m[ãa]e|esposa|mulher|namorada|filha|irm[ãa]|av[óo]|tia|amiga|sogra|prima|neta|sobrinha|madrinha|noiva|companheira|vizinha|colega)\b/i.test(quem) && !/\b(pai|filho|irm[ãa]o|marido|esposo|av[ôo]|tio|amigo|sogro|primo|neto|sobrinho|padrinho|noivo|companheiro|vizinho|colega de)\b/i.test(quem.replace(/\bde\b/gi, ' '));
   const outro = !!quem; const ela = fem ? 'ela' : 'ele'; const dela = fem ? 'dela' : 'dele';
-  const p1 = (outro ? 'Olha a' : 'Olha' + (nm || '') + ' a') + ' apometria que realizamos se encaixa perfeitamente nessa situação em que busca realizar um tratamento e investigação espiritual/energético em diversos campos que vamos encontrar em desequilíbrio e também para questões pessoais específicas como ' + assunto + '. Grande parte dos nossos trabalhos são realizados para essa finalidade, amenizando o impacto sofrido, realizando a limpeza dessas energias que contribuem para esse estado e trazendo alívio nesse momento.';
+  const p1 = (outro ? 'Olha a' : 'Olha' + (nm || '') + ' a') + ' apometria que realizamos se encaixa perfeitamente nessa situação em que busca realizar um tratamento e investigação espiritual/energético em diversos campos que vamos encontrar em desequilíbrio e também para questões pessoais específicas como ' + assunto + '.';
   const p2 = 'Buscamos também, para essa finalidade, trazer mensagens dos mentores espirituais, que servem de esclarecimento sobre a situação e clareza sobre o momento de vida pelo qual ' + (outro ? quem : 'você') + ' está passando. Isso é de grande ajuda para entender melhor o que está acontecendo e saber como agir da melhor maneira.';
   const p3 = 'Sobre essa questão, existe também a possibilidade de ligações com a ancestralidade, algum trabalho de magia lançado contra ' + (outro ? ela : 'você') + ', situações cármicas, traumas e crenças limitantes do passado, personalidades múltiplas provenientes de outras vidas. Essas situações podem estar se manifestando nesse momento e causando uma série de efeitos negativos.';
   const p4 = 'Nós fazemos o corte desses vínculos e o resgate das entidades obsessoras, além de uma reprogramação energética, alinhando a vibração em sintonia com frequências elevadas, e a limpeza profunda do corpo astral. São feitos também os processos de restauração do corpo astral através dos mentores espirituais nos hospitais socorristas (popularmente conhecidos como cirurgias astrais) e a harmonização dos níveis energéticos e dos chacras. É um trabalho espiritual e energético bem completo e esclarecedor em todos os sentidos, feito nos mínimos detalhes e de forma minuciosa, totalmente voltado e elaborado para a ' + (outro ? 'individualidade ' + dela : 'sua individualidade') + ' e objetivos principais.';
@@ -1458,6 +1458,8 @@ async function natEnviarInner(to, session, bruto, opcoes) {
   { const ehSaud = x => /^(oi+|ol[aá]|bom dia|boa tarde|boa noite)\b/i.test(x.replace(/\[\[[^\]]*\]\]/g, '').trim());
     if (partes.some(ehSaud)) nat.cumpExp = true;
     else if (!nat.cumpExp && (!nat.saudou || partes.some(x => /\[\[(ENCAIXE|AUDIO|FOLDER)|vou lhe explicar/i.test(x))) && (nat.saidas || []).length <= 1 && partes.length) { nat.cumpExp = true; const nm = session.clientName ? ' ' + String(session.clientName).split(/\s+/)[0] : ''; partes.unshift('Oi' + nm + ', ' + saudacao() + '. Tudo bem?'); } }
+  // a pessoa perguntou "tudo bem?" / "como vai?": o bot NÃO devolve a cortesia, só cumprimenta e segue o fluxo
+  if (opcoes.cortesia) partes = partes.map(x => /^(oi+|ol[aá]|bom dia|boa tarde|boa noite)\b/i.test(x.replace(/\[\[[^\]]*\]\]/g, '').trim()) ? x.replace(/[,.!]?\s*tudo (bem|bom)\s*\?+/gi, '').trim().replace(/([^.!?])$/, '$1.') : x);
   let pixEnv = false;
   { // pagamento repetido (mesmo valor/opção há pouco): some também o "Vou lhe enviar os dados..." que vem antes do bloco
     const dupPag = x => { const mm = x.match(/\[\[(PIX_E_LINK|PIX|LINK):?([^\]]*)\]\]/); if (!mm) return false; const arg = semAcento(mm[2]).trim().toLowerCase();
@@ -1573,7 +1575,7 @@ async function natEnviarInner(to, session, bruto, opcoes) {
       }
       okAntes = !b.colado && /^ok\b/i.test(b.t);
       // texto colado sai rápido; texto longo "escrito na hora" (encaixe) demora alguns minutos; balão curto, o tempo de digitar
-      const ms = b.colado ? natRand(8000, 10000) : b.t.length > 900 ? natRand(75000, 160000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
+      const ms = b.colado ? natRand(8000, 10000) : b.t.length > 900 ? natRand(120000, 210000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
       await natEspera2(session, ms);
       if (citar && primeiro) { const al = natAlvoCitar(session); if (al) session.citarId = al; }
       await sendMessage(to, b.t);
@@ -1954,7 +1956,7 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
     nat.pagAnexar = null;
   }
   const fezPergunta = (session.audioTranscritoUsado || RE_PERGUNTA.test(text)) && !mediaInfo; session.audioTranscritoUsado = false;
-  await natEnviar(from, session, resp, { citarPrimeiro: fezPergunta, pessoaOk: !mediaInfo && natAfirmacaoSolta(text), pessoaDisseOk: !mediaInfo && /^\s*(ok|okay|okk+|oks|ok,? obrigad[oa])\b/i.test(text) && text.trim().split(/\s+/).length <= 3, comprovante: !!(mediaInfo && mediaInfo.tipo !== 'audio') || pagouTexto });
+  await natEnviar(from, session, resp, { citarPrimeiro: fezPergunta, cortesia: /\b(tudo bem|tudo bom|td bem|tudo certo|como vai|como voce esta|como vc esta|como esta)\b/.test(semAcento(String(text || '')).toLowerCase()), pessoaOk: !mediaInfo && natAfirmacaoSolta(text), pessoaDisseOk: !mediaInfo && /^\s*(ok|okay|okk+|oks|ok,? obrigad[oa])\b/i.test(text) && text.trim().split(/\s+/).length <= 3, comprovante: !!(mediaInfo && mediaInfo.tipo !== 'audio') || pagouTexto });
   await upsertConversation(from, session.clientName, session.stage);
   crmAtualizarFunil(from, session).catch(() => {});
   return true;
