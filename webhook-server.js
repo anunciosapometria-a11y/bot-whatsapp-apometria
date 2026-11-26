@@ -339,7 +339,7 @@ Assim que fizer, nos envie o comprovante para darmos baixa na contabilidade, rea
    - Terceira: peça que, depois de enviar o questionário, ela escreva aqui na conversa o nome completo junto com o endereço da residência (para a apometria do lar), para a nossa equipe fazer a conferência do questionário. Aceite do jeito que vier e nunca peça mais informações (CEP, número, complemento ou outro dado). O endereço da pessoa só é pedido aqui, depois do pagamento.
    Não confirme valor nem prazo que você não consiga ver no comprovante, apenas receba.
 
-5) QUESTIONÁRIO RESPONDIDO. Quando a pessoa avisar que respondeu o questionário ou mandar o endereço (aceite o endereço do jeito que vier, sem pedir mais informações): agradeça pelo nome, diga que vamos conferir o recebimento e avisar se faltar algo (você não consegue ver o questionário, então nunca diga que já conferiu). Diga que agora é só aguardar o prazo da opção escolhida (15 dias úteis na individual, 8 no emergencial) para a entrega e finalização do trabalho, e que, no momento do envio dos relatórios finais, o Paulo entra em contato pelo número pessoal dele para entregar os áudios do relatório. Se o trabalho for para mais de uma pessoa, cada uma responde o seu questionário: confirme os nomes que ela informar. Diga que qualquer dúvida pode ser enviada aqui.
+5) QUESTIONÁRIO RESPONDIDO. Quando a pessoa avisar que respondeu o questionário ou mandar o endereço (aceite o endereço do jeito que vier, sem pedir mais informações): agradeça pelo nome, diga que vamos conferir o recebimento e avisar se faltar algo (você não consegue ver o questionário, então nunca diga que já conferiu). Diga que agora é só aguardar o prazo da opção escolhida (15 dias úteis na individual, 8 no emergencial) para a entrega e finalização do trabalho, e que, no momento do envio dos relatórios finais, os relatórios finais serão enviados por este mesmo número, aqui na conversa, para entregar os áudios do relatório. Se o trabalho for para mais de uma pessoa, cada uma responde o seu questionário: confirme os nomes que ela informar. Diga que qualquer dúvida pode ser enviada aqui.
 
 6) DEPOIS DO QUESTIONÁRIO. O andamento do trabalho é do Paulo. Nunca diga que a sessão já foi feita, nunca prometa dia para o relatório e nunca confirme data de início. Se a pessoa perguntar quando começa, explique como em RESPOSTAS RÁPIDAS. Se perguntar do relatório antes do fim do prazo, lembre o prazo. Se o prazo já passou, ou ela insistir, passe para o Paulo.
 
@@ -436,7 +436,7 @@ const MODALIDADES_MSG = "Vou lhe enviar as modalidades disponíveis, segue abaix
 const PERGUNTA3 = "Podemos seguir com a etapa 3, opções de agendamento?";
 const ETAPA3_TITULO = "Vou lhe enviar as opções de agendamento, segue abaixo.";
 const ETAPA3_NOTA = "*Para confirmar o agendamento*\nBasta efetuar o pagamento e enviar o comprovante aqui em nossa conversa.\n\n*Os novos agendamentos serão realizados até o dia 30 de novembro, devido ao recesso de final de ano.*";
-const APOS_PAGAMENTO_MSG = "*O que acontece após o pagamento*\n• Você receberá algumas instruções referentes à opção escolhida e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• No momento do envio dos relatórios finais, o Paulo entrará em contato através do número pessoal dele.";
+const APOS_PAGAMENTO_MSG = "*O que acontece após o pagamento*\n• Você receberá algumas instruções referentes à opção escolhida e o questionário inicial para preenchimento.\n• A equipe entrará no processo de estudo e elaboração do seu trabalho.\n• Os relatórios finais serão enviados por este mesmo número, aqui em nossa conversa, no momento do envio.";
 function detectaOpcao(t) {
   const x = semAcento(t);
   if (/\b(familiar|familia|familias)\b/.test(x) && !/dois trabalhos/.test(x)) return 'Pacote familiar';
@@ -676,16 +676,12 @@ async function enviarOpcoesAgendamento(from, session, textoUsuario) {
   await sendMessage(from, APOS_PAGAMENTO_MSG);
   await sleep(typingDelay(ETAPA3_NOTA));
   await sendMessage(from, ETAPA3_NOTA);
-  await sleep(typingDelay(CONTATO_PAULO_MSG));
-  await sendMessage(from, CONTATO_PAULO_MSG);
-  await sleep(1200);
-  await sendContact(from);
   await sleep(1500);
   await sendBotoes(from, PERGUNTA_AGENDA, [{ id: 'ag_sim', title: 'Sim, quero agendar' }, { id: 'ag_duvida', title: 'Tenho uma dúvida' }, { id: 'ag_menu', title: 'Voltar ao menu' }]);
   session.etapa = 'agenda';
   session.history.push(
     { role: 'user', content: textoUsuario },
-    { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', APOS_PAGAMENTO_MSG, ETAPA3_NOTA, CONTATO_PAULO_MSG, '[cartão de contato do Paulo enviado]', PERGUNTA_AGENDA].join('\n\n') }
+    { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', APOS_PAGAMENTO_MSG, ETAPA3_NOTA, PERGUNTA_AGENDA].join('\n\n') }
   );
 }
 async function paraPaulo(from, session, motivo, textoUsuario) {
@@ -2192,8 +2188,7 @@ async function handleMessageInnerBase(from, messageText, mediaInfo = null, receb
       await sendMessage(from, intro);
       await sleep(2500);
       await enviarFoto(from, 'valores');
-      for (const m of [APOS_PAGAMENTO_MSG, ETAPA3_NOTA, CONTATO_PAULO_MSG]) { await sleep(typingDelay(m)); await sendMessage(from, m); }
-      await sleep(1200); await sendContact(from);
+      for (const m of [APOS_PAGAMENTO_MSG, ETAPA3_NOTA]) { await sleep(typingDelay(m)); await sendMessage(from, m); }
       const itens = [];
       if (!session.vistoProc) itens.push('🔎 *Detalhes do procedimento*');
       if (!session.vistoRecebe) itens.push('✨ *O que você recebe*');
@@ -2208,7 +2203,7 @@ async function handleMessageInnerBase(from, messageText, mediaInfo = null, receb
       await sendMessage(from, fim);
       session.history.push(
         { role: 'user', content: text },
-        { role: 'assistant', content: [intro, '[foto com os valores e formatos enviada]', APOS_PAGAMENTO_MSG, ETAPA3_NOTA, CONTATO_PAULO_MSG, '[cartão de contato do Paulo enviado]', fim].join('\n\n') }
+        { role: 'assistant', content: [intro, '[foto com os valores e formatos enviada]', APOS_PAGAMENTO_MSG, ETAPA3_NOTA, fim].join('\n\n') }
       );
     } finally { session.valoresEmAndamento = false; }
     await upsertConversation(from, session.clientName, session.stage);
@@ -2346,16 +2341,12 @@ async function handleMessageInnerBase(from, messageText, mediaInfo = null, receb
       await sendMessage(from, APOS_PAGAMENTO_MSG);
       await sleep(typingDelay(ETAPA3_NOTA));
       await sendMessage(from, ETAPA3_NOTA);
-      await sleep(typingDelay(CONTATO_PAULO_MSG));
-      await sendMessage(from, CONTATO_PAULO_MSG);
-      await sleep(1200);
-      await sendContact(from);
       await sleep(typingDelay(PERGUNTA_AGENDA));
       await sendMessage(from, PERGUNTA_AGENDA);
       session.etapa = 'agenda';
       session.history.push(
         { role: 'user', content: text },
-        { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', APOS_PAGAMENTO_MSG, ETAPA3_NOTA, CONTATO_PAULO_MSG, '[cartão de contato do Paulo enviado]', PERGUNTA_AGENDA].join('\n\n') }
+        { role: 'assistant', content: [ETAPA3_TITULO, '[foto com os valores e formatos enviada]', APOS_PAGAMENTO_MSG, ETAPA3_NOTA, PERGUNTA_AGENDA].join('\n\n') }
       );
       await upsertConversation(from, session.clientName, session.stage);
       return;
