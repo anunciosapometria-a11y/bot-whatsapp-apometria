@@ -428,6 +428,7 @@ const PAULO_REDIR_MSG = "Vamos redirecionar o seu atendimento para o Paulo, e el
 // Atendimento automático da madrugada (0h–6h): abertura explícita de que é o atendimento automático
 const ABERTURA_NOITE_MSG = "Olá, seja bem-vindo à Apometria Brasil e agradecemos o seu contato.\n\nVocê está no *atendimento automático da madrugada* do Instituto Apometria Brasil. Por aqui você conhece todo o procedimento, vê os valores e já pode fazer o seu agendamento, sozinho(a), com calma.\n\nO Instituto Apometria Brasil é especializado na realização de apometria, investigação espiritual, corte de vínculos energéticos e desobsessões, com coordenação do apometra e fundador Paulo Rodrigues.";
 const PAULO_REDIR_NOITE_MSG = "Vamos redirecionar o seu atendimento para o Paulo, e ele responde por aqui assim que possível.";
+const PAULO_MANHA_MSG = "Recebemos a sua mensagem. O Paulo responde por aqui pela manhã, assim que possível (nosso atendimento é a partir das 9h). Grato."; // menu da madrugada: depois do questionário o bot sai de cena; qualquer mensagem seguinte recebe só este aviso, uma vez
 const MENU_INICIO = "Sobre o que você gostaria de saber? Escolha uma das opções abaixo:";
 const MENU_MAIS = "Para saber mais sobre o trabalho ou ver as opções de agendamento, escolha uma das opções abaixo:";
 const MENU_VOLTAR = "Claro! Escolha uma opção:";
@@ -2116,6 +2117,7 @@ async function handleMessageInnerBase(from, messageText, mediaInfo = null, receb
 
   if (session.pausado) {
     console.log(`⏸️  Conversa com ${from} está pausada (atendimento manual). Bot não respondeu.`);
+    if (session.noiteFim && !session.noiteAvisou) { session.noiteAvisou = true; try { await sleep(1500); await sendMessage(from, PAULO_MANHA_MSG); session.history.push({ role: 'user', content: text }, { role: 'assistant', content: PAULO_MANHA_MSG }); } catch (e) { console.error('❌ aviso da manhã:', e.message); } }
     return;
   }
 
@@ -2409,9 +2411,13 @@ async function handleMessageInnerBase(from, messageText, mediaInfo = null, receb
 
   const etapaAntes = session.etapa;
   if (!mediaInfo && await enviarEspeciais(from, session, text)) text += '\n[Sistema: o card com os valores dos trabalhos específicos já foi enviado agora; não envie [[FOTO:especiais]] de novo, apenas responda de forma curta.]';
+  // Atendimento automático da madrugada: quando a pessoa confirma que respondeu o questionário (ou manda o endereço), a IA agradece UMA vez e o bot desliga; mensagens seguintes só recebem o aviso de que o Paulo responde pela manhã
+  const noiteQuest = !!session.menuNoite && !mediaInfo && (session.history || []).some(h => h.role === 'assistant' && /questionario-inicial/i.test(typeof h.content === 'string' ? h.content : JSON.stringify(h.content))) && /(respond|preench|envi|mand|pront|feit|fiz|conclu|finaliz|termin|\b(rua|avenida|av|travessa|alameda|estrada|rodovia|pra[cç]a)\b|\d{5}-?\d{3})/i.test(text);
+  if (noiteQuest) text += '\n[Sistema: a pessoa confirmou o questionário/endereço. Responda em UMA mensagem curta: agradeça pelo nome (se souber), diga que a equipe vai conferir o recebimento e que agora é só aguardar o prazo da opção escolhida, e que o Paulo responde por aqui pela manhã. NÃO convide a novas dúvidas nem faça perguntas.]';
   const response = await processWithClaude(session, text);
   if (etapaAntes === 'modalidade' && session.etapa === 'modalidade') session.etapa = null;
   await sendClaudeResponse(from, response, session);
+  if (noiteQuest) { session.noiteFim = true; session.noiteAvisou = false; await botDesligar(from, session, 'madrugada (menu): questionário confirmado, bot encerrado'); }
   await upsertConversation(from, session.clientName, session.stage);
 }
 
