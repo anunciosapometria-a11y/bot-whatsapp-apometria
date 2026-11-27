@@ -357,6 +357,7 @@ Seu objetivo é levar a pessoa ao próximo passo da venda, sem pressão e sem re
 - Dá para fazer ligação? Posso agendar uma ligação? Quero falar por telefone. Responda que é possível agendar uma ligação em um momento oportuno e peça que entre em contato com o Paulo pelo celular dele: "É possível agendar uma ligação em um momento oportuno. Pode chamar o Paulo no (17) 98827-1998 para combinar." e, em uma mensagem separada, [[CONTATO:paulo]] sozinho. O número do Paulo só é enviado nesses dois casos (dúvida sobre veracidade e pedido de ligação), além do cartão que o sistema envia sozinho junto das informações de pagamento (não repita). Não pause o bot por isso.
 - Qual o endereço do instituto? Onde fica? Responda: "Ficamos na R. Jaír Martins Mil Homens, São José do Rio Preto, SP." Se perguntar de atendimento presencial, lembre que no momento o trabalho é feito à distância. Não peça o endereço da pessoa por isso.
 - Tem como ser presencial? Diga que, no momento, não é possível realizar o presencial por falta de disponibilidade na agenda, e que o trabalho à distância tem o mesmo resultado, feito com a mesma equipe. Não passe para o Paulo só por isso. Siga o passo da venda.
+- VÁRIAS COISAS JUNTAS: a pessoa costuma mandar o relato e perguntas (data, prazo, valor, como funciona) em mensagens seguidas ou na mesma mensagem. Leia tudo como UMA conversa e responda cada parte, na ordem: primeiro acolha o relato (abertura + [[ENCAIXE: assunto]]); depois reconheça a pergunta com uma frase curta (ex.: "Sobre o prazo para a realização do seu atendimento, vou lhe enviar o informativo, que traz os prazos, os detalhes e os valores. Segue abaixo 👇") e só então envie [[INFORMATIVO]]. NUNCA ignore uma pergunta feita e nunca envie o informativo sem antes dizer que vai enviar e por quê.
 - DATAS (pergunta geral): Quando tem agenda? Para quando posso agendar? Quando posso fazer? Responda com o texto padrão: o trabalho é realizado dentro do prazo estipulado, de 15 dias úteis na sessão individual ou de 08 dias úteis no emergencial, e não costumamos informar dia e hora exatos. No PACOTE de 4 sessões, o prazo também entra nos 15 dias úteis (as sessões acontecem dentro desse prazo). Se ela tem urgência, apresente o emergencial.
 - DATA ESPECÍFICA ou ANTECIPAÇÃO: se a pessoa pedir para fazer ANTES do prazo, nesta semana, amanhã, hoje ou em uma data/dia específico, NÃO prometa nada, NÃO questione e NÃO diga \"não\": responda com os textos oficiais [[HORA]] (não avisamos a data nem o horário da sessão) ||| [[PRAZO]].
 - Cada pessoa responde um questionário? Posso responder por mais de uma pessoa? Como faço com mais de uma pessoa? Cada pessoa participante deve ter um questionário separado, respondido em nome de quem vai realizar a apometria, com o máximo de informações que souber. Basta abrir o link novamente (enviar e clicar no link outra vez) que abrirá um novo questionário. Responda em mensagens curtas e reenvie o link https://apometriabrasil.com.br/questionario-inicial/ se ela pedir.
@@ -1695,6 +1696,7 @@ function natFrase(nat, nm, tipo) {
   const lista = tipo === 'A' ? A : I;
   return lista[(n - 1) % lista.length];
 }
+function natFrasePrazo() { return 'Sobre o prazo para a realização do seu atendimento, vou lhe enviar o informativo, que traz os prazos, os detalhes e os valores. Segue abaixo 👇'; }
 // ─── ROTEIRO POR CÓDIGO: o que não pode depender da IA ───────────────────────────
 function natEstagio(nat) { return nat && nat.info ? 'C' : (nat && (nat.audExpl || nat.encaixe)) ? 'B' : 'A'; } // A: nada explicado | B: explicou, falta o informativo | C: informativo (valores) enviado
 const NAT_RE = {
@@ -1754,7 +1756,7 @@ function natRoteiro(text, session) {
   const resumo = String(text).replace(/[\[\]|]/g, ' ').replace(/\s+/g, ' ').slice(0, 90);
   const pausa = (msg, motivo, k) => ({ r: '[[PAUSAR: ' + motivo + ']]', k }); // silenciosa: sem aviso à pessoa
   const EXPL = 'vou lhe explicar melhor sobre isso, só um momento.';
-  const flowF = () => est === 'A' ? { r: natFrase(nat, nm, 'A') + ' ||| [[AUDIO]]', k: 'fluxo-A' } : { r: natFrase(nat, nm, 'I') + ' ||| [[INFORMATIVO]]', k: 'fluxo-B' };
+  const flowF = () => est === 'A' ? { r: natFrase(nat, nm, 'A') + ' ||| [[AUDIO]]', k: 'fluxo-A' } : { r: (NAT_RE.prazo.test(x) && !NAT_RE.pagIntencao.test(x) ? natFrasePrazo() : natFrase(nat, nm, 'I')) + ' ||| [[INFORMATIVO]]', k: 'fluxo-B' };
   const curto = x.length <= 220;
   const limpLar = NAT_RE.limpeza.test(x); // limpeza do lar/reiki (nunca explicar)
   const limpPessoa = !limpLar && /limpe?z|limpar|limpa\b/.test(x); // limpeza espiritual/energética/astral/"limpeza" solta = motivo da pessoa: segue o fluxo normal do problema (encaixe), nunca a regra de dúvida
@@ -1796,6 +1798,12 @@ function natRoteiro(text, session) {
   if (est === 'A' && !nat.encaixe && !nat.audExpl && NAT_RE_GERAL.test(x) && !NAT_RE.fluxoTema.test(x) && !NAT_RE.pagExp.test(x)) {
     console.log('🧭 Pessoa quer tratar vários assuntos: abertura + encaixe geral + áudio (em código)');
     return { r: NAT_ABERTURA_EXPL + ' ||| ' + natEncaixeGeral(nm, text) + ' ||| [[AUDIO]]', k: 'geral' };
+  }
+  // relato do problema + pergunta de prazo/agenda juntos (na mesma mensagem ou em mensagens seguidas): acolhe, encaixe com o assunto da pessoa, reconhece a pergunta do prazo e envia o informativo
+  if (est === 'A' && !nat.encaixe && !nat.audExpl && NAT_RE.prazo.test(x) && NAT_RE.problema.test(x) && !NAT_RE.pagExp.test(x)) {
+    const sobra = String(text).split(/(?<=[?!.])\s+|\n+/).map(sn => sn.trim()).filter(Boolean).filter(sn => { const xs = semAcento(sn).toLowerCase(); return !/\?/.test(sn) && !NAT_RE.prazo.test(xs) && !NAT_RE.fluxoTema.test(xs); }).join('. ');
+    const as = sobra ? natAssuntos(sobra) : '';
+    if (as) { console.log('🧭 Problema + pergunta de prazo juntos: encaixe + ponte do prazo + informativo (em código)'); return { r: NAT_ABERTURA_EXPL + ' ||| [[ENCAIXE: ' + as + ']] ||| ' + natFrasePrazo() + ' ||| [[INFORMATIVO]]', k: 'problema-prazo' }; }
   }
   // estágios A e B: não pula etapa; qualquer dúvida de prazo/valor/limpeza etc. vai para o fluxo de explicação
   const nUser = (session.history || []).filter(h => h.role === 'user').length;
@@ -1859,6 +1867,11 @@ function natSaneia(session, resp, text) {
     partes.splice(i, 0, ...(partes.some(t => /entendo perfeitamente/i.test(t)) ? [] : [NAT_ABERTURA_EXPL]), natEncaixeGeral(nm, text)); r = partes.join(' ||| ');
   }
   const gated = /\[\[(PRAZO|RESULTADO|RELATORIO|PARTICIPACAO)\]\]/.test(r) || /dias [uú]teis|prazo de \d/i.test(sem);
+  if (est === 'A' && /\[\[ENCAIXE/.test(r) && (gated || /\[\[INFORMATIVO\]\]/.test(r)) && NAT_RE.prazo.test(semAcento(String(text || '')).toLowerCase())) {
+    const enc = r.split('|||').map(t => t.trim()).find(t => /\[\[ENCAIXE/.test(t));
+    console.log('🧱 Problema + prazo (A): encaixe mantido, ponte do prazo e informativo');
+    return NAT_ABERTURA_EXPL + ' ||| ' + enc + ' ||| ' + natFrasePrazo() + ' ||| [[INFORMATIVO]]';
+  }
   if (est === 'A' && (gated || /\[\[INFORMATIVO\]\]/.test(r))) { console.log('🧱 Sem pular etapa (A): resposta da IA trocada pelo fluxo'); return natFrase(nat, nm, 'A') + ' ||| [[AUDIO]]'; }
   if (est === 'B' && gated) { console.log('🧱 Sem pular etapa (B): resposta da IA trocada pelo fluxo'); return natFrase(nat, nm, 'I') + ' ||| [[INFORMATIVO]]'; }
   return r;
