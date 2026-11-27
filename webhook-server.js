@@ -1932,7 +1932,7 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   if (!session.clientName) { const nm = extrairNomeSeguro(text); if (nm && /\b(me chamo|meu nome|sou [oa]?\s*[A-ZÀ-Ú])/i.test(text)) session.clientName = nm; }
   if (!session.clientName && session.perfilNome) { const np = nomePerfil(session.perfilNome); if (np) { session.clientName = np; console.log('👤 Nome pelo perfil do WhatsApp: ' + np + ' (' + from + ')'); } }
   // "abre" a conversa depois de um tempo, como uma pessoa
-  await sleep(novo ? natRand(25000, 70000) : natRand(15000, 45000) + Math.round(Math.min(String(text || '').length * 70, 25000) * natCfg.vel));
+  await sleep(novo ? natRand(1500, 3500) : natRand(15000, 45000) + Math.round(Math.min(String(text || '').length * 70, 25000) * natCfg.vel));
   await natDigitando(session, false);
   // Chegou mais coisa enquanto o bot "digitava" (áudios/dúvidas em sequência): guarda e responde UMA vez, com tudo junto (no máximo 3 adiamentos seguidos)
   if ((filaN.get(from) || 0) > 1 && !mediaInfo && (nat.acumN || 0) < 3) { nat.acum = (nat.acum || []).concat(String(text || '')); nat.acumN = (nat.acumN || 0) + 1; console.log('🧺 Mais mensagens na fila: guardando e respondendo tudo junto (' + from + ')'); return true; }
@@ -1947,8 +1947,7 @@ async function natFluxo(from, text, session, mediaInfo, recebidoEm) {
   const soSite = RE_MSG_SITE.test(text) || semAcento(text).replace(/[^a-z ]/g, '').trim().split(/\s+/).length <= 3;
   if (novo && !ctx.pago) {
     const sd = soSite ? NAT_SAUDACAO : NAT_SAUDACAO_CURTA;
-    await natEsperaDigitando(session, natTempoDigitar(sd));
-    await sendMessage(from, sd);
+    await sendMessage(from, sd); // 1ª saudação sai quase instantânea (como a mensagem automática do WhatsApp); o resto da conversa segue o ritmo humano
     nat.saudou = Date.now(); nat.saidas = (nat.saidas || []).concat({ t: sd, ts: Date.now() }).slice(-12);
     session.history.push({ role: 'user', content: text }, { role: 'assistant', content: sd });
     await upsertConversation(from, session.clientName, session.stage);
