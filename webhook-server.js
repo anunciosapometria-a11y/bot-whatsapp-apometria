@@ -1594,7 +1594,7 @@ async function natEnviarInner(to, session, bruto, opcoes) {
       }
       okAntes = !b.colado && /^ok\b/i.test(b.t);
       // texto colado sai rápido; texto longo "escrito na hora" (encaixe) demora alguns minutos; balão curto, o tempo de digitar
-      const ms = b.colado ? natRand(8000, 10000) : b.t.length > 900 ? natRand(120000, 210000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
+      const ms = b.colado ? natRand(8000, 10000) : b.t.length > 900 ? natRand(225000, 255000) : natTempoDigitar(b.t) + (primeiro ? natRand(4000, 9000) : natRand(3000, 8000)) + (b.t.length > 250 ? natRand(6000, 16000) : 0);
       await natEspera2(session, ms);
       if (citar && primeiro) { const al = natAlvoCitar(session); if (al) session.citarId = al; }
       await sendMessage(to, b.t);
